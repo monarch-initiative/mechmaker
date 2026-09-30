@@ -244,6 +244,28 @@ include_site:
   help: Render a static record browser under pages/ with `just render`
   default: true
 
+site_palette:
+  type: str
+  help: >-
+    Main color of the documentation site and record browser (a Material for
+    MkDocs color name). Change it later in conf/site.yaml
+  choices: [indigo, blue, light-blue, cyan, teal, green, light-green, lime, yellow,
+            amber, orange, deep-orange, red, pink, purple, deep-purple, brown, grey, blue-grey]
+  default: indigo
+
+site_accent:
+  type: str
+  help: Highlight color, for hover and focus (a Material accent name)
+  choices: [indigo, blue, light-blue, cyan, teal, green, light-green, lime, yellow,
+            amber, orange, deep-orange, red, pink, purple, deep-purple]
+  default: "{{ site_palette if site_palette not in ['brown', 'grey', 'blue-grey'] else 'amber' }}"
+
+site_theme:
+  type: str
+  help: Light or dark pages. auto follows each visitor's system setting
+  choices: [auto, light, dark]
+  default: auto
+
 include_claude_hook:
   type: bool
   help: >-

@@ -15,5 +15,6 @@ site/
 docs/elements/
 docs/schema/
 docs/records/
+.mkdocs.site.yml
 docs/structure.md
 docs/corpus.md

@@ -155,8 +155,11 @@ docs-build:
 
 # Serve the documentation at http://127.0.0.1:8000 while you edit.
 docs-serve:
-    uv run python -m {{slug}}.docs generate
-    uv run mkdocs serve
+    uv run python -m {{slug}}.docs serve
+
+# Check conf/site.yaml and report the text contrast of the chosen colors.
+site-check:
+    uv run python -m {{slug}}.site check
 {% endraw %}{% if include_site %}{% raw %}
 # ---------------------------------------------------------------- site
 
