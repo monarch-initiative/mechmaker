@@ -1,0 +1,21 @@
+history_version: 1
+target:
+  kind: record
+  slug: go_ingest
+  path: data/ingests/go_ingest.yaml
+session:
+  id: 2026-09-30T222709Z-claude-code-bd0558
+  timestamp: '2026-09-30T22:27:09Z'
+  actors:
+  - type: ai_agent
+    name: claude-code
+    model: claude-opus-5-5
+    agent_tool: claude-code
+events:
+- type: EDIT
+  outcome: changed
+  summary: Curated GOA's and ECO's descriptions, homepages and data licenses.
+  details: 'GO data license CC BY 4.0, quoted from GO''s citation policy at geneontology.github.io 3911c58.
+    ECO license CC0 1.0, homepage and description from the OBO Foundry registry at 3779db4. GOA''s homepage
+    from the infores catalog at 1d5fa99. The thirteen species came from the conversion. Access left unset:
+    no source read says whether the downloads need an account.'

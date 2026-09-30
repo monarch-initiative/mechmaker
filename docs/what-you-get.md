@@ -51,6 +51,7 @@ just validate FILE   # all three checks on one record
 just new-record ...  # start a record
 just new-history ... # log a curation session
 just add-evidence ... # add a quote to a record, checked against its source first
+just convert ...     # run a conversion script: DRAFT records from an existing knowledge base
 just report          # count what is in the knowledge base
 just compliance      # completeness per record, lowest first
 just docs-serve      # the documentation site, locally

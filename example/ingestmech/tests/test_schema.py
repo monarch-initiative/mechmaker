@@ -1,0 +1,64 @@
+"""The schema, the vendored modules and the record rules."""
+
+import copy
+import hashlib
+from pathlib import Path
+
+import pytest
+from linkml_runtime import SchemaView
+
+from ingestmech.paths import HISTORY_SCHEMA_PATH, RECORD_CLASS, SCHEMA_DIR, SCHEMA_PATH
+from ingestmech.validate import load, rule_errors, schema_errors
+
+EXAMPLE = Path(__file__).parent / "data" / "example_record.yaml"
+
+# Fleet canon. These files are vendored byte-identical; a changed hash means
+# a local edit. Change them upstream and re-vendor, never here.
+VENDORED_MD5 = {
+    "mech_shared.yaml": "3cf80648642fcd1f824529bc40c572a5",
+    "history.yaml": "3742bc2068b637868c48aba406f6569d",
+}
+
+
+@pytest.fixture
+def example() -> dict:
+    return load(EXAMPLE)
+
+
+def test_schema_loads():
+    sv = SchemaView(str(SCHEMA_PATH))
+    assert RECORD_CLASS in sv.all_classes()
+    assert sv.get_class(RECORD_CLASS).tree_root
+
+
+@pytest.mark.parametrize("name,md5", VENDORED_MD5.items())
+def test_vendored_modules_are_unmodified(name, md5):
+    assert hashlib.md5((SCHEMA_DIR / name).read_bytes()).hexdigest() == md5
+
+
+def test_example_is_valid(example):
+    assert schema_errors(example) == []
+    assert rule_errors(example) == []
+
+
+def test_unknown_field_is_rejected(example):
+    bad = copy.deepcopy(example)
+    bad["not_a_field"] = 1
+    assert schema_errors(bad)
+
+
+def test_name_is_required(example):
+    bad = copy.deepcopy(example)
+    del bad["name"]
+    assert schema_errors(bad)
+
+
+def test_reviewed_needs_a_human_review_event(example):
+    bad = copy.deepcopy(example)
+    bad["status"] = "REVIEWED"
+    assert any("REVIEWED" in e for e in rule_errors(bad))
+
+
+def test_history_schema_loads():
+    sv = SchemaView(str(HISTORY_SCHEMA_PATH))
+    assert "HistoryRecord" in sv.all_classes()

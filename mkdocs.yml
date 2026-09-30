@@ -47,6 +47,7 @@ nav:
   - Home: index.md
   - Getting started: getting-started.md
   - "Walkthrough: GoatMech": walkthrough.md
+  - "Walkthrough: converting a knowledge base": walkthrough-conversion.md
   - Already have a knowledge base?: existing-knowledge-base.md
   - What a Mech contains: what-you-get.md
   - Workflows: workflows.md
@@ -57,6 +58,7 @@ nav:
       - make-mech: skills/make-mech.md
       - survey-domain: skills/survey-domain.md
       - design-mech-schema: skills/design-mech-schema.md
+      - convert-knowledge-base: skills/convert-knowledge-base.md
       - register-mech: skills/register-mech.md
   - Reference:
       - Copier questions: reference/questions.md

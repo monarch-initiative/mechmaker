@@ -1,0 +1,381 @@
+id: ingestmech:go-ingest
+name: go-ingest
+description: Modular ingest for Gene Ontology annotations. Creates gene-to-GO term associations for molecular activity, biological process, and cellular component.
+repository: https://github.com/monarch-initiative/go-ingest
+source_commit: fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca
+code_license:
+  name: MIT
+  spdx_id: MIT
+  evidence:
+    - reference: url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/.copier-answers.yml
+      supports: SUPPORT
+      evidence_source: INGEST_REPOSITORY
+      snippet: 'license: MIT'
+upstream_sources:
+  - infores: infores:goa
+    name: GO Annotations (GOA)
+    description: The Gene Ontology provides annotations linking genes to GO terms describing molecular functions, biological processes, and cellular components.
+    homepage: http://www.geneontology.org/
+    data_license:
+      name: Creative Commons Attribution 4.0 Unported License
+      spdx_id: CC-BY-4.0
+      url: https://creativecommons.org/licenses/by/4.0/legalcode
+      evidence:
+        - reference: url:https://raw.githubusercontent.com/geneontology/geneontology.github.io/3911c58b7a09a5f925672debdc88ef20b78d32e4/_docs/go-citation-policy.md
+          supports: SUPPORT
+          evidence_source: SOURCE_DOCUMENTATION
+          snippet: Gene Ontology Consortium data and data products are licensed under the ... Creative Commons Attribution 4.0 Unported License
+          explanation: The GO Consortium's terms for its data products, which include the annotation files it distributes.
+    files:
+      - download_url: http://current.geneontology.org/annotations/gaf/HUMAN-uniprot.gaf.gz
+        local_name: data/9606.go_annotations.gaf.gz
+        evidence:
+          - reference: url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/download.yaml
+            supports: SUPPORT
+            evidence_source: INGEST_REPOSITORY
+            snippet: 'url: http://current.geneontology.org/annotations/gaf/HUMAN-uniprot.gaf.gz'
+      - download_url: http://current.geneontology.org/annotations/gaf/MOUSE-mod.gaf.gz
+        local_name: data/10090.go_annotations.gaf.gz
+        evidence:
+          - reference: url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/download.yaml
+            supports: SUPPORT
+            evidence_source: INGEST_REPOSITORY
+            snippet: 'url: http://current.geneontology.org/annotations/gaf/MOUSE-mod.gaf.gz'
+      - download_url: http://current.geneontology.org/annotations/gaf/RAT-mod.gaf.gz
+        local_name: data/10116.go_annotations.gaf.gz
+        evidence:
+          - reference: url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/download.yaml
+            supports: SUPPORT
+            evidence_source: INGEST_REPOSITORY
+            snippet: 'url: http://current.geneontology.org/annotations/gaf/RAT-mod.gaf.gz'
+      - download_url: http://current.geneontology.org/annotations/gaf/CANLF-uniprot.gaf.gz
+        local_name: data/9615.go_annotations.gaf.gz
+        evidence:
+          - reference: url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/download.yaml
+            supports: SUPPORT
+            evidence_source: INGEST_REPOSITORY
+            snippet: 'url: http://current.geneontology.org/annotations/gaf/CANLF-uniprot.gaf.gz'
+      - download_url: http://current.geneontology.org/annotations/gaf/BOVIN-uniprot.gaf.gz
+        local_name: data/9913.go_annotations.gaf.gz
+        evidence:
+          - reference: url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/download.yaml
+            supports: SUPPORT
+            evidence_source: INGEST_REPOSITORY
+            snippet: 'url: http://current.geneontology.org/annotations/gaf/BOVIN-uniprot.gaf.gz'
+      - download_url: http://current.geneontology.org/annotations/gaf/PIG-uniprot.gaf.gz
+        local_name: data/9823.go_annotations.gaf.gz
+        evidence:
+          - reference: url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/download.yaml
+            supports: SUPPORT
+            evidence_source: INGEST_REPOSITORY
+            snippet: 'url: http://current.geneontology.org/annotations/gaf/PIG-uniprot.gaf.gz'
+      - download_url: http://current.geneontology.org/annotations/gaf/CHICK-uniprot.gaf.gz
+        local_name: data/9031.go_annotations.gaf.gz
+        evidence:
+          - reference: url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/download.yaml
+            supports: SUPPORT
+            evidence_source: INGEST_REPOSITORY
+            snippet: 'url: http://current.geneontology.org/annotations/gaf/CHICK-uniprot.gaf.gz'
+      - download_url: http://current.geneontology.org/annotations/gaf/DANRE-mod.gaf.gz
+        local_name: data/7955.go_annotations.gaf.gz
+        evidence:
+          - reference: url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/download.yaml
+            supports: SUPPORT
+            evidence_source: INGEST_REPOSITORY
+            snippet: 'url: http://current.geneontology.org/annotations/gaf/DANRE-mod.gaf.gz'
+      - download_url: http://current.geneontology.org/annotations/gaf/DROME-mod.gaf.gz
+        local_name: data/7227.go_annotations.gaf.gz
+        evidence:
+          - reference: url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/download.yaml
+            supports: SUPPORT
+            evidence_source: INGEST_REPOSITORY
+            snippet: 'url: http://current.geneontology.org/annotations/gaf/DROME-mod.gaf.gz'
+      - download_url: http://current.geneontology.org/annotations/gaf/CAEEL-mod.gaf.gz
+        local_name: data/6239.go_annotations.gaf.gz
+        evidence:
+          - reference: url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/download.yaml
+            supports: SUPPORT
+            evidence_source: INGEST_REPOSITORY
+            snippet: 'url: http://current.geneontology.org/annotations/gaf/CAEEL-mod.gaf.gz'
+      - download_url: http://current.geneontology.org/annotations/gaf/DICDI-mod.gaf.gz
+        local_name: data/44689.go_annotations.gaf.gz
+        evidence:
+          - reference: url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/download.yaml
+            supports: SUPPORT
+            evidence_source: INGEST_REPOSITORY
+            snippet: 'url: http://current.geneontology.org/annotations/gaf/DICDI-mod.gaf.gz'
+      - download_url: http://current.geneontology.org/annotations/gaf/YEAST-mod.gaf.gz
+        local_name: data/4932.go_annotations.gaf.gz
+        evidence:
+          - reference: url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/download.yaml
+            supports: SUPPORT
+            evidence_source: INGEST_REPOSITORY
+            snippet: 'url: http://current.geneontology.org/annotations/gaf/YEAST-mod.gaf.gz'
+      - download_url: http://current.geneontology.org/annotations/gaf/SCHPO-mod.gaf.gz
+        local_name: data/4896.go_annotations.gaf.gz
+        evidence:
+          - reference: url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/download.yaml
+            supports: SUPPORT
+            evidence_source: INGEST_REPOSITORY
+            snippet: 'url: http://current.geneontology.org/annotations/gaf/SCHPO-mod.gaf.gz'
+    evidence:
+      - reference: url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/src/versions.py
+        supports: SUPPORT
+        evidence_source: INGEST_REPOSITORY
+        snippet: '"id": "infores:goa", "name": "GO Annotations (GOA)"'
+        explanation: The ingest's own name and id for the source.
+      - reference: url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/README.md
+        supports: SUPPORT
+        evidence_source: INGEST_REPOSITORY
+        snippet: provides annotations linking genes to GO terms describing molecular functions, biological processes, and cellular components.
+        explanation: The description of the source.
+      - reference: url:https://raw.githubusercontent.com/biolink/information-resource-registry/1d5fa9924e518315dbcbeb87c80e9d783c8fd2fc/infores_catalog.yaml
+        supports: SUPPORT
+        evidence_source: REGISTRY
+        snippet: 'name: Gene Ontology Annotations id: infores:goa xref: - http://www.geneontology.org/'
+        explanation: The catalog's homepage for the source.
+  - infores: infores:eco
+    name: Evidence & Conclusion Ontology (gaf-eco-mapping)
+    description: An ontology for experimental and other evidence statements.
+    homepage: https://www.evidenceontology.org
+    data_license:
+      name: CC0 1.0
+      spdx_id: CC0-1.0
+      url: https://creativecommons.org/publicdomain/zero/1.0/
+      evidence:
+        - reference: url:https://raw.githubusercontent.com/OBOFoundry/OBOFoundry.github.io/3779db4e6678b5550c40efa2995359b84539d758/ontology/eco.md
+          supports: SUPPORT
+          evidence_source: REGISTRY
+          snippet: 'license: label: CC0 1.0 url: https://creativecommons.org/publicdomain/zero/1.0/'
+          explanation: The OBO Foundry license of ECO, whose repository holds gaf-eco-mapping.txt.
+    files:
+      - download_url: https://raw.githubusercontent.com/evidenceontology/evidenceontology/master/gaf-eco-mapping.txt
+        local_name: data/gaf-eco-mapping.txt
+        evidence:
+          - reference: url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/download.yaml
+            supports: SUPPORT
+            evidence_source: INGEST_REPOSITORY
+            snippet: 'url: https://raw.githubusercontent.com/evidenceontology/evidenceontology/master/gaf-eco-mapping.txt'
+    evidence:
+      - reference: url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/src/versions.py
+        supports: SUPPORT
+        evidence_source: INGEST_REPOSITORY
+        snippet: '"id": "infores:eco", "name": "Evidence & Conclusion Ontology (gaf-eco-mapping)"'
+        explanation: The ingest's own name and id for the source.
+      - reference: url:https://raw.githubusercontent.com/OBOFoundry/OBOFoundry.github.io/3779db4e6678b5550c40efa2995359b84539d758/ontology/eco.md
+        supports: SUPPORT
+        evidence_source: REGISTRY
+        snippet: 'description: An ontology for experimental and other evidence statements.'
+        explanation: The description of the source.
+      - reference: url:https://raw.githubusercontent.com/OBOFoundry/OBOFoundry.github.io/3779db4e6678b5550c40efa2995359b84539d758/ontology/eco.md
+        supports: SUPPORT
+        evidence_source: REGISTRY
+        snippet: 'homepage: https://www.evidenceontology.org'
+        explanation: The source's homepage.
+organisms:
+  - preferred_term: Human
+    term:
+      id: NCBITaxon:9606
+      label: Homo sapiens
+    evidence:
+      - reference: url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/README.md
+        supports: SUPPORT
+        evidence_source: INGEST_REPOSITORY
+        snippet: Human (NCBITaxon:9606)
+  - preferred_term: Mouse
+    term:
+      id: NCBITaxon:10090
+      label: Mus musculus
+    evidence:
+      - reference: url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/README.md
+        supports: SUPPORT
+        evidence_source: INGEST_REPOSITORY
+        snippet: Mouse (NCBITaxon:10090)
+  - preferred_term: Rat
+    term:
+      id: NCBITaxon:10116
+      label: Rattus norvegicus
+    evidence:
+      - reference: url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/README.md
+        supports: SUPPORT
+        evidence_source: INGEST_REPOSITORY
+        snippet: Rat (NCBITaxon:10116)
+  - preferred_term: Dog
+    term:
+      id: NCBITaxon:9615
+      label: Canis lupus familiaris
+    evidence:
+      - reference: url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/README.md
+        supports: SUPPORT
+        evidence_source: INGEST_REPOSITORY
+        snippet: Dog (NCBITaxon:9615)
+  - preferred_term: Pig
+    term:
+      id: NCBITaxon:9823
+      label: Sus scrofa
+    evidence:
+      - reference: url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/README.md
+        supports: SUPPORT
+        evidence_source: INGEST_REPOSITORY
+        snippet: Pig (NCBITaxon:9823)
+  - preferred_term: Cow
+    term:
+      id: NCBITaxon:9913
+      label: Bos taurus
+    evidence:
+      - reference: url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/README.md
+        supports: SUPPORT
+        evidence_source: INGEST_REPOSITORY
+        snippet: Cow (NCBITaxon:9913)
+  - preferred_term: Chicken
+    term:
+      id: NCBITaxon:9031
+      label: Gallus gallus
+    evidence:
+      - reference: url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/README.md
+        supports: SUPPORT
+        evidence_source: INGEST_REPOSITORY
+        snippet: Chicken (NCBITaxon:9031)
+  - preferred_term: Zebrafish
+    term:
+      id: NCBITaxon:7955
+      label: Danio rerio
+    evidence:
+      - reference: url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/README.md
+        supports: SUPPORT
+        evidence_source: INGEST_REPOSITORY
+        snippet: Zebrafish (NCBITaxon:7955)
+  - preferred_term: Fruit fly
+    term:
+      id: NCBITaxon:7227
+      label: Drosophila melanogaster
+    evidence:
+      - reference: url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/README.md
+        supports: SUPPORT
+        evidence_source: INGEST_REPOSITORY
+        snippet: Fruit fly (NCBITaxon:7227)
+  - preferred_term: Baker's yeast
+    term:
+      id: NCBITaxon:4932
+      label: Saccharomyces cerevisiae
+    evidence:
+      - reference: url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/README.md
+        supports: SUPPORT
+        evidence_source: INGEST_REPOSITORY
+        snippet: Baker's yeast (NCBITaxon:4932)
+  - preferred_term: Fission yeast
+    term:
+      id: NCBITaxon:4896
+      label: Schizosaccharomyces pombe
+    evidence:
+      - reference: url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/README.md
+        supports: SUPPORT
+        evidence_source: INGEST_REPOSITORY
+        snippet: Fission yeast (NCBITaxon:4896)
+  - preferred_term: C. elegans
+    term:
+      id: NCBITaxon:6239
+      label: Caenorhabditis elegans
+    evidence:
+      - reference: url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/README.md
+        supports: SUPPORT
+        evidence_source: INGEST_REPOSITORY
+        snippet: C. elegans (NCBITaxon:6239)
+  - preferred_term: Dictyostelium
+    term:
+      id: NCBITaxon:44689
+      label: Dictyostelium discoideum
+    evidence:
+      - reference: url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/README.md
+        supports: SUPPORT
+        evidence_source: INGEST_REPOSITORY
+        snippet: Dictyostelium (NCBITaxon:44689)
+associations:
+  - category: biolink:MacromolecularMachineToMolecularActivityAssociation
+    evidence:
+      - reference: url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/README.md
+        supports: SUPPORT
+        evidence_source: INGEST_REPOSITORY
+        snippet: Molecular Activity** (Aspect F) — `MacromolecularMachineToMolecularActivityAssociation`
+  - category: biolink:MacromolecularMachineToBiologicalProcessAssociation
+    evidence:
+      - reference: url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/README.md
+        supports: SUPPORT
+        evidence_source: INGEST_REPOSITORY
+        snippet: Biological Process** (Aspect P) — `MacromolecularMachineToBiologicalProcessAssociation`
+  - category: biolink:MacromolecularMachineToCellularComponentAssociation
+    evidence:
+      - reference: url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/README.md
+        supports: SUPPORT
+        evidence_source: INGEST_REPOSITORY
+        snippet: Cellular Component** (Aspect C) — `MacromolecularMachineToCellularComponentAssociation`
+koza_transforms:
+  - gaf_eco
+  - go_annotation
+evidence:
+  - reference: url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/.copier-answers.yml
+    supports: SUPPORT
+    evidence_source: INGEST_REPOSITORY
+    snippet: 'project_description: Modular ingest for Gene Ontology annotations. Creates gene-to-GO term associations for molecular activity, biological process, and cellular component.'
+    explanation: The record's description is the repository's own.
+discussions:
+  - discussion_id: go-ingest-data-licenses
+    prompt: No ingest records the terms of its upstream data. Curate each source's data_license from the source's own terms.
+    kind: CURATION_TODO
+    status: RESOLVED
+    attaches_to:
+      - upstream_sources
+    resolved_date: '2026-09-30'
+    resolution_note: "Both sources' terms are recorded: GO's from its citation policy, ECO's from the OBO Foundry registry."
+status: PROPOSED
+creation_date: '2026-09-30'
+curation_history:
+  - timestamp: '2026-09-30T22:19:00+00:00'
+    curator: claude-code
+    llm_assisted: true
+    model: claude-opus-5-5
+    action: CREATE
+    description: Converted from Monarch ingest repositories, entry go-ingest.
+  - timestamp: '2026-09-30T22:26:34+00:00'
+    curator: claude-code
+    llm_assisted: true
+    model: claude-opus-5-5
+    action: EDIT
+    description: Added evidence from url:https://raw.githubusercontent.com/geneontology/geneontology.github.io/3911c58b7a09a5f925672debdc88ef20b78d32e4/_docs/go-citation-policy.md to upstream_sources[0].data_license.
+  - timestamp: '2026-09-30T22:26:35+00:00'
+    curator: claude-code
+    llm_assisted: true
+    model: claude-opus-5-5
+    action: EDIT
+    description: Added evidence from url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/README.md to upstream_sources[0].
+  - timestamp: '2026-09-30T22:26:36+00:00'
+    curator: claude-code
+    llm_assisted: true
+    model: claude-opus-5-5
+    action: EDIT
+    description: Added evidence from url:https://raw.githubusercontent.com/biolink/information-resource-registry/1d5fa9924e518315dbcbeb87c80e9d783c8fd2fc/infores_catalog.yaml to upstream_sources[0].
+  - timestamp: '2026-09-30T22:26:38+00:00'
+    curator: claude-code
+    llm_assisted: true
+    model: claude-opus-5-5
+    action: EDIT
+    description: Added evidence from url:https://raw.githubusercontent.com/OBOFoundry/OBOFoundry.github.io/3779db4e6678b5550c40efa2995359b84539d758/ontology/eco.md to upstream_sources[1].data_license.
+  - timestamp: '2026-09-30T22:26:39+00:00'
+    curator: claude-code
+    llm_assisted: true
+    model: claude-opus-5-5
+    action: EDIT
+    description: Added evidence from url:https://raw.githubusercontent.com/OBOFoundry/OBOFoundry.github.io/3779db4e6678b5550c40efa2995359b84539d758/ontology/eco.md to upstream_sources[1].
+  - timestamp: '2026-09-30T22:26:41+00:00'
+    curator: claude-code
+    llm_assisted: true
+    model: claude-opus-5-5
+    action: EDIT
+    description: Added evidence from url:https://raw.githubusercontent.com/OBOFoundry/OBOFoundry.github.io/3779db4e6678b5550c40efa2995359b84539d758/ontology/eco.md to upstream_sources[1].
+  - timestamp: '2026-09-30T22:26:55+00:00'
+    curator: claude-code
+    llm_assisted: true
+    model: claude-opus-5-5
+    action: EDIT
+    description: Curated the upstream sources' descriptions, homepages and data licenses from the sources, closed the gaps that sources filled, and set status PROPOSED.
+updated_date: '2026-09-30'

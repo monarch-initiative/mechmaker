@@ -1,35 +1,37 @@
 # Already have a knowledge base?
 
-You can turn it into a Mech. mechmaker does not convert data on its own
-yet, so plan on some work, most of which an agent can do for you. A
-dedicated conversion skill is planned
-([issue #1](https://github.com/monarch-initiative/mechmaker/issues/1)).
+You can turn it into a Mech. Ask your agent to run the
+[`convert-knowledge-base`](skills/convert-knowledge-base.md) skill. The
+[conversion walkthrough](walkthrough-conversion.md) shows one real run.
 
-## The usual path
+## What happens
 
-1. **Start a new Mech** for the same topic, as in
-   [Getting started](getting-started.md). Keep the existing knowledge base
-   where it is. It becomes a source for the new one.
-2. **Shape the data model to fit what you have.** Ask the agent to run the
-   [`design-mech-schema`](skills/design-mech-schema.md) skill and point it
-   at your data. Your current fields tell it which sections a record needs.
-3. **Write a conversion script** that reads your data and writes one Mech
-   record per entry. The new Mech includes a helper,
-   `write_validated_record`, that refuses to save a record that fails the
-   checks. Converted records start as `DRAFT`.
-4. **Bring the evidence up to standard.** This is usually the biggest job.
-   A Mech needs each claim to quote its source word for word. If your
-   knowledge base already cites papers, the agent can fetch each one and
-   find the supporting sentence. Claims with no source become open questions
-   in the record, and are kept, not thrown away.
-5. **Review in batches.** Send converted records through pull requests a
-   few dozen at a time, so people can actually read them.
+1. **The agent surveys what you have.** It counts your entries and fields,
+   checks a sample of your identifiers, and reads your license. If the
+   license does not allow your content to be republished, it stops and
+   asks you.
+2. **It makes a Mech that can hold it.** Your fields become the starting
+   point for the data model.
+3. **It writes a conversion script.** The script reads your knowledge base
+   and writes one record per entry through the Mech's checks. Every new
+   Mech has a helper for this, `just convert`. It never overwrites a
+   record, and it reports each entry it could not convert and why.
+4. **It converts a few entries first.** Three to five, as a trial. Problems
+   with the data model are cheap to fix with five records and costly with
+   five thousand.
+5. **It fills in what your knowledge base never recorded.** Each copied fact
+   carries a quote of where it came from, so the checks can confirm it.
+   Each gap is written into the record as work to do, and the agent curates
+   what it can from other sources. What it cannot source stays marked as a
+   gap.
+6. **The rest goes in batches** of a few dozen records per pull request, so
+   people can read them.
+
+Your existing knowledge base stays where it is. The Mech lists it as the
+source its records were derived from.
 
 ## A good first request
 
-> I have a knowledge base of X at (path or URL). Survey it, then make a Mech
-> that can hold it, and convert five entries as a trial.
-
-Try a handful of entries before converting everything. Problems with the
-data model are cheap to fix with five records and costly with five
-thousand.
+> I have a knowledge base of X at (path or URL). Use the
+> convert-knowledge-base skill to make a Mech that can hold it, and convert
+> five entries as a trial.

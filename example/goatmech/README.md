@@ -40,7 +40,7 @@ just docs-serve     # browse the documentation locally
 ```
 
 The documentation is published at
-https://monarch-initiative.github.io/goatmech/.
+https://monarch-initiative.github.io/mechmaker/example/goatmech/.
 
 ## Validation
 

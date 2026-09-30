@@ -1,11 +1,15 @@
-# Example: GoatMech
+# Examples
 
-A Mech for goat breeds, made with mechmaker's skills and template to show
-the whole path, from a request to curated records. The walkthrough is on
-the documentation site: https://monarch-initiative.github.io/mechmaker/walkthrough/
+Two Mechs made with mechmaker's skills and template, to show the whole path
+from a request to curated records. Each one's git history shows every step
+as its own commit, starting with the untouched template output.
 
-GoatMech's own site, with its record browser, is published with mechmaker's:
-https://monarch-initiative.github.io/mechmaker/example/goatmech/
+## GoatMech: a Mech from nothing
+
+A Mech for goat breeds. Walkthrough:
+https://monarch-initiative.github.io/mechmaker/walkthrough/
+
+Site and record browser: https://monarch-initiative.github.io/mechmaker/example/goatmech/
 
 | Path | What it is |
 |---|---|
@@ -13,8 +17,19 @@ https://monarch-initiative.github.io/mechmaker/example/goatmech/
 | `answers.yml` | The Copier answers the Mech was generated from |
 | `goatmech/` | The Mech: template output, then the design, then three curated records |
 
-The git history of `goatmech/` shows each step as its own commit, starting
-with the untouched template output.
+## IngestMech: a Mech converted from a knowledge base
 
-GoatMech is an example. It is not a published knowledge base and its three
-records are not a survey of goat breeds.
+A Mech for the Monarch Initiative's data ingests, converted from the
+ingest repositories with the `convert-knowledge-base` skill. Walkthrough:
+https://monarch-initiative.github.io/mechmaker/walkthrough-conversion/
+
+Site and record browser: https://monarch-initiative.github.io/mechmaker/example/ingestmech/
+
+| Path | What it is |
+|---|---|
+| `ingest-survey-brief.md` | The survey of the existing knowledge base and the domain |
+| `ingest-answers.yml` | The Copier answers the Mech was generated from |
+| `ingestmech/` | The Mech: template output, the design, the conversion script, three converted and curated records |
+
+Both are examples. Neither is a published knowledge base, and their records
+are not surveys of goat breeds or of Monarch's ingests.

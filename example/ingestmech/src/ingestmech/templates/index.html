@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ site.title }}</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header><h1>{{ site.title }}</h1><p><a href="../index.html">Documentation</a> · <a href="{{ repo_url }}">Repository</a></p></header>
+<main>
+<p>{{ records | length }} {{ record_noun }} record(s).</p>
+<input id="filter" type="search" placeholder="Filter" aria-label="Filter">
+<table id="records">
+<thead><tr>{% for col in site.index_columns %}<th>{{ col | replace("_", " ") | capitalize }}</th>{% endfor %}</tr></thead>
+<tbody>
+{%- for r in records %}
+<tr>{% for col in site.index_columns %}<td>{% if loop.first %}<a href="records/{{ r.stem }}.html">{{ r.data.get(col) | cell or r.stem }}</a>{% else %}{{ r.data.get(col) | cell }}{% endif %}</td>{% endfor %}</tr>
+{%- endfor %}
+</tbody>
+</table>
+</main>
+<footer><p>{{ site.footer }}</p></footer>
+<script>
+document.getElementById("filter").addEventListener("input", e => {
+  const q = e.target.value.toLowerCase();
+  for (const row of document.querySelectorAll("#records tbody tr")) {
+    row.hidden = !row.textContent.toLowerCase().includes(q);
+  }
+});
+</script>
+</body>
+</html>

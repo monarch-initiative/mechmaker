@@ -1,0 +1,76 @@
+---
+name: ontology-terms
+description: >-
+  Choose, bind, check or repair ontology terms in IngestMech records and
+  in the schema's dynamic enums. Use when adding a `term`, fixing a label
+  mismatch or an enum-root failure, choosing an OAK adapter, or adding a new
+  ontology prefix to conf/oak_config.yaml.
+---
+
+# Ontology terms
+
+## Where the rules live
+
+- Each descriptor class in `src/ingestmech/schema/ingestmech.yaml`
+  binds `term.id` to a dynamic enum. The enum's `reachable_from` root says
+  which terms are allowed.
+- `conf/oak_config.yaml` says which service answers for which prefix. A
+  prefix that is not listed is never checked. That is a silent hole.
+- `cache/` holds every answer the validator has received. It is committed.
+
+## Choosing a term
+
+1. Read the slot's range and its enum root in the schema.
+2. Search broadly, with synonyms:
+
+   ```bash
+   just search-term ols:<ontology> "<text>"
+   ```
+
+3. Inspect each candidate before choosing. Definition, then ancestors:
+
+   ```bash
+   just term-info ols:<ontology> <CURIE>
+   just term-ancestors <CURIE>              # is-a ancestors, via the OLS API
+   just term-under <CURIE> <enum-root>      # exit 0 if it sits under the root
+   ```
+
+   `runoak ancestors` does not work over `ols:` adapters. Use the recipes
+   above, or a `sqlite:obo:<name>` adapter if you need relationship detail.
+
+4. Choose the most specific term that is accurate. If only a broad one fits,
+   bind the broad one and say in `notes` what you searched for.
+5. Copy the label exactly as the ontology gives it.
+
+"Nothing more specific exists" is a claim someone can check. Name the
+queries you ran in `notes` so they can.
+
+## Validating
+
+```bash
+just validate-terms data/ingests/<stem>.yaml
+just validate-terms-offline data/ingests/<stem>.yaml   # cache only
+```
+
+| Failure | Usual cause | Fix |
+|---|---|---|
+| label mismatch | label typed from memory | copy the ontology label |
+| not reachable from root | wrong term, or the right term under another branch | `just term-ancestors`; rechoose; change the root only through `extend-schema` |
+| term not found | invented or obsolete CURIE | search again; check for a replacement |
+| lookup timed out | the service did not answer | retry later; do not change the term |
+
+## Adding an ontology
+
+1. Add the prefix and its URI to `prefixes:` in the schema.
+2. Add the prefix and adapter to `conf/oak_config.yaml`. Prefer `ols:<name>`.
+   Use `sqlite:obo:<name>` when the ontology is large and heavily used.
+3. Add a descriptor class and a dynamic enum with a verified root. Check
+   the root with `just term-info`, and check that the terms you expect to
+   bind sit under it with `just term-under`, before you write it down.
+4. Run `just qc` and `just validate-terms-all`.
+
+## Missing terms
+
+A missing term is a finding. Keep `preferred_term`, leave `term` out, and
+open a `CURATION_TODO` discussion naming the ontology and the concept. If it
+matters, draft a new-term request for the ontology's tracker and link it.

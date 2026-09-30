@@ -1,0 +1,22 @@
+history_version: 1
+target:
+  kind: record
+  slug: omim_ingest
+  path: data/ingests/omim_ingest.yaml
+session:
+  id: 2026-09-30T222708Z-claude-code-f23918
+  timestamp: '2026-09-30T22:27:08Z'
+  actors:
+  - type: ai_agent
+    name: claude-code
+    model: claude-opus-5-5
+    agent_tool: claude-code
+events:
+- type: EDIT
+  outcome: changed
+  summary: Curated OMIM's description, homepage, access and species; its data license stays a knowledge
+    gap.
+  details: Description and access (requires access key) quoted from the ingest README; homepage from the
+    infores catalog at 1d5fa99; holdings from OMIM's paper, PMID:30445645. Species Homo sapiens (NCBITaxon:9606).
+    OMIM's terms page answered 403 to scripted requests, so the data license is not recorded and the discussion
+    is now a KNOWLEDGE_GAP for a person with an OMIM account.

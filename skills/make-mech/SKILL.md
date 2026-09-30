@@ -27,6 +27,10 @@ that need judgment about the domain.
 | 5. Seed records | you, with the new Mech's `curate-record` | 3 to 5 exemplar records |
 | 6. Register | you, with `register-mech` | a MechRegistry pull request |
 
+If the person already has a knowledge base to bring in, use
+`convert-knowledge-base` instead. It follows these steps and adds the
+survey of the old knowledge base, the conversion script and its trial.
+
 Do not skip to step 3. A Mech generated from unexamined answers has the wrong
 record type, the wrong identity ontology, or the wrong root, and every one
 of those is expensive to change once records exist.

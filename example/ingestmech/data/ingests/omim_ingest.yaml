@@ -1,0 +1,152 @@
+id: ingestmech:omim-ingest
+name: omim-ingest
+description: OMIM gene to disease associations
+repository: https://github.com/monarch-initiative/omim-ingest
+source_commit: de31fd083c8fd894eda3767085fa0452f581298c
+code_license:
+  name: BSD-3-Clause
+  spdx_id: BSD-3-Clause
+  evidence:
+    - reference: url:https://raw.githubusercontent.com/monarch-initiative/omim-ingest/de31fd083c8fd894eda3767085fa0452f581298c/.copier-answers.yml
+      supports: SUPPORT
+      evidence_source: INGEST_REPOSITORY
+      snippet: 'license: BSD-3-Clause'
+upstream_sources:
+  - infores: infores:omim
+    name: OMIM (Online Mendelian Inheritance in Man)
+    access: REGISTRATION_REQUIRED
+    description: OMIM (Online Mendelian Inheritance in Man) is a comprehensive database of human genes and genetic phenotypes.
+    homepage: https://www.omim.org/about
+    files:
+      - download_url: https://data.omim.org/downloads/{MONARCH_OMIM_DOWNLOAD_KEY}/morbidmap.txt
+        local_name: data/morbidmap.txt
+        evidence:
+          - reference: url:https://raw.githubusercontent.com/monarch-initiative/omim-ingest/de31fd083c8fd894eda3767085fa0452f581298c/download.yaml
+            supports: SUPPORT
+            evidence_source: INGEST_REPOSITORY
+            snippet: 'url: https://data.omim.org/downloads/{MONARCH_OMIM_DOWNLOAD_KEY}/morbidmap.txt'
+    evidence:
+      - reference: url:https://raw.githubusercontent.com/monarch-initiative/omim-ingest/de31fd083c8fd894eda3767085fa0452f581298c/src/versions.py
+        supports: SUPPORT
+        evidence_source: INGEST_REPOSITORY
+        snippet: '"id": "infores:omim", "name": "OMIM (Online Mendelian Inheritance in Man)"'
+        explanation: The ingest's own name and id for the source.
+      - reference: url:https://raw.githubusercontent.com/monarch-initiative/omim-ingest/de31fd083c8fd894eda3767085fa0452f581298c/README.md
+        supports: SUPPORT
+        evidence_source: INGEST_REPOSITORY
+        snippet: Data is downloaded from OMIM's data portal (requires access key)
+        explanation: Why access is REGISTRATION_REQUIRED, with the key placeholder in download.yaml.
+      - reference: url:https://raw.githubusercontent.com/biolink/information-resource-registry/1d5fa9924e518315dbcbeb87c80e9d783c8fd2fc/infores_catalog.yaml
+        supports: SUPPORT
+        evidence_source: REGISTRY
+        snippet: 'name: Online Mendelian Inheritance in Man (OMIM) id: infores:omim xref: - https://www.omim.org/about'
+        explanation: The catalog's homepage for the source.
+      - reference: PMID:30445645
+        reference_title: 'OMIM.org: leveraging knowledge across phenotype-gene relationships.'
+        supports: SUPPORT
+        evidence_source: PUBLICATION
+        snippet: grew to be the primary repository of curated information on both genes and genetic phenotypes and the relationships between them
+        explanation: The source's own paper on what it holds.
+      - reference: url:https://raw.githubusercontent.com/monarch-initiative/omim-ingest/de31fd083c8fd894eda3767085fa0452f581298c/README.md
+        supports: SUPPORT
+        evidence_source: INGEST_REPOSITORY
+        snippet: (Online Mendelian Inheritance in Man) is a comprehensive database of human genes and genetic phenotypes, with a particular focus on the molecular relationship between genetic variation and phenotypic expression.
+        explanation: The description of the source.
+organisms:
+  - preferred_term: human
+    term:
+      id: NCBITaxon:9606
+      label: Homo sapiens
+    evidence:
+      - reference: url:https://raw.githubusercontent.com/monarch-initiative/omim-ingest/de31fd083c8fd894eda3767085fa0452f581298c/README.md
+        supports: SUPPORT
+        evidence_source: INGEST_REPOSITORY
+        snippet: a comprehensive database of human genes and genetic phenotypes
+        explanation: OMIM's genes and phenotypes are human.
+associations:
+  - category: biolink:CausalGeneToDiseaseAssociation
+    predicates:
+      - biolink:causes
+    evidence:
+      - reference: url:https://raw.githubusercontent.com/monarch-initiative/omim-ingest/de31fd083c8fd894eda3767085fa0452f581298c/README.md
+        supports: SUPPORT
+        evidence_source: INGEST_REPOSITORY
+        snippet: 3 (molecular basis known) | No | `CausalGeneToDiseaseAssociation` | `biolink:causes`
+  - category: biolink:CorrelatedGeneToDiseaseAssociation
+    predicates:
+      - biolink:contributes_to
+    evidence:
+      - reference: url:https://raw.githubusercontent.com/monarch-initiative/omim-ingest/de31fd083c8fd894eda3767085fa0452f581298c/README.md
+        supports: SUPPORT
+        evidence_source: INGEST_REPOSITORY
+        snippet: 1 or 2 (mapped gene/phenotype) | No | `CorrelatedGeneToDiseaseAssociation` | `biolink:contributes_to`
+koza_transforms:
+  - omim_gene_to_disease
+evidence:
+  - reference: url:https://raw.githubusercontent.com/monarch-initiative/omim-ingest/de31fd083c8fd894eda3767085fa0452f581298c/.copier-answers.yml
+    supports: SUPPORT
+    evidence_source: INGEST_REPOSITORY
+    snippet: 'project_description: OMIM gene to disease associations'
+    explanation: The record's description is the repository's own.
+discussions:
+  - discussion_id: omim-ingest-species
+    prompt: The README lists no species by NCBITaxon id. Curate the species the ingest takes data for.
+    kind: CURATION_TODO
+    status: RESOLVED
+    attaches_to:
+      - organisms
+    resolved_date: '2026-09-30'
+    resolution_note: Homo sapiens, from the README's description of OMIM.
+  - discussion_id: omim-ingest-data-licenses
+    prompt: The terms OMIM's data is under are not recorded.
+    kind: KNOWLEDGE_GAP
+    status: OPEN
+    attaches_to:
+      - upstream_sources
+    rationale: OMIM's terms page, https://www.omim.org/help/agreement, answered 403 to scripted requests on 2026-09-30, and neither the ingest nor OMIM's paper states the terms. A person with an OMIM account can read them and record them here.
+status: PROPOSED
+creation_date: '2026-09-30'
+curation_history:
+  - timestamp: '2026-09-30T22:19:00+00:00'
+    curator: claude-code
+    llm_assisted: true
+    model: claude-opus-5-5
+    action: CREATE
+    description: Converted from Monarch ingest repositories, entry omim-ingest.
+  - timestamp: '2026-09-30T22:26:09+00:00'
+    curator: claude-code
+    llm_assisted: true
+    model: claude-opus-5-5
+    action: EDIT
+    description: Added evidence from url:https://raw.githubusercontent.com/monarch-initiative/omim-ingest/de31fd083c8fd894eda3767085fa0452f581298c/README.md to upstream_sources[0].
+  - timestamp: '2026-09-30T22:26:10+00:00'
+    curator: claude-code
+    llm_assisted: true
+    model: claude-opus-5-5
+    action: EDIT
+    description: Added evidence from url:https://raw.githubusercontent.com/biolink/information-resource-registry/1d5fa9924e518315dbcbeb87c80e9d783c8fd2fc/infores_catalog.yaml to upstream_sources[0].
+  - timestamp: '2026-09-30T22:26:11+00:00'
+    curator: claude-code
+    llm_assisted: true
+    model: claude-opus-5-5
+    action: EDIT
+    description: Added evidence from PMID:30445645 to upstream_sources[0].
+  - timestamp: '2026-09-30T22:26:13+00:00'
+    curator: claude-code
+    llm_assisted: true
+    model: claude-opus-5-5
+    action: EDIT
+    description: Added evidence from url:https://raw.githubusercontent.com/monarch-initiative/omim-ingest/de31fd083c8fd894eda3767085fa0452f581298c/README.md to organisms[0].
+  - timestamp: '2026-09-30T22:26:24+00:00'
+    curator: claude-code
+    llm_assisted: true
+    model: claude-opus-5-5
+    action: EDIT
+    description: Added evidence from url:https://raw.githubusercontent.com/monarch-initiative/omim-ingest/de31fd083c8fd894eda3767085fa0452f581298c/README.md to upstream_sources[0].
+  - timestamp: '2026-09-30T22:26:55+00:00'
+    curator: claude-code
+    llm_assisted: true
+    model: claude-opus-5-5
+    action: EDIT
+    description: Curated the upstream sources' descriptions, homepages and data licenses from the sources, closed the gaps that sources filled, and set status PROPOSED.
+updated_date: '2026-09-30'

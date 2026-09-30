@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IngestMech records</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header><h1>IngestMech records</h1><p><a href="../index.html">Documentation</a> · <a href="https://github.com/monarch-initiative/mechmaker">Repository</a></p></header>
+<main>
+<p>3 ingest record(s).</p>
+<input id="filter" type="search" placeholder="Filter" aria-label="Filter">
+<table id="records">
+<thead><tr><th>Name</th><th>Upstream sources</th><th>Code license</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td><a href="records/go_ingest.html">go-ingest</a></td><td>infores:goa, infores:eco</td><td>MIT</td><td>PROPOSED</td></tr>
+<tr><td><a href="records/omim_ingest.html">omim-ingest</a></td><td>infores:omim</td><td>BSD-3-Clause</td><td>PROPOSED</td></tr>
+<tr><td><a href="records/zfin_ingest.html">zfin-ingest</a></td><td>infores:zfin, infores:zp</td><td>BSD-3-Clause</td><td>PROPOSED</td></tr>
+</tbody>
+</table>
+</main>
+<footer><p>AI-curated. Validation checks that citations exist, quotes are exact and ontology terms are real. It does not check that the science is right.</p></footer>
+<script>
+document.getElementById("filter").addEventListener("input", e => {
+  const q = e.target.value.toLowerCase();
+  for (const row of document.querySelectorAll("#records tbody tr")) {
+    row.hidden = !row.textContent.toLowerCase().includes(q);
+  }
+});
+</script>
+</body>
+</html>

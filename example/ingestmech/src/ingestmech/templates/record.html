@@ -1,0 +1,36 @@
+{%- macro show(v) -%}
+{%- if v is mapping -%}
+{%- if v.reference is defined and v.supports is defined -%}
+<div class="evidence"><a href="{{ v.reference | curie_url }}">{{ v.reference }}</a> <span class="support">{{ v.supports }}</span>
+{%- if v.snippet %}<blockquote>{{ v.snippet }}</blockquote>{% endif %}
+{%- if v.explanation %}<p>{{ v.explanation }}</p>{% endif %}</div>
+{%- elif v.id is defined and v.label is defined and v | length == 2 -%}
+<a href="{{ v.id | curie_url }}">{{ v.label }}</a> <code>{{ v.id }}</code>
+{%- else -%}
+<dl>{% for k, x in v.items() %}<dt>{{ k }}</dt><dd>{{ show(x) }}</dd>{% endfor %}</dl>
+{%- endif -%}
+{%- elif v is iterable and v is not string -%}
+<ul>{% for x in v %}<li>{{ show(x) }}</li>{% endfor %}</ul>
+{%- else -%}
+{{ v }}
+{%- endif -%}
+{%- endmacro -%}
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ record.data.name }} | {{ site.title }}</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header><p><a href="../index.html">{{ site.title }}</a></p><h1>{{ record.data.name }}</h1><p><code>{{ record.data.id }}</code> {{ record.data.status or "" }}</p></header>
+<main>
+{%- if record.data.description %}<p>{{ record.data.description }}</p>{% endif %}
+{%- for k, v in record.data.items() if k not in ("id", "name", "description", "status") and k not in site.hidden_sections %}
+<section><h2>{{ k | replace("_", " ") }}</h2>{{ show(v) }}</section>
+{%- endfor %}
+</main>
+<footer><p>{{ site.footer }}</p></footer>
+</body>
+</html>
