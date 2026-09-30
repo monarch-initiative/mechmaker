@@ -1,0 +1,21 @@
+history_version: 1
+target:
+  kind: other
+  slug: convert-monarch-ingest-repositories
+  path: scripts/convert_monarch_ingests.py
+session:
+  id: 2026-09-30T221900Z-claude-code-25e86b
+  timestamp: '2026-09-30T22:19:00Z'
+  actors:
+  - type: ai_agent
+    name: claude-code
+    model: claude-opus-5-5
+    agent_tool: claude-code
+events:
+- type: CREATE
+  outcome: changed
+  summary: Converted 3 record(s) from Monarch ingest repositories.
+  details: 'Converted 3 entries of Monarch ingest repositories with scripts/convert_monarch_ingests.py:
+    zfin-ingest, omim-ingest, go-ingest. Every record is DRAFT and passed closed-schema validation and
+    the record rules. 0 already existed and were left alone. 0 could not be converted. Evidence carried
+    over from the source still needs review.'

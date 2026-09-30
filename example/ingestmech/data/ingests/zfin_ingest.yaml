@@ -1,0 +1,144 @@
+id: ingestmech:zfin-ingest
+name: zfin-ingest
+description: ZFIN gene-to-phenotype, genotype-to-phenotype, and orthology ingests
+repository: https://github.com/monarch-initiative/zfin-ingest
+source_commit: 19eb80855c67406acb2deac36ad18967d643fed8
+code_license:
+  name: BSD-3-Clause
+  spdx_id: BSD-3-Clause
+  evidence:
+    - reference: url:https://raw.githubusercontent.com/monarch-initiative/zfin-ingest/19eb80855c67406acb2deac36ad18967d643fed8/.copier-answers.yml
+      supports: SUPPORT
+      evidence_source: INGEST_REPOSITORY
+      snippet: 'license: BSD-3-Clause'
+upstream_sources:
+  - infores: infores:zfin
+    name: Zebrafish Information Network (ZFIN)
+    files:
+      - download_url: https://zfin.org/downloads/phenoGeneCleanData_fish.txt
+        local_name: data/phenoGeneCleanData_fish.txt
+        evidence:
+          - reference: url:https://raw.githubusercontent.com/monarch-initiative/zfin-ingest/19eb80855c67406acb2deac36ad18967d643fed8/download.yaml
+            supports: SUPPORT
+            evidence_source: INGEST_REPOSITORY
+            snippet: 'url: https://zfin.org/downloads/phenoGeneCleanData_fish.txt'
+      - download_url: https://zfin.org/downloads/phenotype_fish.txt
+        local_name: data/phenotype_fish.txt
+        evidence:
+          - reference: url:https://raw.githubusercontent.com/monarch-initiative/zfin-ingest/19eb80855c67406acb2deac36ad18967d643fed8/download.yaml
+            supports: SUPPORT
+            evidence_source: INGEST_REPOSITORY
+            snippet: 'url: https://zfin.org/downloads/phenotype_fish.txt'
+      - download_url: https://zfin.org/downloads/pheno_environment_fish.txt
+        local_name: data/pheno_environment_fish.txt
+        evidence:
+          - reference: url:https://raw.githubusercontent.com/monarch-initiative/zfin-ingest/19eb80855c67406acb2deac36ad18967d643fed8/download.yaml
+            supports: SUPPORT
+            evidence_source: INGEST_REPOSITORY
+            snippet: 'url: https://zfin.org/downloads/pheno_environment_fish.txt'
+      - download_url: https://zfin.org/downloads/pub_to_pubmed_id_translation.txt
+        local_name: data/pub_to_pubmed_id_translation.txt
+        evidence:
+          - reference: url:https://raw.githubusercontent.com/monarch-initiative/zfin-ingest/19eb80855c67406acb2deac36ad18967d643fed8/download.yaml
+            supports: SUPPORT
+            evidence_source: INGEST_REPOSITORY
+            snippet: 'url: https://zfin.org/downloads/pub_to_pubmed_id_translation.txt'
+      - download_url: https://zfin.org/downloads/fly_orthos.txt
+        local_name: data/fly_orthos.txt
+        evidence:
+          - reference: url:https://raw.githubusercontent.com/monarch-initiative/zfin-ingest/19eb80855c67406acb2deac36ad18967d643fed8/download.yaml
+            supports: SUPPORT
+            evidence_source: INGEST_REPOSITORY
+            snippet: 'url: https://zfin.org/downloads/fly_orthos.txt'
+      - download_url: https://zfin.org/downloads/human_orthos.txt
+        local_name: data/human_orthos.txt
+        evidence:
+          - reference: url:https://raw.githubusercontent.com/monarch-initiative/zfin-ingest/19eb80855c67406acb2deac36ad18967d643fed8/download.yaml
+            supports: SUPPORT
+            evidence_source: INGEST_REPOSITORY
+            snippet: 'url: https://zfin.org/downloads/human_orthos.txt'
+      - download_url: https://zfin.org/downloads/mouse_orthos.txt
+        local_name: data/mouse_orthos.txt
+        evidence:
+          - reference: url:https://raw.githubusercontent.com/monarch-initiative/zfin-ingest/19eb80855c67406acb2deac36ad18967d643fed8/download.yaml
+            supports: SUPPORT
+            evidence_source: INGEST_REPOSITORY
+            snippet: 'url: https://zfin.org/downloads/mouse_orthos.txt'
+    evidence:
+      - reference: url:https://raw.githubusercontent.com/monarch-initiative/zfin-ingest/19eb80855c67406acb2deac36ad18967d643fed8/src/versions.py
+        supports: SUPPORT
+        evidence_source: INGEST_REPOSITORY
+        snippet: '"id": "infores:zfin", "name": "Zebrafish Information Network (ZFIN)"'
+        explanation: The ingest's own name and id for the source.
+  - infores: infores:zp
+    name: Zebrafish Phenotype Ontology id_map
+    files:
+      - download_url: https://raw.githubusercontent.com/obophenotype/zebrafish-phenotype-ontology/master/src/curation/id_map_zfin.tsv
+        local_name: data/id_map_zfin.tsv
+        evidence:
+          - reference: url:https://raw.githubusercontent.com/monarch-initiative/zfin-ingest/19eb80855c67406acb2deac36ad18967d643fed8/download.yaml
+            supports: SUPPORT
+            evidence_source: INGEST_REPOSITORY
+            snippet: 'url: https://raw.githubusercontent.com/obophenotype/zebrafish-phenotype-ontology/master/src/curation/id_map_zfin.tsv'
+    evidence:
+      - reference: url:https://raw.githubusercontent.com/monarch-initiative/zfin-ingest/19eb80855c67406acb2deac36ad18967d643fed8/src/versions.py
+        supports: SUPPORT
+        evidence_source: INGEST_REPOSITORY
+        snippet: '"id": "infores:zp", "name": "Zebrafish Phenotype Ontology id_map"'
+        explanation: The ingest's own name and id for the source.
+associations:
+  - category: biolink:GeneToPhenotypicFeatureAssociation
+    evidence:
+      - reference: url:https://raw.githubusercontent.com/monarch-initiative/zfin-ingest/19eb80855c67406acb2deac36ad18967d643fed8/README.md
+        supports: SUPPORT
+        evidence_source: INGEST_REPOSITORY
+        snippet: biolink:GeneToPhenotypicFeatureAssociation
+  - category: biolink:GenotypeToPhenotypicFeatureAssociation
+    evidence:
+      - reference: url:https://raw.githubusercontent.com/monarch-initiative/zfin-ingest/19eb80855c67406acb2deac36ad18967d643fed8/README.md
+        supports: SUPPORT
+        evidence_source: INGEST_REPOSITORY
+        snippet: biolink:GenotypeToPhenotypicFeatureAssociation
+  - category: biolink:GeneToGeneHomologyAssociation
+    evidence:
+      - reference: url:https://raw.githubusercontent.com/monarch-initiative/zfin-ingest/19eb80855c67406acb2deac36ad18967d643fed8/README.md
+        supports: SUPPORT
+        evidence_source: INGEST_REPOSITORY
+        snippet: biolink:GeneToGeneHomologyAssociation
+koza_transforms:
+  - eqe2zp
+  - zfin_gene_to_phenotype
+  - zfin_genotype_to_phenotype
+  - zfin_orthology
+  - pheno_environment_fish
+  - pub2pubmed
+evidence:
+  - reference: url:https://raw.githubusercontent.com/monarch-initiative/zfin-ingest/19eb80855c67406acb2deac36ad18967d643fed8/.copier-answers.yml
+    supports: SUPPORT
+    evidence_source: INGEST_REPOSITORY
+    snippet: 'project_description: ZFIN gene-to-phenotype, genotype-to-phenotype, and orthology ingests'
+    explanation: The record's description is the repository's own.
+discussions:
+  - discussion_id: zfin-ingest-species
+    prompt: The README lists no species by NCBITaxon id. Curate the species the ingest takes data for.
+    kind: CURATION_TODO
+    status: OPEN
+    attaches_to:
+      - organisms
+  - discussion_id: zfin-ingest-data-licenses
+    prompt: No ingest records the terms of its upstream data. Curate each source's data_license from the
+      source's own terms.
+    kind: CURATION_TODO
+    status: OPEN
+    attaches_to:
+      - upstream_sources
+status: DRAFT
+creation_date: '2026-09-30'
+curation_history:
+  - timestamp: '2026-09-30T22:19:00+00:00'
+    curator: claude-code
+    llm_assisted: true
+    model: claude-opus-5-5
+    action: CREATE
+    description: Converted from Monarch ingest repositories, entry zfin-ingest.
+updated_date: '2026-09-30'

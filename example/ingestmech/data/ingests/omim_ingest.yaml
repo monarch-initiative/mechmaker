@@ -1,0 +1,80 @@
+id: ingestmech:omim-ingest
+name: omim-ingest
+description: OMIM gene to disease associations
+repository: https://github.com/monarch-initiative/omim-ingest
+source_commit: de31fd083c8fd894eda3767085fa0452f581298c
+code_license:
+  name: BSD-3-Clause
+  spdx_id: BSD-3-Clause
+  evidence:
+    - reference: url:https://raw.githubusercontent.com/monarch-initiative/omim-ingest/de31fd083c8fd894eda3767085fa0452f581298c/.copier-answers.yml
+      supports: SUPPORT
+      evidence_source: INGEST_REPOSITORY
+      snippet: 'license: BSD-3-Clause'
+upstream_sources:
+  - infores: infores:omim
+    name: OMIM (Online Mendelian Inheritance in Man)
+    access: REGISTRATION_REQUIRED
+    files:
+      - download_url: https://data.omim.org/downloads/{MONARCH_OMIM_DOWNLOAD_KEY}/morbidmap.txt
+        local_name: data/morbidmap.txt
+        evidence:
+          - reference: url:https://raw.githubusercontent.com/monarch-initiative/omim-ingest/de31fd083c8fd894eda3767085fa0452f581298c/download.yaml
+            supports: SUPPORT
+            evidence_source: INGEST_REPOSITORY
+            snippet: 'url: https://data.omim.org/downloads/{MONARCH_OMIM_DOWNLOAD_KEY}/morbidmap.txt'
+    evidence:
+      - reference: url:https://raw.githubusercontent.com/monarch-initiative/omim-ingest/de31fd083c8fd894eda3767085fa0452f581298c/src/versions.py
+        supports: SUPPORT
+        evidence_source: INGEST_REPOSITORY
+        snippet: '"id": "infores:omim", "name": "OMIM (Online Mendelian Inheritance in Man)"'
+        explanation: The ingest's own name and id for the source.
+associations:
+  - category: biolink:CausalGeneToDiseaseAssociation
+    predicates:
+      - biolink:causes
+    evidence:
+      - reference: url:https://raw.githubusercontent.com/monarch-initiative/omim-ingest/de31fd083c8fd894eda3767085fa0452f581298c/README.md
+        supports: SUPPORT
+        evidence_source: INGEST_REPOSITORY
+        snippet: 3 (molecular basis known) | No | `CausalGeneToDiseaseAssociation` | `biolink:causes`
+  - category: biolink:CorrelatedGeneToDiseaseAssociation
+    predicates:
+      - biolink:contributes_to
+    evidence:
+      - reference: url:https://raw.githubusercontent.com/monarch-initiative/omim-ingest/de31fd083c8fd894eda3767085fa0452f581298c/README.md
+        supports: SUPPORT
+        evidence_source: INGEST_REPOSITORY
+        snippet: 1 or 2 (mapped gene/phenotype) | No | `CorrelatedGeneToDiseaseAssociation` | `biolink:contributes_to`
+koza_transforms:
+  - omim_gene_to_disease
+evidence:
+  - reference: url:https://raw.githubusercontent.com/monarch-initiative/omim-ingest/de31fd083c8fd894eda3767085fa0452f581298c/.copier-answers.yml
+    supports: SUPPORT
+    evidence_source: INGEST_REPOSITORY
+    snippet: 'project_description: OMIM gene to disease associations'
+    explanation: The record's description is the repository's own.
+discussions:
+  - discussion_id: omim-ingest-species
+    prompt: The README lists no species by NCBITaxon id. Curate the species the ingest takes data for.
+    kind: CURATION_TODO
+    status: OPEN
+    attaches_to:
+      - organisms
+  - discussion_id: omim-ingest-data-licenses
+    prompt: No ingest records the terms of its upstream data. Curate each source's data_license from the
+      source's own terms.
+    kind: CURATION_TODO
+    status: OPEN
+    attaches_to:
+      - upstream_sources
+status: DRAFT
+creation_date: '2026-09-30'
+curation_history:
+  - timestamp: '2026-09-30T22:19:00+00:00'
+    curator: claude-code
+    llm_assisted: true
+    model: claude-opus-5-5
+    action: CREATE
+    description: Converted from Monarch ingest repositories, entry omim-ingest.
+updated_date: '2026-09-30'
