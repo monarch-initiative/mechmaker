@@ -73,7 +73,7 @@ data_license: CC-BY-4.0
 code_license: BSD-3-Clause
 include_site: true
 include_claude_hook: true
-workflows: [sweep, pages, comment-guard]   # step 4b revisits this
+workflows: [sweep, docs, comment-guard]   # step 4b revisits this
 python_min: "3.11"
 ```
 
@@ -122,7 +122,7 @@ Run the `design-mech-schema` skill in the new repository. It fills in
 ## 4b. Choose the workflows
 
 `docs/WORKFLOWS.md` in the new Mech lists every GitHub workflow the template
-knows. The deterministic ones (`sweep`, `pages`, `comment-guard`) are cheap
+knows. The deterministic ones (`sweep`, `docs`, `comment-guard`) are cheap
 and safe. Agent workflows cost money per run and need secrets and, for some,
 a GitHub App.
 

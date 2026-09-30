@@ -22,7 +22,7 @@ its secrets, and adapting its prompt.
 | Key | State | File | What it does | Needs |
 |---|---|---|---|---|
 | `sweep` | {{ mark('sweep') }} | `sweep.yaml` | Weekly `just qc-full`: every term and quote against the live services. Finds upstream drift. | nothing |
-| `pages` | {{ mark('pages') }} | `pages.yaml` | Publishes `pages/` to GitHub Pages when it changes on main. | Settings > Pages > Source: GitHub Actions |
+| `docs` | {{ mark('docs') }} | `docs.yaml` | Builds the documentation site (LinkML schema pages, guides, corpus counts{% if include_site %}, and the record browser at `/records/`{% endif %}) and publishes it to GitHub Pages on every push to main. | Settings > Pages > Source: GitHub Actions |
 | `comment-guard` | {{ mark('comment-guard') }} | `comment-guard.yaml` | Hides comments from people without write access that carry attachments, installers or agent triggers. | nothing |
 | `close-fork-prs` | {{ mark('close-fork-prs') }} | `close-fork-prs.yaml` | Closes PRs from forks with a note pointing to CONTRIBUTING.md. Turn it on once agents act on PRs. | nothing |
 | `release-records` | {{ mark('release-records') }} | `release-records.yaml` | Attaches `<slug>-records.jsonl` and a zip of the records to each release. | nothing |
@@ -101,7 +101,7 @@ DisMech has more workflows. These were left out, and why:
 | `dragon-ai.yml` | A second write-capable agent that duplicates `@claude`. |
 | `claude-issue-summarize.yml` | Posts on every new issue from untrusted text; overlaps triage and dedupe. |
 | `discussion-scanner.yml` | Needs GitHub Discussions and a large trust gate. Worth adding once a Mech has discussion traffic. |
-| `generate-pages.yaml` | Solves 30-minute site builds at DisMech's scale. Here pages are rendered and committed with the records, and `just qc` checks them. |
+| `generate-pages.yaml`, `deploy-docs.yaml` | Solve 30-minute site builds at DisMech's scale. Here the record browser is rendered and committed with the records, the docs are built fresh by `docs`, and `just qc` builds both. |
 | `jev-recuration.yml` | Reads DisMech's own evaluation pipeline. |
 | `reference-title-baseline.yaml`, `title-snippet-baseline.yaml` | Maintain lists of old failures. A new Mech starts at zero, so both checks are hard errors in `just validate-all` instead. |
 | `verify-merge-integrity.yaml` | Guards against merge-queue failures at dozens of merges a day. |

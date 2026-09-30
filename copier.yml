@@ -72,6 +72,11 @@ record_noun:
   help: Human-readable singular noun for one record (e.g. "disorder", "habitat")
   default: "{{ record_class | regex_replace('(?<!^)([A-Z])', ' \\\\1') | lower }}"
 
+record_article:
+  type: str
+  when: false
+  default: "{{ 'an' if record_noun[:1] in ['a', 'e', 'i', 'o', 'u'] else 'a' }}"
+
 records_dir:
   type: str
   help: Repository-relative directory that holds one YAML file per record
@@ -266,7 +271,7 @@ workflows:
   multiselect: true
   choices:
     "Weekly full check of terms and quotes (no agent)": sweep
-    "Publish the record browser to GitHub Pages (no agent)": pages
+    "Publish the documentation site to GitHub Pages (no agent)": docs
     "Hide risky comments from untrusted users (no agent)": comment-guard
     "Close pull requests from forks (no agent)": close-fork-prs
     "Attach a records bundle to each release (no agent)": release-records
@@ -281,11 +286,7 @@ workflows:
     "Agent: file issues for new literature": literature-scan
     "Agent: improve the least complete records (needs a GitHub App)": compliance
     "Agent: act on human review comments": post-review
-  default: "{{ ['sweep', 'comment-guard'] + (['pages'] if include_site else []) }}"
-  validator: >-
-    {% if 'pages' in workflows and not include_site %}
-    The pages workflow publishes the record browser; turn on include_site or drop it.
-    {% endif %}
+  default: [sweep, docs, comment-guard]
 
 agent_schedules:
   type: bool
