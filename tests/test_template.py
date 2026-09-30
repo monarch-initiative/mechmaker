@@ -85,7 +85,7 @@ SCENARIOS["all-workflows"] = {
     "langfuse": True,
 }
 SCENARIOS["minimal"]["workflows"] = []
-SCENARIOS["disease"].update({"site_palette": "brown", "site_theme": "light"})
+SCENARIOS["disease"].update({"site_palette": "brown", "site_theme": "light", "deep_research": True})
 SCENARIOS["all-workflows"].update({"site_palette": "yellow", "site_accent": "amber", "site_theme": "dark"})
 
 VENDORED_MD5 = {
@@ -287,6 +287,41 @@ def test_site_settings_follow_answers(generated):
     assert settings["accent"] == answers["site_accent"]
     assert settings["theme"] == answers["site_theme"]
     assert (dest / ".claude" / "skills" / "site-design" / "SKILL.md").exists()
+
+
+def test_deep_research_parts(generated):
+    _, answers, dest = generated
+    on = answers["deep_research"]
+    slug = answers["mech_slug"]
+    for path in [dest / "research" / "templates" / "record.md", dest / "src" / slug / "research.py",
+                 dest / ".claude" / "skills" / "deep-research" / "SKILL.md"]:
+        assert path.exists() == on, path
+    assert ("research-providers:" in (dest / "justfile").read_text()) == on
+    if on:
+        prompt = (dest / "research" / "templates" / "record.md").read_text()
+        assert "{name}" in prompt and "{{" not in prompt
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(shutil.which("just") is None or shutil.which("uv") is None, reason="needs just and uv")
+def test_mock_research_run(tmp_path):
+    """A generated Mech runs deep-research-client end to end with the free mock provider."""
+    dest = render(tmp_path / "research", {**SCENARIOS["habitat"], "deep_research": True})
+    env = {k: v for k, v in os.environ.items() if k != "VIRTUAL_ENV"}
+    subprocess.run(["git", "init", "-q"], cwd=dest, check=True)
+    subprocess.run(["just", "install"], cwd=dest, check=True, env=env, capture_output=True)
+    subprocess.run(["just", "new-record", "--id", "ENVO:00000051", "--name", "Hot spring", "--apply"],
+                   cwd=dest, check=True, env=env, capture_output=True)
+    run = subprocess.run(["just", "research", "mock", "hot_spring"], cwd=dest, capture_output=True, text=True,
+                         env={**env, "ENABLE_MOCK_PROVIDER": "true"})
+    # 3 means the report was written and a check could not finish (e.g. OLS down).
+    assert run.returncode in (0, 3), run.stdout + run.stderr
+    report = (dest / "research" / "hot_spring-deep-research-mock.md").read_text()
+    assert "provider: mock" in report
+    assert "Name: Hot spring" in report
+    again = subprocess.run(["just", "research", "mock", "hot_spring"], cwd=dest, capture_output=True,
+                           text=True, env={**env, "ENABLE_MOCK_PROVIDER": "true"})
+    assert again.returncode == 1 and "--force" in again.stdout
 
 
 def test_uv_lock_is_not_ignored(generated):

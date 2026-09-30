@@ -303,5 +303,6 @@ GoatMech is an example, so it was not submitted.
 | check a pull request | `review-record`, or the `review` workflow on GitHub |
 | find the least complete records | `just compliance` |
 | find new papers | `just literature-scan --days 30`, or the `literature-scan` workflow |
+| get a research report on a breed | `just research claude_code saanen`; see [Deep research](deep-research.md) |
 | see the site | `just docs-serve`; GoatMech's is [here](example/goatmech/index.html) |
 | check everything | `just qc-full` |
