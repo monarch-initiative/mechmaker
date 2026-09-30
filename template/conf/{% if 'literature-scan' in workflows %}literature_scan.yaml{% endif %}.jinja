@@ -1,0 +1,28 @@
+# Settings for `just literature-scan`, which the literature-scan workflow runs.
+#
+# The scan asks Europe PMC for recent papers whose title or abstract contains
+# any of `context_terms`, then matches each paper to records by the names in
+# `name_fields`. Tune the terms so that most hits are about this domain.
+
+# Phrases that mark a paper as relevant. Joined with OR.
+context_terms:
+  - "{{ record_noun }}"
+
+# Phrases that rule a paper out. Joined with OR and negated.
+exclude_terms:
+  - corrigendum
+  - erratum
+  - retraction
+  - withdrawn
+
+# Record fields whose values name a record. Lists are flattened.
+name_fields:
+  - name
+  - synonyms
+
+# Names shorter than this, or listed in stop_names, are not used for matching.
+min_name_length: 5
+stop_names: []
+
+# Most papers to fetch in one run.
+max_records: 200

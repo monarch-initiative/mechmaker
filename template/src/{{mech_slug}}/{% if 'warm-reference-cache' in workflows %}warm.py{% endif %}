@@ -1,0 +1,67 @@
+"""Fetch full text for cached references that have only an abstract.
+
+    python -m <slug>.warm --limit 500
+    python -m <slug>.warm --dry-run
+
+Runs linkml-reference-validator's own fetcher over references_cache/ records
+that need full text and have not been tried, so open-access full text is
+added and the rest are marked `full_text_attempted` and stop being retried.
+It never edits a cache file itself. Adapted from DisMech.
+"""
+
+from __future__ import annotations
+
+import argparse
+import re
+import sys
+
+from linkml_reference_validator.cli.shared import load_validation_config
+from linkml_reference_validator.etl.reference_fetcher import NEEDS_FULL_TEXT_TYPES, ReferenceFetcher
+
+from .paths import REPO_ROOT
+
+CONFIG = REPO_ROOT / ".linkml-reference-validator.yaml"
+_CT = re.compile(r'^content_type:\s*"?([A-Za-z_]+)"?\s*$', re.M)
+_ID = re.compile(r'^reference_id:\s*"?([^"\n]+?)"?\s*$', re.M)
+_FLAG = re.compile(r"^full_text_attempted:\s*true\s*$", re.M)
+
+
+def _front(text: str) -> str:
+    return text.split("---", 2)[1] if text.startswith("---") else ""
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--limit", type=int, default=0, help="0 means no limit")
+    parser.add_argument("--dry-run", action="store_true")
+    args = parser.parse_args(argv)
+    config = load_validation_config(CONFIG if CONFIG.exists() else None)
+    cache = REPO_ROOT / config.cache_dir
+    targets = []
+    for path in sorted(cache.glob("*.md")):
+        fm = _front(path.read_text(encoding="utf-8", errors="replace"))
+        ct, rid = _CT.search(fm), _ID.search(fm)
+        if ct and rid and ct.group(1) in NEEDS_FULL_TEXT_TYPES and not _FLAG.search(fm):
+            targets.append((path, rid.group(1).strip()))
+    backlog = len(targets)
+    if args.limit > 0:
+        targets = targets[: args.limit]
+    print(f"{backlog} reference(s) need full text; processing {len(targets)}.")
+    if args.dry_run:
+        for _, rid in targets:
+            print(f"  {rid}")
+        return 0
+    fetcher = ReferenceFetcher(config)
+    errors = 0
+    for _, rid in targets:
+        try:
+            fetcher.fetch(rid)
+        except Exception as exc:  # one bad reference must not stop the sweep
+            errors += 1
+            print(f"  {rid}: {type(exc).__name__}: {exc}")
+    print(f"Done. {errors} error(s); those stay untried and are retried next run.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

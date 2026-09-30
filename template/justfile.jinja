@@ -67,6 +67,25 @@ validate-references-all:
     if [ ${#files[@]} -eq 0 ]; then echo "No records under {{records}}."; exit 0; fi
     uv run linkml-reference-validator validate data "${files[@]}" --schema {{schema}} --target-class {{record_class}} --config {{ref_config}}
 
+# Terms and quotes for some records, for CI on the records a PR changed.
+# Cache-first; does not download full text. If the ontology service does not
+# answer (exit 2), the terms are checked against the committed cache instead.
+validate-changed *files:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    uv run linkml-term-validator validate-data "$@" -s {{schema}} -t {{record_class}} --labels -c {{oak_config}}
+    rc=$?
+    if [ "$rc" -eq 2 ]; then
+        echo "::warning title=Ontology service unreachable::Checking terms against the committed cache only."
+        uv run linkml-term-validator validate-data "$@" -s {{schema}} -t {{record_class}} --labels -c {{oak_config}} --offline
+        rc=$?
+        if [ "$rc" -ne 0 ]; then
+            echo "::error title=Terms not checked::The ontology service is down and some terms are not in cache/. Run 'just validate FILE' locally and commit cache/, or re-run this job later."
+        fi
+    fi
+    [ "$rc" -eq 0 ] || exit "$rc"
+    uv run linkml-reference-validator validate data "$@" --schema {{schema}} --target-class {{record_class}} --config {{ref_config}} --no-full-text
+
 # Fetch a reference into references_cache/ and print it. Read it before quoting it.
 fetch-reference ref:
     uv run linkml-reference-validator lookup "$1" --config {{ref_config}}
@@ -106,7 +125,28 @@ validate-history target="history":
 # Corpus statistics.
 report *args:
     uv run python -m {{slug}}.report "$@"
-{% endraw %}{% if include_site %}{% raw %}
+
+# Completeness score per record, lowest first; or what one record lacks.
+compliance *files:
+    uv run python -m {{slug}}.compliance "$@"
+
+# Bundle the records into build/ for a release.
+export:
+    uv run python -m {{slug}}.export
+
+# Create or update the GitHub labels listed in .github/labels.yaml.
+labels *args:
+    uv run --no-project --with pyyaml python .github/scripts/sync_labels.py "$@"
+{% endraw %}{% if 'literature-scan' in workflows %}{% raw %}
+# Recent papers that may bear on records: build/literature/packet.md.
+# `just literature-scan --source PPR --days 14`
+literature-scan *args:
+    uv run python -m {{slug}}.literature "$@"
+{% endraw %}{% endif %}{% if 'warm-reference-cache' in workflows %}{% raw %}
+# Fetch full text for cached references that have only an abstract.
+warm-reference-cache limit="0":
+    uv run python -m {{slug}}.warm --limit "$1"
+{% endraw %}{% endif %}{% if include_site %}{% raw %}
 # ---------------------------------------------------------------- site
 
 # Render the static browser into pages/.
