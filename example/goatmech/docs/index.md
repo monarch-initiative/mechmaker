@@ -19,7 +19,7 @@ goat breed, and every record follows the same rules.
 
 | | |
 |---|---|
-| [Records](https://monarch-initiative.github.io/goatmech/records/) | Browse every goat breed record |
+| [Records](records/index.html) | Browse every goat breed record |
 | [The domain](DOMAIN.md) | What a record is, how records are keyed, what they contain |
 | [Curation](CURATION.md) | How records are written and checked |
 | [Schema](elements/index.md) | Every class, slot and enum, with diagrams |
@@ -29,7 +29,7 @@ goat breed, and every record follows the same rules.
 
 ## Download
 
-- Records: the [repository](https://github.com/monarch-initiative/goatmech/tree/main/data/goat_breeds).
+- Records: the [repository](https://github.com/monarch-initiative/mechmaker/tree/main/example/goatmech/data/goat_breeds).
 - Schema: [goatmech.yaml](schema/goatmech.yaml) with its imports merged, and [JSON Schema](schema/goatmech.schema.json).
 
 ## What the checks do not check
@@ -41,8 +41,8 @@ GoatMech as a curated draft reviewed by people, not as an authority.
 ## Contribute and cite
 
 Issues and reviews are welcome on
-[GitHub](https://github.com/monarch-initiative/goatmech). See
-[CONTRIBUTING.md](https://github.com/monarch-initiative/goatmech/blob/main/CONTRIBUTING.md).
+[GitHub](https://github.com/monarch-initiative/mechmaker/tree/main/example/goatmech). See
+[CONTRIBUTING.md](https://github.com/monarch-initiative/mechmaker/blob/main/example/goatmech/CONTRIBUTING.md).
 
 Records are released under CC-BY-4.0. Code is released under
 BSD-3-Clause.

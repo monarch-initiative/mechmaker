@@ -4,6 +4,9 @@ A Mech for goat breeds, made with mechmaker's skills and template to show
 the whole path, from a request to curated records. The walkthrough is on
 the documentation site: https://monarch-initiative.github.io/mechmaker/walkthrough/
 
+GoatMech's own site, with its record browser, is published with mechmaker's:
+https://monarch-initiative.github.io/mechmaker/example/goatmech/
+
 | Path | What it is |
 |---|---|
 | `survey-brief.md` | The domain survey, from the `survey-domain` skill |

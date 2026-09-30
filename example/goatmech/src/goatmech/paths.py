@@ -8,8 +8,8 @@ RECORD_CLASS = "GoatBreed"
 RECORD_NOUN = "goat breed"
 # Whether records are keyed to an ontology term in `record_term`.
 HAS_RECORD_TERM = True
-REPO_URL = "https://github.com/monarch-initiative/goatmech"
-DOCS_URL = "https://monarch-initiative.github.io/goatmech/"
+# GoatMech is an example inside mechmaker; issues and links go there.
+REPO_URL = "https://github.com/monarch-initiative/mechmaker"
 
 PACKAGE_DIR = Path(__file__).resolve().parent
 REPO_ROOT = PACKAGE_DIR.parents[1]

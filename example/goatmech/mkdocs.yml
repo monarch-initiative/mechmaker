@@ -4,9 +4,10 @@
 # docs/ directly.
 site_name: "GoatMech"
 site_description: "GoatMech records goat breeds: where each comes from, what it is kept for, and the features that tell it apart, with every claim quoted from its source."
-site_url: https://monarch-initiative.github.io/goatmech/
-repo_url: https://github.com/monarch-initiative/goatmech
-edit_uri: edit/main/docs/
+# GoatMech is an example inside mechmaker, published with mechmaker's site.
+site_url: https://monarch-initiative.github.io/mechmaker/example/goatmech/
+repo_url: https://github.com/monarch-initiative/mechmaker
+edit_uri: edit/main/example/goatmech/docs/
 
 theme:
   name: material
@@ -52,7 +53,7 @@ nav:
   - Home: index.md
   - The domain: DOMAIN.md
   - Curation: CURATION.md
-  - Records: https://monarch-initiative.github.io/goatmech/records/
+  - Records: records/index.html
   - Corpus: corpus.md
   - Schema:
       - Classes, slots and enums: elements/index.md
