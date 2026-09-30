@@ -7,11 +7,13 @@
     check_terms.py search envo "hot spring"               # top matches
 
 Exit status is 1 if any term is missing or any check fails, so the result can
-gate a script. Ontology ids default to the lowercased prefix.
+gate a script. It exits 2 if OLS does not answer after three tries: that is an
+outage, not a missing term. Ontology ids default to the lowercased prefix.
 """
 
 import json
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -19,9 +21,21 @@ import urllib.request
 OLS = "https://www.ebi.ac.uk/ols4/api"
 
 
-def _get(url):
-    with urllib.request.urlopen(url, timeout=60) as resp:
-        return json.load(resp)
+class Unreachable(Exception):
+    pass
+
+
+def _get(url, tries=3):
+    for attempt in range(1, tries + 1):
+        try:
+            with urllib.request.urlopen(url, timeout=60) as resp:
+                return json.load(resp)
+        except urllib.error.HTTPError:
+            raise  # a real answer, such as 404 for a missing term
+        except (urllib.error.URLError, TimeoutError, OSError) as exc:
+            if attempt == tries:
+                raise Unreachable(str(exc)) from exc
+            time.sleep(5 * attempt)
 
 
 def _term_url(curie, suffix=""):
@@ -80,4 +94,8 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))
+    try:
+        sys.exit(main(sys.argv[1:]))
+    except Unreachable as exc:
+        print(f"OLS did not answer after three tries ({exc}). Try again later.", file=sys.stderr)
+        sys.exit(2)
