@@ -166,6 +166,10 @@ research-validate report:
 research-status:
     uv run python -m {{slug}}.research status
 
+# The research prompt's placeholders can be filled; warns if it is still generic.
+research-check:
+    uv run python -m {{slug}}.research check-template
+
 # ---------------------------------------------------------------- docs
 
 # Build the documentation site into site/ (strict: a broken link fails).

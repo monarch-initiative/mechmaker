@@ -50,6 +50,8 @@ def main(argv: list[str] | None = None) -> int:
     if (PACKAGE_DIR / "render.py").exists():
         steps.append(("site is current", ["just", "render-check"]))
     steps.append(("site settings", ["just", "site-check"]))
+    if (PACKAGE_DIR / "research.py").exists():
+        steps.append(("research prompt", ["just", "research-check"]))
     steps.append(("docs build", ["just", "docs-build"]))
     if args.network:
         steps += NETWORK
