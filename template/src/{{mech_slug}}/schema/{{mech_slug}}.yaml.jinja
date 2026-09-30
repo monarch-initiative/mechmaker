@@ -110,7 +110,7 @@ classes:
 
   {{ o.descriptor }}:
     is_a: Descriptor
-    description: {{ 'An' if o.noun[0] in 'aeiou' else 'A' }} {{ o.noun }}, bindable to {{ o.prefix }}.
+    description: {{ o.article | default('An' if o.noun[0] in 'aeiou' else 'A') }} {{ o.noun }}, bindable to {{ o.prefix }}.
     slot_usage:
       term:
         bindings:
@@ -371,7 +371,7 @@ enums:
 {%- for o in selected %}
 
   {{ o.enum }}:
-    description: {{ 'An' if o.noun[0] in 'aeiou' else 'A' }} {{ o.noun }} term, descending from {{ o.root }} ({{ o.root_label }}).
+    description: {{ o.article | default('An' if o.noun[0] in 'aeiou' else 'A') }} {{ o.noun }} term, descending from {{ o.root }} ({{ o.root_label }}).
     reachable_from:
       source_nodes:
         - {{ o.root }}  # {{ o.root_label }}

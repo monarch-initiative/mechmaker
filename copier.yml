@@ -450,6 +450,7 @@ ontology_catalog:
       root: UO:0000000
       root_label: unit
       noun: unit
+      article: A
     PR:
       prefix: PR
       uri: http://purl.obolibrary.org/obo/PR_
