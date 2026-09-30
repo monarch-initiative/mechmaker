@@ -246,6 +246,61 @@ include_claude_hook:
     to it lands
   default: true
 
+# ---------------------------------------------------------------- workflows
+#
+# Every GitHub workflow the template knows is listed here. Pick the ones this
+# Mech needs now; re-run `copier update` with a changed answer to add or drop
+# one later. docs/WORKFLOWS.md in the generated Mech describes each, with what
+# it needs (secrets, apps, labels) and when it is worth turning on.
+
+agent_workflows:
+  type: yaml
+  when: false
+  default: "[claude, review, triage, dedupe, pr-shepherd, curation-scanner, literature-scan, compliance, post-review]"
+
+workflows:
+  type: str
+  help: >-
+    GitHub workflows beyond the always-on QC check. Agent workflows need an
+    Anthropic credential as a repository secret; see docs/WORKFLOWS.md
+  multiselect: true
+  choices:
+    "Weekly full check of terms and quotes (no agent)": sweep
+    "Publish the record browser to GitHub Pages (no agent)": pages
+    "Hide risky comments from untrusted users (no agent)": comment-guard
+    "Close pull requests from forks (no agent)": close-fork-prs
+    "Attach a records bundle to each release (no agent)": release-records
+    "Warm the reference cache weekly (no agent)": warm-reference-cache
+    "Publish the package to PyPI on release (no agent)": pypi-publish
+    "Agent: answer @claude mentions": claude
+    "Agent: review every pull request": review
+    "Agent: label new issues": triage
+    "Agent: flag duplicate issues, close after 3 days": dedupe
+    "Agent: comment on stuck pull requests": pr-shepherd
+    "Agent: work the curation issue queue (needs a GitHub App)": curation-scanner
+    "Agent: file issues for new literature": literature-scan
+    "Agent: improve the least complete records (needs a GitHub App)": compliance
+    "Agent: act on human review comments": post-review
+  default: "{{ ['sweep', 'comment-guard'] + (['pages'] if include_site else []) }}"
+  validator: >-
+    {% if 'pages' in workflows and not include_site %}
+    The pages workflow publishes the record browser; turn on include_site or drop it.
+    {% endif %}
+
+agent_schedules:
+  type: bool
+  help: >-
+    Run the scheduled agent workflows on their schedules. Off means they run
+    only when started by hand, which is the safe way to begin
+  default: false
+  when: "{{ workflows | select('in', ['pr-shepherd', 'curation-scanner', 'literature-scan', 'compliance', 'post-review']) | list | length > 0 }}"
+
+langfuse:
+  type: bool
+  help: Send agent traces to Langfuse (needs LANGFUSE_* secrets)
+  default: false
+  when: "{{ workflows | select('in', agent_workflows) | list | length > 0 }}"
+
 python_min:
   type: str
   help: Minimum Python version
@@ -253,6 +308,12 @@ python_min:
   default: "3.11"
 
 # ---------------------------------------------------------------- computed
+
+uses_agents:
+  type: bool
+  when: false
+  default: "{{ workflows | select('in', agent_workflows) | list | length > 0 }}"
+
 
 ontology_catalog:
   type: yaml

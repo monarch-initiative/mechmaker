@@ -1,0 +1,60 @@
+# Which model each agent workflow uses, and how many turns it may take.
+#
+# Models are family aliases (opus, sonnet, haiku), so a new release is picked
+# up without editing this file. A workflow started by hand can override the
+# model with its `model` input. Change a value here to change it everywhere.
+
+default_model: sonnet
+default_max_turns: 40
+
+workflows:
+{%- if 'claude' in workflows %}
+  claude:
+    model: opus
+    max_turns: 80
+{%- endif %}
+{%- if 'review' in workflows %}
+  review:
+    model: opus
+    max_turns: 60
+{%- endif %}
+{%- if 'triage' in workflows %}
+  triage:
+    model: haiku
+    max_turns: 10
+{%- endif %}
+{%- if 'dedupe' in workflows %}
+  dedupe:
+    model: sonnet
+    max_turns: 40
+{%- endif %}
+{%- if 'pr-shepherd' in workflows %}
+  pr-shepherd:
+    model: sonnet
+    max_turns: 40
+{%- endif %}
+{%- if 'curation-scanner' in workflows %}
+  curation-scanner:
+    model: opus
+    max_turns: 120
+    # One run per effort tier; cheaper models for bounded work.
+    tiers:
+      low_effort: haiku
+      medium_effort: sonnet
+      high_effort: opus
+{%- endif %}
+{%- if 'literature-scan' in workflows %}
+  literature-scan:
+    model: haiku
+    max_turns: 30
+{%- endif %}
+{%- if 'compliance' in workflows %}
+  compliance:
+    model: opus
+    max_turns: 120
+{%- endif %}
+{%- if 'post-review' in workflows %}
+  post-review:
+    model: sonnet
+    max_turns: 60
+{%- endif %}
