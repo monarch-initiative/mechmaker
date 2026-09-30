@@ -82,3 +82,41 @@ def test_copier_minimum_matches_the_template():
     spec.loader.exec_module(mod)
     declared = yaml.safe_load((SCRIPT.parents[3] / "copier.yml").read_text())["_min_copier_version"]
     assert tuple(int(p) for p in declared.split(".")) == mod.MIN_COPIER
+
+
+def _load():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("check_env", SCRIPT)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+@pytest.mark.parametrize("down,required", [
+    ("ebi.ac.uk", False),
+    ("eutils.ncbi.nlm.nih.gov", False),
+    ("github.com", True),
+    ("pypi.org", True),
+])
+def test_only_github_and_pypi_are_required(monkeypatch, down, required):
+    mod = _load()
+
+    class Resp:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    def fake_urlopen(req, timeout):
+        if down in req.full_url:
+            raise OSError("unreachable")
+        return Resp()
+
+    monkeypatch.setattr(mod.urllib.request, "urlopen", fake_urlopen)
+    rows, problems, warnings = mod.check_services()
+    assert bool(problems) == required
+    assert bool(warnings) == (not required)

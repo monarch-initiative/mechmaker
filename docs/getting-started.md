@@ -50,15 +50,17 @@ Tools
 
 Services
   GitHub                  ok (200)  the template, and publishing
-  OLS (ontology lookups)  ok (200)  term checks
-  PubMed                  ok (200)  reference checks
   PyPI                    ok (200)  installing packages
+  OLS (ontology lookups)  ok (200)  term checks for ontologies served by OLS (optional)
+  PubMed                  ok (200)  reference checks for PMID citations (optional)
 
 Ready.
 ```
 
 Anything missing is listed with the command that installs it on your
-system. If `just` or `copier` is installed but your terminal cannot find it,
+system. GitHub and PyPI must answer. OLS and PubMed are optional: a Mech may
+use ontologies OLS does not serve, and sources other than PubMed, so if one
+does not answer the check warns and still passes. If `just` or `copier` is installed but your terminal cannot find it,
 the check says so and tells you to run `uv tool update-shell`.
 
 No Python on your machine? uv brings its own: run

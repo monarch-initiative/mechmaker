@@ -11,8 +11,9 @@ a mechmaker checkout:
 https://raw.githubusercontent.com/monarch-initiative/mechmaker/main/skills/make-mech/scripts/check_env.py
     python3 check_env.py                      # or: uv run --no-project check_env.py
 
-Exit 0 when every required tool is present (and, with --network, every
-service answers); exit 1 otherwise. Each problem comes with the command that
+Exit 0 when every required tool is present (and, with --network, GitHub and
+PyPI answer); exit 1 otherwise. OLS and PubMed are checked but optional: a
+Mech may use other ontology services and other sources. Each problem comes with the command that
 fixes it on this operating system.
 """
 
@@ -59,11 +60,15 @@ TOOLS = [
      lambda: "see https://cli.github.com"),
 ]
 
+# name, url, required, what depends on it. OLS and PubMed are optional: a
+# Mech may use ontologies OLS does not serve, and sources other than PubMed.
 SERVICES = [
-    ("GitHub", "https://github.com", "the template, and publishing"),
-    ("OLS (ontology lookups)", "https://www.ebi.ac.uk/ols4/api/ontologies/go", "term checks"),
-    ("PubMed", "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/einfo.fcgi?retmode=json", "reference checks"),
-    ("PyPI", "https://pypi.org/simple/", "installing packages"),
+    ("GitHub", "https://github.com", True, "the template, and publishing"),
+    ("PyPI", "https://pypi.org/simple/", True, "installing packages"),
+    ("OLS (ontology lookups)", "https://www.ebi.ac.uk/ols4/api/ontologies/go", False,
+     "term checks for ontologies served by OLS"),
+    ("PubMed", "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/einfo.fcgi?retmode=json", False,
+     "reference checks for PMID citations"),
 ]
 
 
@@ -121,19 +126,21 @@ def check_tools() -> tuple[list[tuple[str, str, str]], list[str]]:
     return rows, problems
 
 
-def check_services() -> tuple[list[tuple[str, str, str]], list[str]]:
-    rows, problems = [], []
-    for name, url, why in SERVICES:
+def check_services() -> tuple[list[tuple[str, str, str]], list[str], list[str]]:
+    """Rows, problems (required services), and warnings (optional ones)."""
+    rows, problems, warnings = [], [], []
+    for name, url, required, why in SERVICES:
         req = urllib.request.Request(url, headers={"User-Agent": "mechmaker-check-env/0.1"})
         try:
             with urllib.request.urlopen(req, timeout=20) as resp:
                 status = f"ok ({resp.status})"
         except Exception as exc:  # any failure means the service did not answer
-            status = "NO ANSWER"
-            problems.append(f"{name} did not answer ({type(exc).__name__}); {why} will fail until it does. "
-                            "This is often a passing outage: try again in a few minutes")
-        rows.append((name, status, why))
-    return rows, problems
+            status = "NO ANSWER" if required else "no answer (optional)"
+            note = (f"{name} did not answer ({type(exc).__name__}); {why} will fail until it does. "
+                    "This is often a passing outage: try again in a few minutes")
+            (problems if required else warnings).append(note)
+        rows.append((name, status, why if required else f"{why} (optional)"))
+    return rows, problems, warnings
 
 
 def table(title: str, rows: list[tuple[str, str, str]]) -> str:
@@ -152,12 +159,18 @@ def main(argv: list[str] | None = None) -> int:
     print(f"System: {OS} {platform.release()}, Python {platform.python_version()}\n")
     rows, problems = check_tools()
     print(table("Tools", rows))
+    warnings: list[str] = []
     if args.network:
-        srows, sproblems = check_services()
+        srows, sproblems, warnings = check_services()
         print()
         print(table("Services", srows))
         problems += sproblems
     print()
+    if warnings:
+        print("Optional services that did not answer (needed only if your Mech uses them):")
+        for w in warnings:
+            print(f"  - {w}")
+        print()
     if problems:
         print("To fix:")
         for p in problems:

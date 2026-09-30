@@ -38,7 +38,8 @@ python3 skills/make-mech/scripts/check_env.py --network
 ```
 
 It checks for git, uv, just and Copier (and Claude Code and gh, which are
-optional), and that GitHub, OLS, PubMed and PyPI answer. Exit 0 means ready.
+optional), and that GitHub and PyPI answer. OLS and PubMed are checked too,
+as optional: warn the person if one is down and the Mech will depend on it. Exit 0 means ready.
 Otherwise it prints the command that fixes each problem on this operating
 system. Show those to the person; installing software on their machine is
 their call. A service that does not answer is usually a passing outage:
