@@ -1,0 +1,49 @@
+# Hide comments from untrusted users that carry attachments, installers or
+# agent triggers (@claude, /review). Agents and people read these threads;
+# this keeps malware links and injected instructions out of them. No model
+# runs here. Adapted from DisMech's untrusted-comment-guard.
+name: Comment guard
+
+on:
+  issue_comment:
+    types: [created, edited]
+  pull_request_review_comment:
+    types: [created, edited]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # The gate's code comes from the default branch, never from a PR.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+          sparse-checkout: .github/scripts
+      - uses: actions/github-script@v9
+        with:
+          script: |
+            const gate = require('./.github/scripts/trust-gate.js');
+            const comment = context.payload.comment || {};
+            const login = comment.user?.login || '';
+            if (!comment.node_id) return;
+            const trusted = await gate.isTrustedLogin({
+              github, owner: context.repo.owner, repo: context.repo.repo, login,
+            });
+            if (trusted) {
+              core.info(`${login || '<unknown>'} is trusted.`);
+              return;
+            }
+            const risk = gate.classifyCommentRisk(comment.body || '');
+            if (!risk.shouldMinimize) {
+              core.info(`${login} is untrusted; nothing risky found.`);
+              return;
+            }
+            core.warning(`Hiding ${comment.html_url}: ${risk.reasons.join(', ')}`);
+            await gate.minimizeComment({ github, subjectId: comment.node_id, classifier: risk.classifier });

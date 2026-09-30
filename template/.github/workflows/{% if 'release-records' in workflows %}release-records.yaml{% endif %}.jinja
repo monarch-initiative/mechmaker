@@ -1,0 +1,41 @@
+# On each published release, bundle the records and attach them: one JSON
+# Lines file with every record, and a zip of the YAML files as curated.
+name: Release records
+
+on:
+  release:
+    types: [published]
+
+permissions: {}
+
+env:
+  MECH_SLUG: "{{ mech_slug }}"
+{% raw %}
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write  # upload release assets
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v10
+      - run: uv tool install rust-just
+      - run: just install
+      - name: Check the records before shipping them
+        run: just validate-all
+      - name: Export
+        run: just export
+      - name: Verify the bundle is not empty
+        run: |
+          for f in "build/${MECH_SLUG}-records.jsonl" "build/${MECH_SLUG}-records.zip"; do
+            if [ ! -s "$f" ]; then echo "::error::$f is missing or empty"; exit 1; fi
+          done
+      - uses: softprops/action-gh-release@v3
+        with:
+          files: |
+            build/${{ env.MECH_SLUG }}-records.jsonl
+            build/${{ env.MECH_SLUG }}-records.zip
+{% endraw %}

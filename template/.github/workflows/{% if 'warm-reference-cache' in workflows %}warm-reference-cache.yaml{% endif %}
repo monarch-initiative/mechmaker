@@ -1,0 +1,82 @@
+# Weekly: ask linkml-reference-validator to fetch open-access full text for
+# cached references that have only an abstract, and mark the rest as tried so
+# validation stops retrying them. Changes arrive as one rolling pull request
+# on the branch auto/warm-reference-cache.
+#
+# With MECH_AGENT_APP_ID and MECH_AGENT_PRIVATE_KEY set, the PR is opened by
+# that GitHub App and CI runs on it. Without them it is opened with the
+# built-in token, and GitHub does not start CI on such PRs: close and reopen
+# it, or push to it, to run the checks.
+name: Warm reference cache
+
+on:
+  schedule:
+    - cron: "0 6 * * 3"  # Wednesdays 06:00 UTC
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: Most cache records to warm in this run (0 means all)
+        type: string
+        default: "500"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: warm-reference-cache
+  cancel-in-progress: false
+
+jobs:
+  warm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+      - run: uv tool install rust-just
+      - run: just install
+      - name: Warm
+        run: just warm-reference-cache "${{ inputs.limit || '500' }}"
+      - name: Any changes?
+        id: diff
+        run: |
+          if git diff --quiet references_cache/; then echo "changed=false" >> "$GITHUB_OUTPUT"
+          else echo "changed=true" >> "$GITHUB_OUTPUT"; fi
+      - name: App token
+        id: app
+        if: steps.diff.outputs.changed == 'true'
+        continue-on-error: true
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.MECH_AGENT_APP_ID }}
+          private-key: ${{ secrets.MECH_AGENT_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+      - name: Open or update the pull request
+        if: steps.diff.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token || github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          branch=auto/warm-reference-cache
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          gh auth setup-git
+          git checkout -B "$branch"
+          git add references_cache/
+          git commit -m "Warm reference cache ($(date -u +%F))"
+          git push --force-with-lease "https://github.com/${REPO}.git" "$branch"
+          if [ -z "$(gh pr list --repo "$REPO" --head "$branch" --state open --json number --jq '.[].number')" ]; then
+            gh pr create --repo "$REPO" --head "$branch" --base main \
+              --title "Warm reference cache ($(date -u +%F))" \
+              --body "Adds open-access full text to cached references and marks the rest as tried. Written by linkml-reference-validator; no file was edited by hand."
+          fi

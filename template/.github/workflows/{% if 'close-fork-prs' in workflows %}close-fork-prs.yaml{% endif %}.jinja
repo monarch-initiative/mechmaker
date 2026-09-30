@@ -1,0 +1,45 @@
+# Close pull requests from forks. Fork runs get no secrets, so agents cannot
+# review them, and fork content is the main way to inject instructions into
+# agent workflows. Contributors push branches to this repository instead;
+# see CONTRIBUTING.md. This never checks out or runs fork code.
+name: Close fork PRs
+
+on:
+  pull_request_target:
+    types: [opened, reopened]
+
+permissions:
+  pull-requests: write
+
+concurrency:
+  group: close-fork-pr-${{ '{{' }} github.event.pull_request.number {{ '}}' }}
+  cancel-in-progress: false
+
+env:
+  MECH_NAME: "{{ mech_name }}"
+{% raw %}
+jobs:
+  close:
+    if: github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: |
+          cat > "$RUNNER_TEMP/body.md" <<EOF
+          Hi @${AUTHOR}, thank you for your interest in ${MECH_NAME}.
+
+          This repository does not accept pull requests from forks. Workflows started
+          from forks get no secrets, so the automated review cannot run, and content
+          from forks is a route for injecting instructions into our agent workflows.
+
+          To contribute, open an issue describing the change, or ask there to be given
+          access to push a branch. See [CONTRIBUTING.md](https://github.com/${REPO}/blob/main/CONTRIBUTING.md).
+          EOF
+          gh pr comment "$PR" --repo "$REPO" --body-file "$RUNNER_TEMP/body.md"
+          gh pr close "$PR" --repo "$REPO"
+{% endraw %}

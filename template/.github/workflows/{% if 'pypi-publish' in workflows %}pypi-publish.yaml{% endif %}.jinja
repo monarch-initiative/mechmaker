@@ -1,0 +1,54 @@
+# Build and publish the package with PyPI trusted publishing: TestPyPI on a
+# version tag, PyPI on a published release. Needs a `pypi-release`
+# environment in this repository, and this repository registered as a
+# trusted publisher for the project on PyPI and TestPyPI. No token is stored.
+name: Publish to PyPI
+
+on:
+  push:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+*"]
+  release:
+    types: [published]
+
+permissions: {}
+{% raw %}
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v10
+      - run: uv build
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi-release
+{%- endraw %}
+      url: https://pypi.org/p/{{ mech_slug }}
+{%- raw %}
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist
+      - name: TestPyPI
+        if: github.event_name == 'push'
+        uses: pypa/gh-action-pypi-publish@v1.14.2
+        with:
+          repository-url: https://test.pypi.org/legacy/
+      - name: PyPI
+        if: github.event_name == 'release'
+        uses: pypa/gh-action-pypi-publish@v1.14.2
+{% endraw %}
