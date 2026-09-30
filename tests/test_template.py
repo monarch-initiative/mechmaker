@@ -144,7 +144,7 @@ def test_docs_site_config(generated):
     assert cfg["site_name"] == answers["mech_name"]
     nav = yaml.dump(cfg["nav"])
     assert "elements/index.md" in nav and "structure.md" in nav
-    assert ("/records/" in nav) == answers["include_site"]
+    assert ("records/index.html" in nav) == answers["include_site"]
     for page in ["index.md", "DOMAIN.md", "CURATION.md", "WORKFLOWS.md"]:
         assert (dest / "docs" / page).exists(), page
 

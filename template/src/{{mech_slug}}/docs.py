@@ -9,9 +9,10 @@ Generated, and not committed:
   docs/structure.md  what a record can contain, as one diagram
   docs/corpus.md     counts from the records
   docs/schema/       the schema with imports merged, and as JSON Schema
+  docs/records/      a copy of the record browser (pages/), when there is one
 
-`build` runs MkDocs in strict mode, so a broken link fails, and then adds the
-record browser (pages/) under site/records/.
+`build` runs MkDocs in strict mode, so a broken link fails. Every link to the
+record browser is relative, so the site works wherever it is hosted.
 """
 
 from __future__ import annotations
@@ -61,6 +62,11 @@ def generate() -> None:
         JsonSchemaGenerator(str(SCHEMA_PATH), not_closed=False, top_class=RECORD_CLASS).serialize()
     )
 
+    records = DOCS / "records"
+    shutil.rmtree(records, ignore_errors=True)
+    if (PAGES_DIR / "index.html").exists():
+        shutil.copytree(PAGES_DIR, records)
+
     stats = compute()
     rows = "\n".join(
         f"| {k.replace('_', ' ')} | {v} |" for k, v in stats.items() if k not in ("mech", "by_status")
@@ -82,9 +88,6 @@ def build() -> int:
     result = subprocess.run(cmd, cwd=REPO_ROOT)
     if result.returncode != 0:
         return result.returncode
-
-    if (PAGES_DIR / "index.html").exists():
-        shutil.copytree(PAGES_DIR, SITE / "records")
     print(f"Built the site in {SITE.relative_to(REPO_ROOT)}/.")
     return 0
 

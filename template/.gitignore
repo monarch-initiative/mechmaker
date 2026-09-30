@@ -14,5 +14,6 @@ cache/**/*.lock
 site/
 docs/elements/
 docs/schema/
+docs/records/
 docs/structure.md
 docs/corpus.md

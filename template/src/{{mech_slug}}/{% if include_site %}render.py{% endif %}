@@ -15,7 +15,7 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from .paths import DOCS_URL, MECH_NAME, PACKAGE_DIR, PAGES_DIR, RECORD_NOUN, REPO_ROOT, REPO_URL
+from .paths import MECH_NAME, PACKAGE_DIR, PAGES_DIR, RECORD_NOUN, REPO_ROOT, REPO_URL
 from .validate import iter_records, load
 
 CURIE_BASES = {
@@ -43,7 +43,7 @@ def build() -> dict[Path, str]:
         data = load(path) or {}
         records.append({"stem": path.stem, "data": data})
     records.sort(key=lambda r: str(r["data"].get("name", r["stem"])).lower())
-    ctx = {"mech_name": MECH_NAME, "record_noun": RECORD_NOUN, "repo_url": REPO_URL, "docs_url": DOCS_URL}
+    ctx = {"mech_name": MECH_NAME, "record_noun": RECORD_NOUN, "repo_url": REPO_URL}
     out = {PAGES_DIR / "index.html": env.get_template("index.html").render(records=records, **ctx)}
     tmpl = env.get_template("record.html")
     for r in records:

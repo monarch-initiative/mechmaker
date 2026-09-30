@@ -9,7 +9,6 @@ RECORD_NOUN = "{{ record_noun }}"
 # Whether records are keyed to an ontology term in `record_term`.
 HAS_RECORD_TERM = {{ "True" if identity_prefix else "False" }}
 REPO_URL = "https://github.com/{{ github_org }}/{{ repo_name }}"
-DOCS_URL = "https://{{ github_org | lower }}.github.io/{{ repo_name }}/"
 
 PACKAGE_DIR = Path(__file__).resolve().parent
 REPO_ROOT = PACKAGE_DIR.parents[1]
