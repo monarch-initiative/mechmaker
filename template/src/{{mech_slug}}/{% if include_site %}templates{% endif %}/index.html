@@ -3,24 +3,24 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{ mech_name }}</title>
+<title>{{ site.title }}</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header><h1>{{ mech_name }}</h1><p><a href="../index.html">Documentation</a> · <a href="{{ repo_url }}">Repository</a></p></header>
+<header><h1>{{ site.title }}</h1><p><a href="../index.html">Documentation</a> · <a href="{{ repo_url }}">Repository</a></p></header>
 <main>
 <p>{{ records | length }} {{ record_noun }} record(s).</p>
-<input id="filter" type="search" placeholder="Filter by name or id" aria-label="Filter">
+<input id="filter" type="search" placeholder="Filter" aria-label="Filter">
 <table id="records">
-<thead><tr><th>Name</th><th>ID</th><th>Status</th></tr></thead>
+<thead><tr>{% for col in site.index_columns %}<th>{{ col | replace("_", " ") | capitalize }}</th>{% endfor %}</tr></thead>
 <tbody>
 {%- for r in records %}
-<tr><td><a href="records/{{ r.stem }}.html">{{ r.data.name }}</a></td><td>{{ r.data.id }}</td><td>{{ r.data.status or "" }}</td></tr>
+<tr>{% for col in site.index_columns %}<td>{% if loop.first %}<a href="records/{{ r.stem }}.html">{{ r.data.get(col) | cell or r.stem }}</a>{% else %}{{ r.data.get(col) | cell }}{% endif %}</td>{% endfor %}</tr>
 {%- endfor %}
 </tbody>
 </table>
 </main>
-<footer><p>AI-curated. Validation checks that citations exist, quotes are exact and ontology terms are real. It does not check that the science is right.</p></footer>
+<footer><p>{{ site.footer }}</p></footer>
 <script>
 document.getElementById("filter").addEventListener("input", e => {
   const q = e.target.value.toLowerCase();

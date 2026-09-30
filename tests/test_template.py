@@ -85,6 +85,8 @@ SCENARIOS["all-workflows"] = {
     "langfuse": True,
 }
 SCENARIOS["minimal"]["workflows"] = []
+SCENARIOS["disease"].update({"site_palette": "brown", "site_theme": "light"})
+SCENARIOS["all-workflows"].update({"site_palette": "yellow", "site_accent": "amber", "site_theme": "dark"})
 
 VENDORED_MD5 = {
     "mech_shared.yaml": "3cf80648642fcd1f824529bc40c572a5",
@@ -92,7 +94,7 @@ VENDORED_MD5 = {
 }
 
 # Rendered files that legitimately contain Jinja or just syntax of their own.
-OWN_BRACES = {"justfile", "index.html", "record.html"}
+OWN_BRACES = {"justfile", "index.html", "record.html", "style.css"}
 
 
 def render(dest: Path, data: dict) -> Path:
@@ -276,6 +278,15 @@ def test_every_action_ref_exists(tmp_path):
             if not ok:
                 missing.append(f"{repo}@{ref}")
     assert not missing, missing
+
+
+def test_site_settings_follow_answers(generated):
+    _, answers, dest = generated
+    settings = yaml.safe_load((dest / "conf" / "site.yaml").read_text())
+    assert settings["palette"] == answers["site_palette"]
+    assert settings["accent"] == answers["site_accent"]
+    assert settings["theme"] == answers["site_theme"]
+    assert (dest / ".claude" / "skills" / "site-design" / "SKILL.md").exists()
 
 
 def test_uv_lock_is_not_ignored(generated):

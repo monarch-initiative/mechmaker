@@ -20,16 +20,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{ record.data.name }} | {{ mech_name }}</title>
+<title>{{ record.data.name }} | {{ site.title }}</title>
 <link rel="stylesheet" href="../style.css">
 </head>
 <body>
-<header><p><a href="../index.html">{{ mech_name }}</a></p><h1>{{ record.data.name }}</h1><p><code>{{ record.data.id }}</code> {{ record.data.status or "" }}</p></header>
+<header><p><a href="../index.html">{{ site.title }}</a></p><h1>{{ record.data.name }}</h1><p><code>{{ record.data.id }}</code> {{ record.data.status or "" }}</p></header>
 <main>
 {%- if record.data.description %}<p>{{ record.data.description }}</p>{% endif %}
-{%- for k, v in record.data.items() if k not in ("id", "name", "description", "status") %}
+{%- for k, v in record.data.items() if k not in ("id", "name", "description", "status") and k not in site.hidden_sections %}
 <section><h2>{{ k | replace("_", " ") }}</h2>{{ show(v) }}</section>
 {%- endfor %}
 </main>
+<footer><p>{{ site.footer }}</p></footer>
 </body>
 </html>

@@ -35,6 +35,9 @@ record_class: GoatBreed
 record_noun: goat breed
 records_dir: data/goat_breeds
 repo_name: goatmech
+site_accent: amber
+site_palette: brown
+site_theme: auto
 taxon_scope: NCBITaxon:9925
 workflows:
 - sweep

@@ -28,5 +28,8 @@ data_license: CC-BY-4.0
 code_license: BSD-3-Clause
 include_site: true
 include_claude_hook: true
+site_palette: brown
+site_accent: amber
+site_theme: auto
 workflows: [sweep, docs, comment-guard]
 python_min: "3.11"

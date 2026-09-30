@@ -1,13 +1,34 @@
-:root { --bg: #fff; --fg: #1d1d1f; --muted: #6b6b70; --line: #d8d8dc; --accent: #2a5db0; }
-@media (prefers-color-scheme: dark) {
-  :root { --bg: #151517; --fg: #ececef; --muted: #9a9aa2; --line: #333338; --accent: #8fb3ff; }
+{#- Rendered by render.py from conf/site.yaml. Colors: primary, on_primary,
+    accent, link_light, link_dark; theme: auto, light or dark. -#}
+{%- set light %}
+  --bg: #ffffff; --fg: #1d1d1f; --muted: #5f5f66; --line: #d8d8dc; --link: {{ link_light }};
+{%- endset %}
+{%- set dark %}
+  --bg: #151517; --fg: #ececef; --muted: #a0a0a8; --line: #333338; --link: {{ link_dark }};
+{%- endset -%}
+:root {
+  --primary: {{ primary }}; --on-primary: {{ on_primary }}; --accent: {{ accent }};
+{%- if theme == "dark" %}{{ dark }}{% else %}{{ light }}{% endif %}
 }
-body { background: var(--bg); color: var(--fg); font: 16px/1.5 system-ui, sans-serif; max-width: 60rem; margin: 0 auto; padding: 0 16px; }
-a { color: var(--accent); }
+{%- if theme == "auto" %}
+@media (prefers-color-scheme: dark) {
+  :root {{ '{' }}{{ dark }}
+  }
+}
+{%- endif %}
+body { background: var(--bg); color: var(--fg); font: 16px/1.5 system-ui, sans-serif; margin: 0; }
+header { background: var(--primary); color: var(--on-primary); padding: 12px 16px; }
+header a, header h1, header p { color: var(--on-primary); }
+header h1 { margin: 4px 0; }
+main, footer { max-width: 60rem; margin: 0 auto; padding: 0 16px; }
+a { color: var(--link); }
+a:hover, a:focus { color: var(--accent); }
 table { border-collapse: collapse; width: 100%; }
 th, td { text-align: left; padding: .35rem .5rem; border-bottom: 1px solid var(--line); }
-input[type=search] { width: 100%; padding: .4rem; margin: .5rem 0 1rem; box-sizing: border-box; }
+input[type=search] { width: 100%; padding: .4rem; margin: .75rem 0 1rem; box-sizing: border-box;
+  background: var(--bg); color: var(--fg); border: 1px solid var(--line); }
+input[type=search]:focus { outline: 2px solid var(--accent); }
 dt { font-weight: 600; } dd { margin: 0 0 .5rem 1rem; }
-blockquote { border-left: 3px solid var(--line); margin: .3rem 0; padding-left: .7rem; color: var(--muted); }
+blockquote { border-left: 3px solid var(--accent); margin: .3rem 0; padding-left: .7rem; color: var(--muted); }
 .support { font-size: .8rem; color: var(--muted); }
-footer { color: var(--muted); font-size: .85rem; margin: 2rem 0; }
+footer { color: var(--muted); font-size: .85rem; margin: 2rem auto; }

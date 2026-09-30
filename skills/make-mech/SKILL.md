@@ -22,6 +22,7 @@ that need judgment about the domain.
 | 3. Generate | Copier | the repository |
 | 4. Design the schema | you, with `design-mech-schema` | `docs/DOMAIN.md`, the schema |
 | 4b. Choose workflows | you and the person | the GitHub automation |
+| 4c. Style the site | you, with `site-design` | `conf/site.yaml` |
 | 5. Seed records | you, with the new Mech's `curate-record` | 3 to 5 exemplar records |
 | 6. Register | you, with `register-mech` | a MechRegistry pull request |
 
@@ -43,7 +44,9 @@ Some answers belong to the user. Ask for them; do not invent them:
 - the maintainer's name, email, ORCID and GitHub login;
 - the GitHub organization that will own the repository;
 - the data and code licenses;
-- the collection (`monarch`, `xmech` or `none`).
+- the collection (`monarch`, `xmech` or `none`);
+- the site's colors and light or dark mode (`site_palette`, `site_accent`,
+  `site_theme`), if they care; the defaults are fine otherwise.
 
 The rest come from the brief. Write them to a data file:
 
@@ -73,6 +76,9 @@ data_license: CC-BY-4.0
 code_license: BSD-3-Clause
 include_site: true
 include_claude_hook: true
+site_palette: teal        # Material color names; see the site options page
+site_accent: amber
+site_theme: auto          # auto, light or dark
 workflows: [sweep, docs, comment-guard]   # step 4b revisits this
 python_min: "3.11"
 ```
@@ -145,6 +151,16 @@ until a trial `just literature-scan --days 30` returns mostly relevant
 papers. The Mech's `github-workflows` skill has the details. Setting
 secrets and creating Apps act on the live repository: the person does
 those, or you do them only after they say so.
+
+## 4c. Style the site
+
+Optional. Colors, mode, the browser's front-page columns and the sections
+shown on record pages are in `conf/site.yaml`. Once the schema is settled,
+choose `index_columns` that help someone scan the corpus (for example
+`name`, `record_term`, `status`), and hide sections that are noise to a
+reader (`curation_history` is hidden by default). The Mech's `site-design`
+skill covers each setting; run `just site-check`, `just render`, and look
+with `just docs-serve`.
 
 ## 5. Seed
 

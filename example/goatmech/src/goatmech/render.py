@@ -5,6 +5,7 @@
 
 Output is deterministic, so pages/ is committed and checked byte for byte.
 Edit the templates in src/<slug>/templates/, never the files in pages/.
+Colors, title, columns and hidden sections come from conf/site.yaml.
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
+from . import site
 from .paths import MECH_NAME, PACKAGE_DIR, PAGES_DIR, RECORD_NOUN, REPO_ROOT, REPO_URL
 from .validate import iter_records, load
 
@@ -31,24 +33,44 @@ def curie_url(curie: str) -> str:
     return f"https://bioregistry.io/{curie}"
 
 
+def cell(value) -> str:
+    """How a record field shows in the front-page table."""
+    if isinstance(value, dict):
+        named = value.get("label") or value.get("preferred_term") or value.get("id")
+        if named:
+            return str(named)
+        # A small statement such as {"purpose": "DAIRY"}: show its first plain value.
+        plain = [v for v in value.values() if isinstance(v, (str, int, float))]
+        return str(plain[0]) if plain else ""
+    if isinstance(value, list):
+        return ", ".join(cell(v) for v in value)
+    return "" if value is None else str(value)
+
+
 def build() -> dict[Path, str]:
+    settings = site.load()
+    errors = site.problems(settings)
+    if errors:
+        raise SystemExit("conf/site.yaml: " + "; ".join(errors))
     env = Environment(
         loader=FileSystemLoader(PACKAGE_DIR / "templates"),
         autoescape=select_autoescape(["html"]),
         keep_trailing_newline=True,
     )
     env.filters["curie_url"] = curie_url
+    env.filters["cell"] = cell
     records = []
     for path in iter_records():
         data = load(path) or {}
         records.append({"stem": path.stem, "data": data})
     records.sort(key=lambda r: str(r["data"].get("name", r["stem"])).lower())
-    ctx = {"mech_name": MECH_NAME, "record_noun": RECORD_NOUN, "repo_url": REPO_URL}
+    ctx = {"mech_name": MECH_NAME, "record_noun": RECORD_NOUN, "repo_url": REPO_URL, "site": settings}
     out = {PAGES_DIR / "index.html": env.get_template("index.html").render(records=records, **ctx)}
     tmpl = env.get_template("record.html")
     for r in records:
         out[PAGES_DIR / "records" / f"{r['stem']}.html"] = tmpl.render(record=r, **ctx)
-    out[PAGES_DIR / "style.css"] = (PACKAGE_DIR / "templates" / "style.css").read_text()
+    css = env.get_template("style.css").render(theme=settings["theme"], **site.colors(settings))
+    out[PAGES_DIR / "style.css"] = css
     return out
 
 
