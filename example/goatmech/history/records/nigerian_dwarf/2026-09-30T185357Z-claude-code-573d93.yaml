@@ -1,0 +1,20 @@
+history_version: 1
+target:
+  kind: record
+  slug: nigerian_dwarf
+  path: data/goat_breeds/nigerian_dwarf.yaml
+session:
+  id: 2026-09-30T185357Z-claude-code-573d93
+  timestamp: '2026-09-30T18:53:57Z'
+  actors:
+  - type: ai_agent
+    name: claude-code
+    model: claude-opus-5-5
+    agent_tool: claude-code
+events:
+- type: CREATE
+  outcome: changed
+  summary: 'Create: nigerian_dwarf'
+  details: 'Curated as an example record from Wikipedia (WIKIPEDIA:) and, for Boer, PMID:10760452 and
+    PMID:42531739. Kept short on purpose: the example shows each section once, not full coverage. Validated
+    with just validate.'

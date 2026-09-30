@@ -1,0 +1,18 @@
+# OAK adapters for linkml-term-validator, keyed by CURIE prefix.
+#
+#   ols:<name>         EBI Ontology Lookup Service. Online, nothing to download.
+#   sqlite:obo:<name>  Prebuilt SQLite. Offline and fast after a large download.
+#   ""                 Skip this prefix on purpose.
+#
+# Only prefixes listed here are checked. An unlisted prefix is skipped with a
+# warning, which means its CURIEs are never checked at all. Add every prefix a
+# record can carry. Lookups are cached under cache/ and the cache is committed,
+# so routine validation stays offline.
+
+ontology_adapters:
+  NCBITaxon: "ols:ncbitaxon"
+  NCIT: "ols:ncit"
+  UO: "ols:uo"
+  VBO: "ols:vbo"
+  VT: "ols:vt"
+  goatmech: ""

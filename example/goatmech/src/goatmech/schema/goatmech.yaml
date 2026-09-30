@@ -1,0 +1,614 @@
+id: https://w3id.org/monarch-initiative/goatmech
+name: goatmech
+title: Goat Breed Knowledge Base
+description: >-
+  GoatMech records goat breeds: where each comes from, what it is kept for, and the features that tell it apart, with every claim quoted from its source.
+license: CC-BY-4.0
+see_also:
+  - https://github.com/monarch-initiative/goatmech
+
+# Designed from docs/DOMAIN.md. Change both together, with the extend-schema
+# skill.
+
+prefixes:
+  linkml: https://w3id.org/linkml/
+  dcterms: http://purl.org/dc/terms/
+  skos: http://www.w3.org/2004/02/skos/core#
+  rdfs: http://www.w3.org/2000/01/rdf-schema#
+  goatmech: https://w3id.org/monarch-initiative/goatmech/
+  NCIT: http://purl.obolibrary.org/obo/NCIT_
+  PMID: http://www.ncbi.nlm.nih.gov/pubmed/
+  DOI: https://doi.org/
+  UO: http://purl.obolibrary.org/obo/UO_
+  VBO: http://purl.obolibrary.org/obo/VBO_
+  VT: http://purl.obolibrary.org/obo/VT_
+  WIKIPEDIA: https://en.wikipedia.org/wiki/
+
+default_prefix: goatmech
+default_range: string
+
+imports:
+  - linkml:types
+  - mech_shared
+
+# ============================================================ classes
+
+classes:
+
+  GoatBreed:
+    tree_root: true
+    description: >-
+      One goat breed. The unit of curation, review and history. One
+      record lives in one YAML file under data/goat_breeds/.
+    slots:
+      - id
+      - name
+      - description
+      - record_term
+      - synonyms
+      - status
+      - origins
+      - purposes
+      - distinguishing_features
+      - horns
+      - measurements
+      - related_breeds
+      - population
+      - risk_status
+      - evidence
+      - datasets
+      - discussions
+      - notes
+      - creation_date
+      - updated_date
+      - curation_history
+    slot_usage:
+      id:
+        description: >-
+          The breed's VBO CURIE. Every record is a VBO breed; a breed VBO
+          lacks is a new-term request, not a minted record.
+        pattern: "^VBO:[0-9]{7}$"
+      name:
+        required: true
+      description:
+        recommended: true
+
+  Term:
+    description: A reference to an ontology term. The label must match the ontology.
+    slots:
+      - id
+      - label
+    slot_usage:
+      label:
+        required: true
+
+  Descriptor:
+    abstract: true
+    description: >-
+      A curated mention of something, with a human-readable preferred term, an
+      optional ontology binding, and evidence. The preferred term may be more
+      specific than the bound term when the ontology lacks the needed
+      granularity. Never bind a guessed CURIE; leave `term` empty instead.
+    slots:
+      - preferred_term
+      - term
+      - description
+      - evidence
+      - notes
+
+  OriginDescriptor:
+    is_a: Descriptor
+    description: >-
+      Where the breed arose. preferred_term keeps the source's words for the
+      region; term binds the country, from NCIT.
+    slot_usage:
+      term:
+        bindings:
+          - binds_value_of: id
+            range: PlaceTerm
+            obligation_level: REQUIRED
+
+  FeatureDescriptor:
+    is_a: Descriptor
+    description: >-
+      One feature that characterizes the breed or tells it apart, such as
+      "short white coat". preferred_term states the breed's value in the
+      source's words; term binds the VT trait it is a value of, such as
+      coat/hair pigmentation trait. One feature per entry.
+    slot_usage:
+      term:
+        description: The VT trait this feature is a value of.
+        bindings:
+          - binds_value_of: id
+            range: TraitTerm
+            obligation_level: REQUIRED
+
+  PurposeStatement:
+    description: One thing the breed is kept for, with the evidence that says so.
+    slots:
+      - purpose
+      - description
+      - evidence
+      - notes
+
+  HornStatement:
+    description: Whether the breed is horned, polled, or either.
+    slots:
+      - horn_status
+      - description
+      - evidence
+      - notes
+
+  Measurement:
+    description: >-
+      A number a source states about the breed: a body size, a weight, a
+      yield. Record what the source gives, in its unit, with its sex and
+      statistic. Never convert or average values from different sources.
+    slots:
+      - trait
+      - sex
+      - statistic
+      - value
+      - unit
+      - conditions
+      - evidence
+      - notes
+    slot_usage:
+      trait:
+        required: true
+      value:
+        required: true
+      unit:
+        required: true
+
+  BreedRelation:
+    description: Another goat breed this one descends from, gave rise to, or was crossed with.
+    slots:
+      - relation
+      - preferred_term
+      - breed
+      - description
+      - evidence
+      - notes
+    slot_usage:
+      relation:
+        required: true
+
+  PopulationStatement:
+    description: >-
+      How many goats of the breed a source reports, for a stated area and
+      time. Record each source's figure separately; never add or average.
+    slots:
+      - count
+      - area
+      - as_of
+      - description
+      - evidence
+      - notes
+    slot_usage:
+      count:
+        required: true
+      area:
+        required: true
+
+  RiskStatement:
+    description: The breed's FAO risk status, as reported at a stated time.
+    slots:
+      - risk
+      - as_of
+      - description
+      - evidence
+      - notes
+    slot_usage:
+      risk:
+        required: true
+
+  EvidenceItem:
+    description: >-
+      A citation that bears on a claim, with a verbatim quote from the source.
+      The quote is checked against the cached source text by
+      linkml-reference-validator. A paraphrase fails.
+    slots:
+      - reference
+      - reference_title
+      - supports
+      - evidence_source
+      - snippet
+      - explanation
+
+  CurationEvent:
+    description: >-
+      One change to this record, appended and never edited. The repository
+      level history/ layer records the session; this records the change on the
+      record itself.
+    slots:
+      - timestamp
+      - curator
+      - llm_assisted
+      - model
+      - action
+      - description
+
+# ============================================================ slots
+
+slots:
+  id:
+    identifier: true
+    range: uriorcurie
+    description: A CURIE.
+  name:
+    description: Preferred human-readable name.
+  label:
+    description: >-
+      The ontology's own label for the term. Checked by linkml-term-validator.
+  description:
+    description: Free-text description.
+  notes:
+    description: Curator notes. Paraphrase belongs here, never in a snippet.
+  synonyms:
+    multivalued: true
+    description: Other names in use.
+  status:
+    range: CurationStatusEnum
+    description: Review state. An agent-drafted record is PROPOSED, never REVIEWED.
+  record_term:
+    range: Term
+    inlined: true
+    recommended: true
+    description: The VBO term this record is grounded to, with its label.
+    bindings:
+      - binds_value_of: id
+        range: IdentityTerm
+        obligation_level: REQUIRED
+  preferred_term:
+    required: true
+    description: The preferred human-readable term for this descriptor.
+  term:
+    range: Term
+    inlined: true
+    recommended: true
+    description: Ontology term binding. Leave empty rather than guess.
+  origins:
+    range: OriginDescriptor
+    multivalued: true
+    inlined_as_list: true
+    description: Where the breed arose.
+  purposes:
+    range: PurposeStatement
+    multivalued: true
+    inlined_as_list: true
+    description: What the breed is kept for.
+  distinguishing_features:
+    range: FeatureDescriptor
+    multivalued: true
+    inlined_as_list: true
+    description: Features that characterize the breed or tell it apart.
+  horns:
+    range: HornStatement
+    inlined: true
+    description: Whether the breed is horned.
+  measurements:
+    range: Measurement
+    multivalued: true
+    inlined_as_list: true
+    description: Sizes, weights and yields a source states.
+  related_breeds:
+    range: BreedRelation
+    multivalued: true
+    inlined_as_list: true
+    description: Breeds this one descends from, gave rise to, or was crossed with.
+  population:
+    range: PopulationStatement
+    multivalued: true
+    inlined_as_list: true
+    description: Head counts a source reports.
+  count:
+    range: integer
+    description: Number of head. For a lower bound ("over 900000"), give the bound and say so in description.
+  area:
+    description: Where the count applies, such as "world" or "Switzerland".
+  risk_status:
+    range: RiskStatement
+    inlined: true
+    description: FAO risk status.
+  purpose:
+    range: ProductionPurposeEnum
+    required: true
+    description: What the breed is kept for.
+  horn_status:
+    range: HornStatusEnum
+    required: true
+    description: Horned, polled, or either.
+  trait:
+    range: Term
+    inlined: true
+    description: The VT trait measured, such as body height.
+    bindings:
+      - binds_value_of: id
+        range: TraitTerm
+        obligation_level: REQUIRED
+  sex:
+    range: SexEnum
+    description: The sex the value applies to.
+  statistic:
+    range: StatisticEnum
+    description: What kind of figure the value is.
+  value:
+    range: float
+    description: The number, as the source states it.
+  unit:
+    range: Term
+    inlined: true
+    description: The unit of the value, from UO.
+    bindings:
+      - binds_value_of: id
+        range: UnitTerm
+        obligation_level: REQUIRED
+  conditions:
+    description: What the value depends on, such as "per 264-day lactation".
+  relation:
+    range: BreedRelationEnum
+    description: How the other breed is related.
+  breed:
+    range: Term
+    inlined: true
+    description: The other breed's VBO term, when it has one.
+    bindings:
+      - binds_value_of: id
+        range: BreedTerm
+        obligation_level: REQUIRED
+  risk:
+    range: RiskStatusEnum
+    description: FAO risk status category.
+  as_of:
+    description: The year or date the status was reported for.
+  evidence:
+    range: EvidenceItem
+    multivalued: true
+    inlined_as_list: true
+    recommended: true
+    description: Citations that bear on the enclosing claim.
+  datasets:
+    range: Dataset
+    multivalued: true
+    inlined_as_list: true
+    description: Public datasets relevant to this record (mech_shared).
+  discussions:
+    range: Discussion
+    multivalued: true
+    inlined_as_list: true
+    description: Open questions, knowledge gaps and curation to-dos (mech_shared).
+  reference:
+    description: The cited source, as a CURIE such as PMID:12345678 or DOI:10.1000/xyz.
+    pattern: "^[A-Za-z][A-Za-z0-9_]*:[^\\s]+$"
+    required: true
+    implements:
+      - linkml:authoritative_reference
+  reference_title:
+    description: Title of the cited source. Filled by tooling.
+    recommended: true
+  supports:
+    range: EvidenceSupportEnum
+    required: true
+    description: Which way the evidence cuts relative to the claim.
+  evidence_source:
+    range: EvidenceSourceEnum
+    description: The kind of system the evidence comes from.
+  snippet:
+    description: >-
+      An exact quote from the cited source. Checked verbatim against the cached
+      source text. Paraphrase goes in `explanation`.
+    implements:
+      - linkml:excerpt
+  explanation:
+    description: How the quote bears on the claim.
+  creation_date:
+    range: date
+    description: Date the record was created. Stable after first set.
+  updated_date:
+    range: date
+    description: Date of the last substantive change.
+  curation_history:
+    range: CurationEvent
+    multivalued: true
+    inlined_as_list: true
+    description: Append-only list of changes to this record.
+  timestamp:
+    range: datetime
+    required: true
+    description: ISO-8601 time of the change.
+  curator:
+    required: true
+    description: GitHub login of the person, or harness name of the agent.
+  llm_assisted:
+    range: boolean
+    description: True when a model produced or edited the content.
+  model:
+    description: Model identifier when llm_assisted is true.
+  action:
+    range: CurationActionEnum
+    required: true
+    description: What kind of change this was.
+
+# ============================================================ enums
+
+enums:
+  CurationStatusEnum:
+    description: Review state of a record.
+    permissible_values:
+      DRAFT:
+        description: Incomplete. Not ready for review.
+      PROPOSED:
+        description: Complete and validated, awaiting human review.
+      REVIEWED:
+        description: A person reviewed and accepted it. Only a person sets this.
+      DEPRECATED:
+        description: Kept for provenance. Not current.
+
+  EvidenceSupportEnum:
+    description: Direction of an evidence item relative to its claim.
+    permissible_values:
+      SUPPORT:
+        description: The source supports the claim.
+      REFUTE:
+        description: The source contradicts the claim.
+      PARTIAL:
+        description: The source supports the claim in part or with caveats.
+      NO_EVIDENCE:
+        description: The source is relevant but does not bear on the claim.
+      WRONG_STATEMENT:
+        description: The cited statement was found to be wrong. Kept for provenance.
+
+  EvidenceSourceEnum:
+    description: What kind of source the evidence comes from.
+    permissible_values:
+      ENCYCLOPEDIA:
+        description: A general reference work, such as Wikipedia.
+      BREED_STANDARD:
+        description: A breed society's official standard.
+      CHARACTERIZATION_STUDY:
+        description: A study measuring or describing breeds in the field.
+      GENETIC_STUDY:
+        description: A study of breed ancestry or genetics.
+      REGISTRY:
+        description: A breed registry or FAO DAD-IS report.
+      OTHER:
+        description: Anything else; say what in the explanation.
+
+  ProductionPurposeEnum:
+    description: What goats of a breed are kept for.
+    permissible_values:
+      DAIRY:
+        description: Milk.
+      MEAT:
+        description: Meat.
+      MOHAIR:
+        description: Mohair fibre, as from Angora goats.
+      CASHMERE:
+        description: Cashmere down fibre.
+      SKIN:
+        description: Hides or leather.
+      DRAUGHT:
+        description: Pack or draught work.
+      COMPANION:
+        description: Pets, shows or hobby keeping.
+      LANDSCAPE:
+        description: Vegetation management or conservation grazing.
+
+  HornStatusEnum:
+    description: Whether goats of a breed carry horns.
+    permissible_values:
+      HORNED:
+        description: Normally horned.
+      POLLED:
+        description: Normally hornless.
+      VARIABLE:
+        description: Either occurs within the breed.
+
+  SexEnum:
+    description: The sex a measurement applies to.
+    permissible_values:
+      MALE:
+        description: Bucks.
+      FEMALE:
+        description: Does.
+      UNSPECIFIED:
+        description: The source does not say, or it applies to both.
+
+  StatisticEnum:
+    description: What kind of figure a measurement is.
+    permissible_values:
+      MEAN:
+        description: An average the source reports.
+      TYPICAL:
+        description: A usual or approximate value, such as "about 90 cm".
+      MINIMUM:
+        description: A lower bound, often from a breed standard.
+      MAXIMUM:
+        description: An upper bound.
+
+  BreedRelationEnum:
+    description: How two goat breeds are related.
+    permissible_values:
+      DESCENDS_FROM:
+        description: This breed was developed from the other.
+      GAVE_RISE_TO:
+        description: The other breed was developed from this one.
+      CROSSED_WITH:
+        description: The two were crossed, without one descending from the other.
+
+  RiskStatusEnum:
+    description: FAO DAD-IS risk status categories.
+    permissible_values:
+      NOT_AT_RISK:
+      VULNERABLE:
+      ENDANGERED:
+      CRITICAL:
+      CRITICAL_MAINTAINED:
+      ENDANGERED_MAINTAINED:
+      EXTINCT:
+      UNKNOWN:
+
+  CurationActionEnum:
+    description: Kind of change recorded in a CurationEvent.
+    permissible_values:
+      CREATE:
+      EDIT:
+      REVIEW:
+      DEPRECATE:
+
+  IdentityTerm:
+    description: >-
+      A goat breed: a direct child of VBO:0400025 Goat breed. National
+      populations, one level lower, are not records. linkml-term-validator
+      ignores is_direct, so `just check-identity` enforces it.
+    reachable_from:
+      source_nodes:
+        - VBO:0400025  # Goat breed
+      is_direct: true
+      include_self: false
+      relationship_types:
+        - rdfs:subClassOf
+
+  BreedTerm:
+    description: Any goat breed or national population in VBO, for related breeds.
+    reachable_from:
+      source_nodes:
+        - VBO:0400025  # Goat breed
+      is_direct: false
+      include_self: false
+      relationship_types:
+        - rdfs:subClassOf
+
+  PlaceTerm:
+    description: >-
+      A country, descending from NCIT:C25464 (Country). GAZ was the first
+      choice, but in GAZ as OLS serves it countries have no is-a parent, so a
+      dynamic enum cannot reach them.
+    reachable_from:
+      source_nodes:
+        - NCIT:C25464  # Country
+      is_direct: false
+      include_self: false
+      relationship_types:
+        - rdfs:subClassOf
+
+  TraitTerm:
+    description: A trait, descending from VT:0000001 (vertebrate trait).
+    reachable_from:
+      source_nodes:
+        - VT:0000001  # vertebrate trait
+      is_direct: false
+      include_self: false
+      relationship_types:
+        - rdfs:subClassOf
+
+  UnitTerm:
+    description: A unit, descending from UO:0000000 (unit).
+    reachable_from:
+      source_nodes:
+        - UO:0000000  # unit
+      is_direct: false
+      include_self: true
+      relationship_types:
+        - rdfs:subClassOf

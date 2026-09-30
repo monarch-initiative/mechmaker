@@ -1,0 +1,116 @@
+# The required check. `just qc` is the one definition of green: lint, closed
+# schema for every record, history, tests, site freshness.
+# On a pull request it also checks ontology terms and verbatim quotes for the
+# records the PR changed. Those lookups are cache-first; the weekly sweep
+# checks the whole corpus against the live services.
+name: QC
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  merge_group:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+# Superseded PR runs are cancelled. Push and merge-queue runs never are: a
+# cancelled merge-queue run ejects the PR from the queue.
+concurrency:
+  group: qc-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  RECORDS_DIR: "data/goat_breeds"
+  FORCE_COLOR: "1"
+
+jobs:
+  qc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: true
+
+      - name: Install just
+        run: uv tool install rust-just
+
+      - name: Install
+        run: just install
+
+      # A PR that changes records should change only curation files, so a
+      # reviewer can read it as curation. Add the scope-override label to
+      # allow anything else.
+      - name: Check curation PR scope
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          files=$(gh api "repos/$REPO/pulls/$PR/files" --paginate --jq '.[].filename')
+          if ! grep -q "^${RECORDS_DIR}/" <<<"$files"; then
+            echo "No records changed; scope check does not apply."
+            exit 0
+          fi
+          if gh pr view "$PR" --repo "$REPO" --json labels --jq '.labels[].name' | grep -qx scope-override; then
+            echo "scope-override label present."
+            exit 0
+          fi
+          allowed="^(${RECORDS_DIR}/|history/|cache/|references_cache/|pages/|curation/)"
+          outside=$(grep -Ev "$allowed" <<<"$files" || true)
+          if [ -n "$outside" ]; then
+            echo "::error title=Curation PR touches other files::Split these into another PR, or add the scope-override label:"
+            echo "$outside"
+            exit 1
+          fi
+
+      # Advisory: each changed record should come with a history record.
+      - name: Check curation history coverage
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -uo pipefail
+          files=$(gh api "repos/$REPO/pulls/$PR/files" --paginate --jq '.[] | select(.status=="added") | .filename')
+          changed=$(gh api "repos/$REPO/pulls/$PR/files" --paginate --jq '.[] | select(.status!="removed") | .filename' | grep "^${RECORDS_DIR}/.*\.yaml$" || true)
+          for f in $changed; do
+            slug=$(basename "$f" .yaml)
+            if ! grep -q "^history/records/${slug}/" <<<"$files"; then
+              echo "::warning file=$f::No new history record under history/records/${slug}/. Add one with just new-history."
+            fi
+          done
+          exit 0
+
+      - name: Offline gates
+        run: just qc
+
+      - name: Find changed records
+        id: changed
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          files=$(gh api "repos/$REPO/pulls/$PR/files" --paginate --jq '.[] | select(.status!="removed") | .filename' \
+            | grep "^${RECORDS_DIR}/.*\.yaml$" | tr '\n' ' ' || true)
+          echo "files=$files" >> "$GITHUB_OUTPUT"
+
+      - name: Terms and quotes in changed records
+        if: steps.changed.outputs.files != ''
+        env:
+          FILES: ${{ steps.changed.outputs.files }}
+        run: |
+          # shellcheck disable=SC2086
+          just validate-changed $FILES
+

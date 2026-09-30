@@ -1,0 +1,18 @@
+# Custom reference sources for linkml-reference-validator.
+#
+# WIKIPEDIA:<Article_title> fetches the article as plain text from the
+# MediaWiki API. Use it instead of url: for Wikipedia: a url: reference caches
+# the page's HTML, and a quote that crosses a link then fails to match.
+# Wikipedia text is CC BY-SA and changes; the committed references_cache/
+# records the text as it was when quoted.
+sources:
+  WIKIPEDIA:
+    url_template: "https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&format=json&formatversion=2&redirects=1&titles={id}"
+    id_patterns:
+      - "^\\S+$"
+    fields:
+      title: "$.query.pages[0].title"
+      content: "$.query.pages[0].extract"
+    headers:
+      Accept: "application/json"
+      User-Agent: "goatmech-reference-check/0.1 (https://github.com/monarch-initiative/goatmech)"

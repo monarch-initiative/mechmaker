@@ -1,0 +1,102 @@
+# Label each new issue. The agent only reads and returns label names; a
+# second job with no model applies the ones that exist. Anyone can open an
+# issue, so the agent that reads it has no write access at all.
+name: Triage
+
+on:
+  issues:
+    types: [opened]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: Issue to label
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: triage-${{ github.event.issue.number || inputs.issue_number }}
+  cancel-in-progress: false
+
+jobs:
+  choose:
+    if: github.event_name == 'workflow_dispatch' || github.event.issue.user.type != 'Bot'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: read
+    outputs:
+      result: ${{ steps.run.outputs.structured_output }}
+      number: ${{ steps.num.outputs.number }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - id: num
+        env:
+          N: ${{ github.event.issue.number || inputs.issue_number }}
+        run: |
+          [[ "$N" =~ ^[1-9][0-9]*$ ]] || { echo "::error::bad issue number"; exit 1; }
+          echo "number=$N" >> "$GITHUB_OUTPUT"
+      - name: Build prompt
+        id: prompt
+        env:
+          PROMPT_REPO: ${{ github.repository }}
+          PROMPT_ISSUE_NUMBER: ${{ steps.num.outputs.number }}
+        run: python3 .github/scripts/render_prompt.py triage
+      - id: agent
+        uses: ./.github/actions/setup-agent
+        with:
+          workflow: triage
+          install-project: "false"
+      - id: run
+        uses: anthropics/claude-code-action@fd1c128679612beff4ca259c78021c506e8aa7a7 # v1.0.237
+        env:
+          GH_TOKEN: ${{ github.token }}
+        with:
+          # The API key is preferred: it has no weekly cap. The subscription
+          # token is used only when no API key is set.
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.ANTHROPIC_API_KEY == '' && secrets.CLAUDE_CODE_OAUTH_TOKEN || '' }}
+          path_to_claude_code_executable: ${{ steps.agent.outputs.executable }}
+          github_token: ${{ github.token }}
+          # Safe only because this job cannot write.
+          allowed_non_write_users: "*"
+          prompt: ${{ steps.prompt.outputs.prompt }}
+          claude_args: |
+            --model ${{ steps.agent.outputs.model }}
+            --max-turns ${{ steps.agent.outputs.max-turns }}
+            --allowedTools "Bash(gh label list:*),Bash(gh issue view:*)"
+            --json-schema '{"type":"object","properties":{"labels":{"type":"array","maxItems":6,"items":{"type":"string","minLength":1,"maxLength":50}}},"required":["labels"],"additionalProperties":false}'
+      - name: Check the agent run
+        if: always() && steps.agent.outcome == 'success'
+        env:
+          EXECUTION_FILE: ${{ steps.run.outputs.execution_file }}
+        run: python3 .github/scripts/check_agent_run.py "$EXECUTION_FILE" "Triage"
+
+  apply:
+    needs: choose
+    if: needs.choose.outputs.result != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/github-script@v9
+        env:
+          RESULT: ${{ needs.choose.outputs.result }}
+          NUMBER: ${{ needs.choose.outputs.number }}
+        with:
+          script: |
+            const wanted = (JSON.parse(process.env.RESULT).labels || []).map(String);
+            const existing = new Set((await github.paginate(github.rest.issues.listLabelsForRepo,
+              { ...context.repo, per_page: 100 })).map(l => l.name));
+            const labels = [...new Set(wanted)].filter(l => existing.has(l));
+            const dropped = wanted.filter(l => !existing.has(l));
+            if (dropped.length) core.warning(`Ignoring labels that do not exist: ${dropped.join(', ')}`);
+            if (!labels.length) { core.info('No labels to apply.'); return; }
+            await github.rest.issues.addLabels({ ...context.repo, issue_number: Number(process.env.NUMBER), labels });
+            core.info(`Applied: ${labels.join(', ')}`);
+

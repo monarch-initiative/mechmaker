@@ -46,6 +46,7 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Getting started: getting-started.md
+  - "Walkthrough: GoatMech": walkthrough.md
   - Already have a knowledge base?: existing-knowledge-base.md
   - What a Mech contains: what-you-get.md
   - Workflows: workflows.md

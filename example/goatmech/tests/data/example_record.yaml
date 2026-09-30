@@ -1,0 +1,58 @@
+# A schema-shaped example for the tests and the docs. It exercises every
+# section. It is not a curated record and carries no citations; real records
+# live under data/goat_breeds/.
+id: VBO:0000827
+name: Example goat breed
+description: A placeholder that exercises the record structure.
+record_term:
+  id: VBO:0000827
+  label: Saanen (Goat)
+synonyms:
+  - Example breed
+status: DRAFT
+origins:
+  - preferred_term: an alpine valley
+    term:
+      id: NCIT:C17181
+      label: Switzerland
+purposes:
+  - purpose: DAIRY
+distinguishing_features:
+  - preferred_term: short white coat
+    term:
+      id: VT:0010463
+      label: coat/hair pigmentation trait
+horns:
+  horn_status: VARIABLE
+measurements:
+  - trait:
+      id: VT:0001253
+      label: body height
+    sex: MALE
+    statistic: TYPICAL
+    value: 90
+    unit:
+      id: UO:0000015
+      label: centimeter
+related_breeds:
+  - relation: GAVE_RISE_TO
+    preferred_term: a local variant
+population:
+  - count: 900000
+    area: world
+    as_of: "2025"
+risk_status:
+  risk: NOT_AT_RISK
+  as_of: "2025"
+discussions:
+  - discussion_id: example-gap-1
+    prompt: Which sources should seed this record?
+    kind: CURATION_TODO
+    status: OPEN
+creation_date: 2026-01-01
+curation_history:
+  - timestamp: "2026-01-01T00:00:00Z"
+    curator: mechmaker
+    llm_assisted: false
+    action: CREATE
+    description: Written by the template.

@@ -1,0 +1,148 @@
+id: VBO:0000736
+name: Boer
+description: >-
+  A South African meat goat, bred in the Eastern Cape from about 1920, with a
+  white body and red-brown head. It has been exported to many countries to
+  improve the meat of other breeds.
+record_term:
+  id: VBO:0000736
+  label: Boer (Goat)
+synonyms:
+  - Boerbok
+status: PROPOSED
+origins:
+  - preferred_term: Eastern Cape, particularly the district of Somerset East
+    term:
+      id: NCIT:C17151
+      label: South Africa
+    evidence:
+      - reference: PMID:10760452
+        supports: SUPPORT
+        evidence_source: OTHER
+        explanation: A review of the breed's history, origin and characteristics.
+        snippet: The development was carried out by a handful of farmers in the Eastern Cape, particularly in the district of Somerset East.
+purposes:
+  - purpose: MEAT
+    evidence:
+      - reference: WIKIPEDIA:Boer_goat
+        reference_title: Boer goat
+        supports: SUPPORT
+        evidence_source: ENCYCLOPEDIA
+        snippet: The Boer  or Boerbok is a South African breed of meat goat.
+        explanation: The double space is in the source text.
+      - reference: PMID:42531739
+        supports: SUPPORT
+        evidence_source: GENETIC_STUDY
+        snippet: The Boer goat, a key global meat breed originating from South Africa, has been exported for breeding in over 70 countries
+distinguishing_features:
+  - preferred_term: white body with a red-brown head
+    term:
+      id: VT:0010463
+      label: coat/hair pigmentation trait
+    evidence:
+      - reference: WIKIPEDIA:Boer_goat
+        reference_title: Boer goat
+        supports: SUPPORT
+        evidence_source: ENCYCLOPEDIA
+        snippet: specifically for the white body with red-brown head that now characterises the breed.
+  - preferred_term: hardy, and resistant to disease
+    description: Selected to withstand and resist disease and to adapt to many conditions.
+    notes: No VT trait fits hardiness; term left unset.
+    evidence:
+      - reference: PMID:10760452
+        supports: SUPPORT
+        evidence_source: OTHER
+        explanation: A review of the breed's history, origin and characteristics.
+        snippet: The Boer goat is a hardy breed with great capacity for adaptation and an exceptional ability to withstand and resist diseases.
+  - preferred_term: broad, pendulous, smooth ears
+    term:
+      id: VT:0002177
+      label: outer ear morphology trait
+    evidence:
+      - &ears_horns
+        reference: WIKIPEDIA:Boer_goat
+        reference_title: Boer goat
+        supports: SUPPORT
+        evidence_source: ENCYCLOPEDIA
+        snippet: the ears are broad, pendulous and smooth, the horns dark in colour, backward-curving, round and solid.
+  - preferred_term: dark, backward-curving, round, solid horns
+    term:
+      id: VT:0011348
+      label: horn morphology trait
+    evidence:
+      - *ears_horns
+horns:
+  horn_status: HORNED
+  evidence:
+    - reference: WIKIPEDIA:Boer_goat
+      reference_title: Boer goat
+      supports: SUPPORT
+      evidence_source: ENCYCLOPEDIA
+      snippet: The ears and horns are of medium size
+measurements:
+  - trait:
+      id: VT:0001259
+      label: body mass
+    sex: MALE
+    statistic: MEAN
+    value: 115
+    unit:
+      id: UO:0000009
+      label: kilogram
+    conditions: adult males
+    evidence:
+      - reference: WIKIPEDIA:Boer_goat
+        reference_title: Boer goat
+        supports: SUPPORT
+        evidence_source: ENCYCLOPEDIA
+        snippet: the average weight of an adult male is some 115 kg
+related_breeds:
+  - relation: DESCENDS_FROM
+    preferred_term: Angora, possibly
+    breed:
+      id: VBO:0000723
+      label: Angora (Goat)
+    evidence:
+      - reference: WIKIPEDIA:Boer_goat
+        reference_title: Boer goat
+        supports: PARTIAL
+        evidence_source: ENCYCLOPEDIA
+        snippet: possibly with some influence from the Angora or from European or Indian stock.
+        explanation: The source names Angora influence as possible, not established.
+population:
+  - count: 182863
+    area: world
+    as_of: "2025"
+    description: An estimate, from the countries reporting to FAO DAD-IS.
+    evidence:
+      - reference: WIKIPEDIA:Boer_goat
+        reference_title: Boer goat
+        supports: SUPPORT
+        evidence_source: ENCYCLOPEDIA
+        snippet: the total population world-wide was estimated at 182863.
+discussions:
+  - discussion_id: boer-fertility
+    prompt: >-
+      PMID:10760452 reports conception, kidding and fecundity rates. The
+      schema has no reproduction section; should it?
+    kind: OPEN_QUESTION
+    status: OPEN
+    evidence:
+      - reference: PMID:10760452
+        supports: SUPPORT
+        snippet: The Boer goat is highly fertile, conception rate is about 90%, kidding rate about 189% and fecundity rate 210%.
+creation_date: '2026-09-30'
+updated_date: '2026-09-30'
+curation_history:
+- timestamp: '2026-09-30T19:30:00+00:00'
+  curator: claude-code
+  llm_assisted: true
+  model: claude-opus-5-5
+  action: CREATE
+  description: Curated from WIKIPEDIA:Boer_goat, PMID:10760452 and PMID:42531739 with the curate-record skill.
+- timestamp: '2026-09-30T19:45:00+00:00'
+  curator: claude-code
+  llm_assisted: true
+  model: claude-opus-5-5
+  action: EDIT
+  description: Addressed review findings. Added horn status, ear and horn features; corrected evidence_source for the review article.

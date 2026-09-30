@@ -1,0 +1,121 @@
+# Flag likely duplicate issues. A read-only agent searches and returns at
+# most three older open issues; a second job with no model posts one notice
+# and adds the duplicate-pending label. auto-close-duplicates.yaml closes the
+# issue three days later unless a person objects.
+# Adapted from DisMech's claude-dedupe-issues.
+name: Dedupe issues
+
+on:
+  issues:
+    types: [opened]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: Issue to check
+        required: true
+        type: string
+      model:
+        description: Model override (blank uses .github/agent-config.yaml)
+        type: string
+        default: ""
+
+permissions: {}
+
+concurrency:
+  group: dedupe-${{ github.event.issue.number || inputs.issue_number }}
+  cancel-in-progress: false
+
+jobs:
+  search:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      issues: read
+    outputs:
+      candidates: ${{ steps.run.outputs.structured_output }}
+      number: ${{ steps.issue.outputs.number }}
+      fingerprint: ${{ steps.issue.outputs.fingerprint }}
+      last_human_comment: ${{ steps.issue.outputs.last_human_comment }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - id: issue
+        uses: actions/github-script@v9
+        env:
+          ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue_number }}
+        with:
+          script: |
+            const { prepareSearch } = require('./.github/scripts/issue-duplicates.js');
+            const found = await prepareSearch(github, context.repo, process.env.ISSUE_NUMBER);
+            if (!found) { core.info('Nothing to check.'); return; }
+            core.setOutput('number', String(found.number));
+            core.setOutput('fingerprint', found.fingerprint);
+            core.setOutput('last_human_comment', String(found.lastHumanComment));
+      - id: agent
+        if: steps.issue.outputs.number != ''
+        uses: ./.github/actions/setup-agent
+        with:
+          workflow: dedupe
+          model-override: ${{ inputs.model }}
+          install-project: "false"
+      - id: run
+        if: steps.issue.outputs.number != ''
+        uses: anthropics/claude-code-action@fd1c128679612beff4ca259c78021c506e8aa7a7 # v1.0.237
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        with:
+          # The API key is preferred: it has no weekly cap. The subscription
+          # token is used only when no API key is set.
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.ANTHROPIC_API_KEY == '' && secrets.CLAUDE_CODE_OAUTH_TOKEN || '' }}
+          path_to_claude_code_executable: ${{ steps.agent.outputs.executable }}
+          github_token: ${{ github.token }}
+          # Safe only because this job cannot write.
+          allowed_non_write_users: "*"
+          allowed_bots: "*"
+          prompt: "/dedupe ${{ github.repository }} ${{ steps.issue.outputs.number }}"
+          claude_args: |
+            --model ${{ steps.agent.outputs.model }}
+            --max-turns ${{ steps.agent.outputs.max-turns }}
+            --allowedTools "Agent,Task,Read,TodoWrite,Bash(gh issue view:*),Bash(gh issue list:*),Bash(gh search issues:*)"
+            --json-schema '{"type":"object","properties":{"duplicates":{"type":"array","maxItems":3,"items":{"type":"object","properties":{"number":{"type":"integer","minimum":1},"reason":{"type":"string","minLength":1,"maxLength":1000}},"required":["number","reason"],"additionalProperties":false}}},"required":["duplicates"],"additionalProperties":false}'
+      - name: Check the agent run
+        if: always() && steps.agent.outcome == 'success'
+        env:
+          EXECUTION_FILE: ${{ steps.run.outputs.execution_file }}
+        run: python3 .github/scripts/check_agent_run.py "$EXECUTION_FILE" "Dedupe"
+
+  notify:
+    needs: search
+    if: needs.search.outputs.candidates != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      # A fresh checkout: the agent cannot alter the code that publishes.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - uses: actions/github-script@v9
+        env:
+          ISSUE_NUMBER: ${{ needs.search.outputs.number }}
+          ISSUE_FINGERPRINT: ${{ needs.search.outputs.fingerprint }}
+          LAST_HUMAN_COMMENT: ${{ needs.search.outputs.last_human_comment }}
+          CANDIDATES: ${{ needs.search.outputs.candidates }}
+        with:
+          script: |
+            const { proposeDuplicates } = require('./.github/scripts/issue-duplicates.js');
+            const posted = await proposeDuplicates(github, context.repo, {
+              number: Number(process.env.ISSUE_NUMBER),
+              fingerprint: process.env.ISSUE_FINGERPRINT,
+              lastHumanComment: Number(process.env.LAST_HUMAN_COMMENT),
+              result: JSON.parse(process.env.CANDIDATES),
+            });
+            core.info(posted ? 'Posted a duplicate notice.' : 'No notice posted.');
+

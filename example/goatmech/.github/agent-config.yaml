@@ -1,0 +1,25 @@
+# Which model each agent workflow uses, and how many turns it may take.
+#
+# Models are family aliases (opus, sonnet, haiku), so a new release is picked
+# up without editing this file. A workflow started by hand can override the
+# model with its `model` input. Change a value here to change it everywhere.
+
+default_model: sonnet
+default_max_turns: 40
+
+workflows:
+  claude:
+    model: opus
+    max_turns: 80
+  review:
+    model: opus
+    max_turns: 60
+  triage:
+    model: haiku
+    max_turns: 10
+  dedupe:
+    model: sonnet
+    max_turns: 40
+  literature-scan:
+    model: haiku
+    max_turns: 30

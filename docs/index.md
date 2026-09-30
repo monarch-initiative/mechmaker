@@ -22,6 +22,12 @@ in your field.
 
     The files, the checks, the commands.
 
+- **[Walkthrough](walkthrough.md)**
+
+    One real run, from the tools to curated goat breeds. See its
+    [site](example/goatmech/index.html) and
+    [record browser](example/goatmech/records/index.html).
+
 - **[Workflows](workflows.md)**
 
     GitHub automation, from checks to curation agents. You choose.

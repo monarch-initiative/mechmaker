@@ -1,0 +1,243 @@
+id: VBO:0000827
+name: Saanen
+description: >-
+  A large Swiss dairy goat with a short white coat, from the Saanental in the
+  Bernese Oberland. It is kept for milk in more than eighty countries.
+record_term:
+  id: VBO:0000827
+  label: Saanen (Goat)
+synonyms:
+  - Saanen goat
+status: PROPOSED
+origins:
+  - preferred_term: Saanental and the neighbouring Simmental, Bernese Oberland, Canton of Bern
+    term:
+      id: NCIT:C17181
+      label: Switzerland
+    evidence:
+      - reference: WIKIPEDIA:Saanen_goat
+        reference_title: Saanen goat
+        supports: SUPPORT
+        evidence_source: ENCYCLOPEDIA
+        snippet: 'The Saanen originates in the historic region of Saanen (French: Comté de Gessenay) and in the neighbouring Simmental, both in the Bernese Oberland, in the southern part of the Canton of Bern, in western Switzerland.'
+purposes:
+  - purpose: DAIRY
+    evidence:
+      - reference: WIKIPEDIA:Saanen_goat
+        reference_title: Saanen goat
+        supports: SUPPORT
+        evidence_source: ENCYCLOPEDIA
+        snippet: It is a productive dairy goat and is distributed in more than eighty countries worldwide.
+distinguishing_features:
+  - preferred_term: short white coat
+    term:
+      id: VT:0010463
+      label: coat/hair pigmentation trait
+    evidence:
+      - reference: WIKIPEDIA:Saanen_goat
+        reference_title: Saanen goat
+        supports: SUPPORT
+        evidence_source: ENCYCLOPEDIA
+        snippet: It has white skin and a short white coat; some small pigmented areas may be tolerated.
+  - preferred_term: white skin
+    term:
+      id: VT:0002095
+      label: skin pigmentation trait
+    evidence:
+      - reference: WIKIPEDIA:Saanen_goat
+        reference_title: Saanen goat
+        supports: SUPPORT
+        evidence_source: ENCYCLOPEDIA
+        snippet: It has white skin and a short white coat
+  - preferred_term: erect ears pointing upwards and forwards
+    term:
+      id: VT:0002177
+      label: outer ear morphology trait
+    evidence:
+      - reference: WIKIPEDIA:Saanen_goat
+        reference_title: Saanen goat
+        supports: SUPPORT
+        evidence_source: ENCYCLOPEDIA
+        snippet: the ears are erect and point upwards and forwards.
+  - preferred_term: straight or somewhat concave profile
+    term:
+      id: VT:0000432
+      label: head morphology trait
+    evidence:
+      - reference: WIKIPEDIA:Saanen_goat
+        reference_title: Saanen goat
+        supports: SUPPORT
+        evidence_source: ENCYCLOPEDIA
+        snippet: The profile may be straight or somewhat concave
+  - preferred_term: tassels may be present
+    term:
+      id: VT:0011351
+      label: wattle morphology trait
+    notes: Tassels on goats are the wattles VT names.
+    evidence:
+      - reference: WIKIPEDIA:Saanen_goat
+        reference_title: Saanen goat
+        supports: SUPPORT
+        evidence_source: ENCYCLOPEDIA
+        snippet: It may be horned or hornless and tassels may be present.
+  - preferred_term: does not tolerate strong sun
+    description: Being pale-skinned, it is kept out of strong sun and usually raised intensively.
+    notes: No VT trait fits sun tolerance; term left unset.
+    evidence:
+      - reference: WIKIPEDIA:Saanen_goat
+        reference_title: Saanen goat
+        supports: SUPPORT
+        evidence_source: ENCYCLOPEDIA
+        snippet: Being pale-skinned, it does not tolerate strong sun.
+horns:
+  horn_status: VARIABLE
+  evidence:
+    - reference: WIKIPEDIA:Saanen_goat
+      reference_title: Saanen goat
+      supports: SUPPORT
+      evidence_source: ENCYCLOPEDIA
+      snippet: It may be horned or hornless
+measurements:
+  - trait:
+      id: VT:0001253
+      label: body height
+    sex: MALE
+    statistic: TYPICAL
+    value: 90
+    unit:
+      id: UO:0000015
+      label: centimeter
+    conditions: at the withers
+    evidence:
+      - reference: WIKIPEDIA:Saanen_goat
+        reference_title: Saanen goat
+        supports: SUPPORT
+        evidence_source: ENCYCLOPEDIA
+        snippet: billies stand about 90 cm (35 in) at the withers
+  - trait:
+      id: VT:0001259
+      label: body mass
+    sex: MALE
+    statistic: MINIMUM
+    value: 85
+    unit:
+      id: UO:0000009
+      label: kilogram
+    evidence:
+      - reference: WIKIPEDIA:Saanen_goat
+        reference_title: Saanen goat
+        supports: SUPPORT
+        evidence_source: ENCYCLOPEDIA
+        snippet: weigh a minimum of 85 kg (190 lb)
+  - trait:
+      id: VT:0015043
+      label: milk amount
+    sex: FEMALE
+    statistic: MEAN
+    value: 838
+    unit:
+      id: UO:0000009
+      label: kilogram
+    conditions: per lactation of 264 days
+    evidence:
+      - reference: WIKIPEDIA:Saanen_goat
+        reference_title: Saanen goat
+        supports: SUPPORT
+        evidence_source: ENCYCLOPEDIA
+        snippet: Average milk yield is 838 kg in a lactation of 264 days.
+related_breeds:
+  - relation: GAVE_RISE_TO
+    preferred_term: Banat White
+    breed:
+      id: VBO:0009812
+      label: Banat White, Romania (Goat)
+    evidence:
+      - &local_variants
+        reference: WIKIPEDIA:Saanen_goat
+        reference_title: Saanen goat
+        supports: SUPPORT
+        evidence_source: ENCYCLOPEDIA
+        snippet: Among these local variants are the Banat White in Romania, the British Saanen, the French Saanen, the Israeli Saanen, the Russian White, the Weiße Deutsche Edelziege in Germany, and the Yugoslav Saanen.
+  - relation: GAVE_RISE_TO
+    preferred_term: British Saanen
+    breed:
+      id: VBO:0009552
+      label: British Saanen, United Kingdom of Great Britain and Northern Ireland (Goat)
+    evidence:
+      - *local_variants
+  - relation: GAVE_RISE_TO
+    preferred_term: Russian White
+    breed:
+      id: VBO:0017079
+      label: Russian White (Goat)
+    evidence:
+      - *local_variants
+  - relation: GAVE_RISE_TO
+    preferred_term: Sable, the coloured variant recognised in New Zealand and the United States
+    breed:
+      id: VBO:0017431
+      label: Sable (Goat)
+    evidence:
+      - reference: WIKIPEDIA:Saanen_goat
+        reference_title: Saanen goat
+        supports: SUPPORT
+        evidence_source: ENCYCLOPEDIA
+        snippet: A black variant, the Sable Saanen, was recognised as a breed in New Zealand in the 1980s.
+  - relation: CROSSED_WITH
+    preferred_term: Hair goat of Turkey
+    breed:
+      id: VBO:0009860
+      label: Kıl Keçi, Turkey (Goat)
+    notes: Kıl keçi is Turkish for hair goat.
+    evidence:
+      - reference: PMID:35034210
+        supports: SUPPORT
+        evidence_source: CHARACTERIZATION_STUDY
+        snippet: Positive heterosis was found in milk production and contents both Alpine × Hair F1 (AHF1) and Saanen × Hair F1 (SHF1) generations.
+        explanation: Saanen are crossed with the Turkish Hair goat to raise milk yield.
+population:
+  - count: 900000
+    area: world
+    description: Reported as over 900000 head; the figure is a lower bound.
+    evidence:
+      - reference: WIKIPEDIA:Saanen_goat
+        reference_title: Saanen goat
+        supports: SUPPORT
+        evidence_source: ENCYCLOPEDIA
+        snippet: The total world population is reported to be over 900000 head.
+  - count: 14000
+    area: Switzerland
+    evidence:
+      - reference: WIKIPEDIA:Saanen_goat
+        reference_title: Saanen goat
+        supports: SUPPORT
+        evidence_source: ENCYCLOPEDIA
+        snippet: Of these, some 14000 are in Switzerland.
+discussions:
+  - discussion_id: saanen-risk-status
+    prompt: The FAO risk status of the Saanen is not yet sourced.
+    kind: CURATION_TODO
+    status: OPEN
+    rationale: FAO DAD-IS reports it, but its terms of use have not been read.
+  - discussion_id: saanen-missing-variants
+    prompt: >-
+      The French Saanen, Israeli Saanen, Weiße Deutsche Edelziege and Yugoslav
+      Saanen have no VBO term found by name search.
+    kind: CURATION_TODO
+    status: OPEN
+    rationale: They may exist in VBO under other names, or be candidates for new-term requests.
+creation_date: '2026-09-30'
+updated_date: '2026-09-30'
+curation_history:
+- timestamp: '2026-09-30T18:46:24+00:00'
+  curator: claude-code
+  llm_assisted: true
+  model: claude-opus-5-5
+  action: CREATE
+  description: Scaffolded with `just new-record`.
+- timestamp: '2026-09-30T19:05:00+00:00'
+  curator: claude-code
+  llm_assisted: true
+  model: claude-opus-5-5
+  action: EDIT
+  description: Curated from Wikipedia (WIKIPEDIA:Saanen_goat) and PMID:35034210 with the curate-record skill.

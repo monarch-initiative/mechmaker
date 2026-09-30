@@ -1,0 +1,77 @@
+name: Set up an agent run
+description: >-
+  Install uv, just, the project and the latest Claude Code, and resolve the
+  model and turn budget for one workflow from .github/agent-config.yaml.
+
+inputs:
+  workflow:
+    description: Key of this workflow in .github/agent-config.yaml.
+    required: true
+  model-override:
+    description: Model to use instead of the configured one (blank keeps the config).
+    required: false
+    default: ""
+  tier:
+    description: Effort tier, for workflows with per-tier models (the curation scanner).
+    required: false
+    default: ""
+  install-project:
+    description: Run `just install` so the agent can use the Mech's recipes.
+    required: false
+    default: "true"
+  claude-version:
+    description: Claude Code release channel or exact version.
+    required: false
+    default: latest
+
+outputs:
+  executable:
+    description: Path to the installed Claude Code executable.
+    value: ${{ steps.claude.outputs.executable }}
+  model:
+    description: Resolved model alias or id.
+    value: ${{ steps.config.outputs.model }}
+  max-turns:
+    description: Resolved turn budget.
+    value: ${{ steps.config.outputs.max-turns }}
+
+runs:
+  using: composite
+  steps:
+    - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      with:
+        enable-cache: true
+
+    - name: Install just
+      shell: bash
+      run: uv tool install rust-just
+
+    - name: Install the project
+      if: inputs.install-project == 'true'
+      shell: bash
+      run: just install
+
+    - name: Resolve model and turn budget
+      id: config
+      shell: bash
+      env:
+        WORKFLOW: ${{ inputs.workflow }}
+        MODEL_OVERRIDE: ${{ inputs.model-override }}
+        TIER: ${{ inputs.tier }}
+      run: >-
+        uv run --no-project --with pyyaml python .github/scripts/agent_config.py
+        "$WORKFLOW" --override "$MODEL_OVERRIDE" --tier "$TIER" >> "$GITHUB_OUTPUT"
+
+    # The action bundles its own Claude Code. Installing the latest one keeps
+    # model aliases current; pass claude-version to roll back.
+    - name: Install Claude Code
+      id: claude
+      shell: bash
+      env:
+        CLAUDE_INSTALL_VERSION: ${{ inputs.claude-version }}
+      run: |
+        set -euo pipefail
+        curl -fsSL --retry 3 https://claude.ai/install.sh | bash -s -- "$CLAUDE_INSTALL_VERSION"
+        echo "executable=$HOME/.local/bin/claude" >> "$GITHUB_OUTPUT"
+        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+        echo "Claude Code $("$HOME/.local/bin/claude" --version)" >> "$GITHUB_STEP_SUMMARY"
