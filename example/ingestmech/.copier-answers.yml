@@ -1,0 +1,41 @@
+# Changes here will be overwritten by Copier. Do not edit by hand.
+_commit: ed88e55
+_src_path: gh:monarch-initiative/mechmaker
+author_email: jhc@lbl.gov
+author_name: J. Harry Caufield
+author_orcid: 0000-0001-5705-7831
+causal_graphs: false
+code_license: BSD-3-Clause
+collection: none
+copyright_year: '2026'
+data_license: CC-BY-4.0
+deep_research: false
+description: 'IngestMech records the data ingests of the Monarch Initiative knowledge
+    graph: the upstream sources each one reads, the files it fetches, the terms those
+    sources are licensed under, and what it produces.'
+domains:
+- biomedical
+- genomics
+full_title: Monarch Ingest Knowledge Base
+github_org: monarch-initiative
+github_user: caufieldjh
+identity_prefix: ''
+include_claude_hook: true
+include_site: true
+mech_name: IngestMech
+mech_slug: ingestmech
+ontologies:
+- NCBITaxon
+python_min: '3.11'
+record_class: Ingest
+record_noun: ingest
+records_dir: data/ingests
+repo_name: ingestmech
+site_accent: light-blue
+site_palette: indigo
+site_theme: auto
+taxon_scope: ''
+workflows:
+- sweep
+- docs
+- comment-guard

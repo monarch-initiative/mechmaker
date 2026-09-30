@@ -1,0 +1,23 @@
+# A schema-shaped example for the tests. It is not a curated record and
+# carries no citations. Real records live under data/ingests/.
+id: ingestmech:example
+name: Example ingest
+description: A placeholder that exercises the record structure.
+status: DRAFT
+organisms:
+  - preferred_term: root
+    term:
+      id: NCBITaxon:1
+      label: root
+discussions:
+  - discussion_id: example-gap-1
+    prompt: Which sources should seed this record?
+    kind: CURATION_TODO
+    status: OPEN
+creation_date: 2026-01-01
+curation_history:
+  - timestamp: "2026-01-01T00:00:00Z"
+    curator: mechmaker
+    llm_assisted: false
+    action: CREATE
+    description: Written by the template.

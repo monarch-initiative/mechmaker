@@ -1,0 +1,34 @@
+# Copier answers for the IngestMech example. The domain answers come from
+# ingest-survey-brief.md; the maintainer's are Harry's public details.
+mech_name: IngestMech
+mech_slug: ingestmech
+full_title: Monarch Ingest Knowledge Base
+description: >-
+  IngestMech records the data ingests of the Monarch Initiative knowledge
+  graph: the upstream sources each one reads, the files it fetches, the
+  terms those sources are licensed under, and what it produces.
+record_class: Ingest
+record_noun: ingest
+records_dir: data/ingests
+identity_prefix: ""
+ontologies: [NCBITaxon]
+causal_graphs: false
+taxon_scope: ""
+domains: [biomedical, genomics]
+author_name: J. Harry Caufield
+author_email: jhc@lbl.gov
+author_orcid: 0000-0001-5705-7831
+github_org: monarch-initiative
+github_user: caufieldjh
+repo_name: ingestmech
+collection: none
+data_license: CC-BY-4.0
+code_license: BSD-3-Clause
+include_site: true
+include_claude_hook: true
+site_palette: indigo
+site_accent: light-blue
+site_theme: auto
+workflows: [sweep, docs, comment-guard]
+deep_research: false
+python_min: "3.11"
