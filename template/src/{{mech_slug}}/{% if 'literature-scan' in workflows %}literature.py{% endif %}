@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import html
 import json
 import re
 import sys
@@ -64,7 +65,9 @@ def search(query: str, limit: int) -> list[dict]:
 
 
 def _strip_tags(text: str) -> str:
-    return " ".join(re.sub(r"<[^>]+>", " ", text or "").split())
+    """Plain text: Europe PMC escapes markup in titles and abstracts."""
+    text = html.unescape(html.unescape(text or ""))
+    return " ".join(re.sub(r"<[^>]+>", " ", text).split())
 
 
 def record_names(cfg: dict) -> dict[str, list[str]]:
@@ -102,7 +105,7 @@ def paper_id(r: dict) -> str:
 
 
 def match(r: dict, names: dict[str, list[str]]) -> list[dict]:
-    title = (r.get("title") or "").lower()
+    title = _strip_tags(r.get("title") or "").lower()
     abstract = _strip_tags(r.get("abstractText") or "").lower()
     hits = []
     for path, ns in names.items():
@@ -140,7 +143,7 @@ def main(argv: list[str] | None = None) -> int:
         pid = paper_id(r)
         rows.append({
             "id": pid,
-            "title": r.get("title"),
+            "title": _strip_tags(r.get("title") or ""),
             "date": r.get("firstPublicationDate"),
             "venue": (r.get("journalInfo") or {}).get("journal", {}).get("title")
             or (r.get("bookOrReportDetails") or {}).get("publisher"),
