@@ -53,7 +53,9 @@ Work section by section. For every descriptor:
 - `preferred_term`: your words, as specific as the evidence allows.
 - `term`: the ontology binding, found with the `ontology-terms` skill. Leave
   it out rather than guess.
-- `evidence`: one or more items, written with the `evidence-references` skill.
+- `evidence`: one or more items, added with `just add-evidence` (see the
+  `evidence-references` skill). It fetches the source, checks the quote,
+  fills the title and logs the change, so no one hand-writes evidence YAML.
 
 Set `status: PROPOSED` when the record is complete and valid. Never
 `REVIEWED`.
