@@ -3,6 +3,7 @@
 
     python3 check_env.py              # tools
     python3 check_env.py --network    # tools, and the services a Mech uses
+    python3 check_env.py --research   # tools, and which deep-research providers are ready
 
 Standard library only, so it runs before anything else is installed. Without
 a mechmaker checkout:
@@ -143,6 +144,33 @@ def check_services() -> tuple[list[tuple[str, str, str]], list[str], list[str]]:
     return rows, problems, warnings
 
 
+# Deep-research providers (deep-research-client) and what makes each ready.
+# Only the presence of a key is checked; its value is never read.
+RESEARCH_PROVIDERS = [
+    ("claude_code", None, "Claude Code installed (sign-in not checked)"),
+    ("openai", "OPENAI_API_KEY", "OpenAI Deep Research"),
+    ("falcon", "EDISON_API_KEY", "Edison Scientific"),
+    ("perplexity", "PERPLEXITY_API_KEY", "Perplexity"),
+    ("asta", "ASTA_API_KEY", "Asta"),
+    ("consensus", "CONSENSUS_API_KEY", "Consensus"),
+    ("openscientist", "OPENSCIENTIST_API_KEY", "OpenScientist"),
+]
+
+
+def check_research() -> tuple[list[tuple[str, str, str]], list[str]]:
+    rows, problems = [], []
+    for name, key, what in RESEARCH_PROVIDERS:
+        ready = bool(os.environ.get(key)) if key else shutil.which("claude") is not None
+        need = f"set {key}" if key else "install Claude Code and sign in"
+        rows.append((name, "ready" if ready else "not ready", what if ready else f"{what}; {need}"))
+    if not any(status == "ready" for _, status, _ in rows):
+        problems.append("deep research: no provider is ready. The simplest is claude_code: "
+                        "install Claude Code and sign in (see https://docs.claude.com/en/docs/claude-code/setup)")
+    if shutil.which("uv") is None:
+        problems.append("deep research: runs deep-research-client through uvx, which comes with uv")
+    return rows, problems
+
+
 def table(title: str, rows: list[tuple[str, str, str]]) -> str:
     w0 = max(len(r[0]) for r in rows)
     w1 = max(len(r[1]) for r in rows)
@@ -154,6 +182,7 @@ def table(title: str, rows: list[tuple[str, str, str]]) -> str:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--network", action="store_true", help="also check the services a Mech uses")
+    parser.add_argument("--research", action="store_true", help="also check deep-research providers")
     args = parser.parse_args(argv)
 
     print(f"System: {OS} {platform.release()}, Python {platform.python_version()}\n")
@@ -165,6 +194,11 @@ def main(argv: list[str] | None = None) -> int:
         print()
         print(table("Services", srows))
         problems += sproblems
+    if args.research:
+        rrows, rproblems = check_research()
+        print()
+        print(table("Deep research (needed only for Mechs that use it)", rrows))
+        problems += rproblems
     print()
     if warnings:
         print("Optional services that did not answer (needed only if your Mech uses them):")
