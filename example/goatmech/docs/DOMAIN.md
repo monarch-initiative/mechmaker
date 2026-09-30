@@ -40,6 +40,7 @@ them; a VBO synonym is a `synonyms` entry, not a second record.
 | `horns` | Is it horned? | `HornStatusEnum` | at most one | the breed description or standard |
 | `measurements` | How big, how productive? | VT for the trait, UO for the unit | any | a number a source states, with its sex, statistic and unit |
 | `related_breeds` | What is it descended from, or what came from it? | VBO, under `VBO:0400025` | any | history sections and breed studies |
+| `population` | How many are there? | none; a count, an area, a date | any | each figure a source reports, kept separate. Added after the paper test: Wikipedia states population figures for most breeds |
 | `risk_status` | How endangered is it? | `RiskStatusEnum` (FAO categories) | at most one | FAO DAD-IS, or a source that quotes it |
 | `evidence` | Record-level claims, such as the description | citations | any | as above |
 | `discussions`, `datasets` | Gaps, to-dos, public datasets | `mech_shared` | any | as needed |

@@ -1,0 +1,21 @@
+history_version: 1
+target:
+  kind: record
+  slug: saanen
+  path: data/goat_breeds/saanen.yaml
+session:
+  id: 2026-09-30T184959Z-claude-code-25f3f2
+  timestamp: '2026-09-30T18:49:59Z'
+  actors:
+  - type: ai_agent
+    name: claude-code
+    model: claude-opus-5-5
+    agent_tool: claude-code
+events:
+- type: CREATE
+  outcome: changed
+  summary: 'Create: Saanen'
+  details: 'Curated origins, dairy purpose, six distinguishing features, horn status, three measurements,
+    five related breeds and two population figures from WIKIPEDIA:Saanen_goat, and a crossbreeding relation
+    from PMID:35034210. Validated schema, terms and quotes with just validate. Not sourced: FAO risk status
+    (DAD-IS terms unread); VBO terms for four local variants not found; both left as CURATION_TODO discussions.'

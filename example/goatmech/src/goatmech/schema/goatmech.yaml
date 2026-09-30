@@ -53,6 +53,7 @@ classes:
       - horns
       - measurements
       - related_breeds
+      - population
       - risk_status
       - evidence
       - datasets
@@ -128,6 +129,7 @@ classes:
       - purpose
       - description
       - evidence
+      - notes
 
   HornStatement:
     description: Whether the breed is horned, polled, or either.
@@ -135,6 +137,7 @@ classes:
       - horn_status
       - description
       - evidence
+      - notes
 
   Measurement:
     description: >-
@@ -149,6 +152,7 @@ classes:
       - unit
       - conditions
       - evidence
+      - notes
     slot_usage:
       trait:
         required: true
@@ -165,8 +169,26 @@ classes:
       - breed
       - description
       - evidence
+      - notes
     slot_usage:
       relation:
+        required: true
+
+  PopulationStatement:
+    description: >-
+      How many goats of the breed a source reports, for a stated area and
+      time. Record each source's figure separately; never add or average.
+    slots:
+      - count
+      - area
+      - as_of
+      - description
+      - evidence
+      - notes
+    slot_usage:
+      count:
+        required: true
+      area:
         required: true
 
   RiskStatement:
@@ -176,6 +198,7 @@ classes:
       - as_of
       - description
       - evidence
+      - notes
     slot_usage:
       risk:
         required: true
@@ -274,6 +297,16 @@ slots:
     multivalued: true
     inlined_as_list: true
     description: Breeds this one descends from, gave rise to, or was crossed with.
+  population:
+    range: PopulationStatement
+    multivalued: true
+    inlined_as_list: true
+    description: Head counts a source reports.
+  count:
+    range: integer
+    description: Number of head. For a lower bound ("over 900000"), give the bound and say so in description.
+  area:
+    description: Where the count applies, such as "world" or "Switzerland".
   risk_status:
     range: RiskStatement
     inlined: true

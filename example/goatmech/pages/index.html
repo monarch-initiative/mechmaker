@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GoatMech</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header><h1>GoatMech</h1><p><a href="https://monarch-initiative.github.io/goatmech/">Documentation</a> · <a href="https://github.com/monarch-initiative/goatmech">Repository</a></p></header>
+<main>
+<p>3 goat breed record(s).</p>
+<input id="filter" type="search" placeholder="Filter by name or id" aria-label="Filter">
+<table id="records">
+<thead><tr><th>Name</th><th>ID</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td><a href="records/boer.html">Boer</a></td><td>VBO:0000736</td><td>PROPOSED</td></tr>
+<tr><td><a href="records/nigerian_dwarf.html">Nigerian Dwarf</a></td><td>VBO:0000811</td><td>PROPOSED</td></tr>
+<tr><td><a href="records/saanen.html">Saanen</a></td><td>VBO:0000827</td><td>PROPOSED</td></tr>
+</tbody>
+</table>
+</main>
+<footer><p>AI-curated. Validation checks that citations exist, quotes are exact and ontology terms are real. It does not check that the science is right.</p></footer>
+<script>
+document.getElementById("filter").addEventListener("input", e => {
+  const q = e.target.value.toLowerCase();
+  for (const row of document.querySelectorAll("#records tbody tr")) {
+    row.hidden = !row.textContent.toLowerCase().includes(q);
+  }
+});
+</script>
+</body>
+</html>

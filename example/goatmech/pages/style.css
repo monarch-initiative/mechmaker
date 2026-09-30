@@ -1,0 +1,13 @@
+:root { --bg: #fff; --fg: #1d1d1f; --muted: #6b6b70; --line: #d8d8dc; --accent: #2a5db0; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #151517; --fg: #ececef; --muted: #9a9aa2; --line: #333338; --accent: #8fb3ff; }
+}
+body { background: var(--bg); color: var(--fg); font: 16px/1.5 system-ui, sans-serif; max-width: 60rem; margin: 0 auto; padding: 0 16px; }
+a { color: var(--accent); }
+table { border-collapse: collapse; width: 100%; }
+th, td { text-align: left; padding: .35rem .5rem; border-bottom: 1px solid var(--line); }
+input[type=search] { width: 100%; padding: .4rem; margin: .5rem 0 1rem; box-sizing: border-box; }
+dt { font-weight: 600; } dd { margin: 0 0 .5rem 1rem; }
+blockquote { border-left: 3px solid var(--line); margin: .3rem 0; padding-left: .7rem; color: var(--muted); }
+.support { font-size: .8rem; color: var(--muted); }
+footer { color: var(--muted); font-size: .85rem; margin: 2rem 0; }

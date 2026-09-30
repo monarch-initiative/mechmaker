@@ -37,6 +37,10 @@ measurements:
 related_breeds:
   - relation: GAVE_RISE_TO
     preferred_term: a local variant
+population:
+  - count: 900000
+    area: world
+    as_of: "2025"
 risk_status:
   risk: NOT_AT_RISK
   as_of: "2025"

@@ -1,3 +1,10 @@
 curie,label,retrieved_at
+VT:0000432,head morphology trait,2026-09-30T14:49:19.708884
 VT:0001253,body height,2026-09-30T14:40:50.939750
+VT:0001259,body mass,2026-09-30T14:49:21.748446
+VT:0002095,skin pigmentation trait,2026-09-30T14:49:17.778521
+VT:0002177,outer ear morphology trait,2026-09-30T14:49:18.704324
 VT:0010463,coat/hair pigmentation trait,2026-09-30T14:40:49.976666
+VT:0011348,horn morphology trait,2026-09-30T14:55:18.598262
+VT:0011351,wattle morphology trait,2026-09-30T14:49:20.669754
+VT:0015043,milk amount,2026-09-30T14:49:22.553568
