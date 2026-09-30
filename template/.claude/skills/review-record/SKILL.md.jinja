@@ -1,0 +1,41 @@
+---
+name: review-record
+description: >-
+  Audit one {{ mech_name }} record, or a pull request that changes records,
+  without editing anything. Use when asked to review, check, audit or assess
+  a {{ record_noun }} record or a curation pull request. Produces findings;
+  changes nothing.
+---
+
+# Review a record
+
+Read only. The output is a list of findings, each with a location and a
+reason. Fixes belong to `curate-record`, in a separate step, when asked.
+
+## Checks, in order
+
+1. **Machine checks.** `just validate {{ records_dir }}/<stem>.yaml`. Every
+   error is a finding. A clean run proves the citations exist, the quotes are
+   exact and the terms are real. It proves nothing else.
+2. **Scope.** Is this one {{ record_noun }} by the rules in `docs/DOMAIN.md`?
+   Is it a duplicate of another record?
+3. **Quote fit.** For each evidence item, read the snippet against the claim
+   it is attached to. A real quote under the wrong claim passes validation and
+   is still wrong. This is the check machines cannot do.
+4. **Term fit.** Is each bound term the most specific accurate one? Is a
+   broad binding explained in `notes`?
+5. **Direction.** Does `supports` match what the quote says?
+6. **Gaps.** What does the record claim with no evidence? What is missing
+   that the sources would support?
+{%- if causal_graphs %}
+7. **Graph.** Does each edge say something the evidence supports? Are
+   there leaps where an intermediate step is known and omitted?
+{%- endif %}
+
+## Output
+
+A table: location (section and item), finding, severity (`error`, `warning`,
+`note`), and the evidence for the finding. End with a verdict: approve,
+approve with notes, or changes needed. If you were asked to record the
+review, add a history record with `--event REVIEW`, and `--outcome no_change`
+when you changed nothing.

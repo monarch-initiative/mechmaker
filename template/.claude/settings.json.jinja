@@ -1,0 +1,41 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(just --list:*)",
+      "Bash(just validate:*)",
+      "Bash(just validate-schema:*)",
+      "Bash(just validate-terms:*)",
+      "Bash(just validate-terms-offline:*)",
+      "Bash(just validate-references:*)",
+      "Bash(just validate-all:*)",
+      "Bash(just validate-history:*)",
+      "Bash(just fetch-reference:*)",
+      "Bash(just search-term:*)",
+      "Bash(just term-info:*)",
+      "Bash(just report:*)",
+      "Bash(just qc:*)",
+      "Bash(just test:*)",
+      "Bash(just lint:*)",
+      "Bash(uv run runoak:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "WebFetch(domain:pubmed.ncbi.nlm.nih.gov)",
+      "WebFetch(domain:pmc.ncbi.nlm.nih.gov)",
+      "WebFetch(domain:www.ebi.ac.uk)"
+    ]
+  }{% if include_claude_hook %},
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|MultiEdit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/validate_record.py"
+          }
+        ]
+      }
+    ]
+  }{% endif %}
+}
