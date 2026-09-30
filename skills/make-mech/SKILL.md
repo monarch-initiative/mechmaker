@@ -21,6 +21,7 @@ that need judgment about the domain.
 | 2. Choose the answers | you, checked by script | `answers.yml` |
 | 3. Generate | Copier | the repository |
 | 4. Design the schema | you, with `design-mech-schema` | `docs/DOMAIN.md`, the schema |
+| 4b. Choose workflows | you and the person | the GitHub automation |
 | 5. Seed records | you, with the new Mech's `curate-record` | 3 to 5 exemplar records |
 | 6. Register | you, with `register-mech` | a MechRegistry pull request |
 
@@ -72,6 +73,7 @@ data_license: CC-BY-4.0
 code_license: BSD-3-Clause
 include_site: true
 include_claude_hook: true
+workflows: [sweep, pages, comment-guard]   # step 4b revisits this
 python_min: "3.11"
 ```
 
@@ -116,6 +118,33 @@ then a readable diff against the template.
 
 Run the `design-mech-schema` skill in the new repository. It fills in
 `docs/DOMAIN.md` and reshapes the scaffold schema to the domain. Commit.
+
+## 4b. Choose the workflows
+
+`docs/WORKFLOWS.md` in the new Mech lists every GitHub workflow the template
+knows. The deterministic ones (`sweep`, `pages`, `comment-guard`) are cheap
+and safe. Agent workflows cost money per run and need secrets and, for some,
+a GitHub App.
+
+A sound first set for a Mech a person will curate with agents:
+`sweep`, `comment-guard`, `claude`, `review`, `triage`, `dedupe`, and
+`literature-scan` if the domain is fed by literature. Add `curation-scanner`
+and `compliance` only once the person has created an agent GitHub App and
+wants unattended curation. Leave `agent_schedules` off at first; run each
+agent once by hand and read its summary.
+
+Ask the person which to turn on, and whether they will create the Apps.
+Then:
+
+```bash
+uvx copier update --skip-answered --data 'workflows=[...]'
+```
+
+Adapt `.github/prompts/` to the domain, and tune `conf/literature_scan.yaml`
+until a trial `just literature-scan --days 30` returns mostly relevant
+papers. The Mech's `github-workflows` skill has the details. Setting
+secrets and creating Apps act on the live repository: the person does
+those, or you do them only after they say so.
 
 ## 5. Seed
 

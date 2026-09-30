@@ -29,3 +29,13 @@ and agent skills (`skills/`) for making Mechs. See README.md.
 - Files that contain their own `{{ }}` (the justfile, HTML templates) either
   lack the `.jinja` suffix or wrap that syntax in `{% raw %}`.
 - Generated Python must pass ruff at line length 110 with a long slug.
+- Workflow templates keep GitHub's `${{ }}` inside `{% raw %}` blocks and put
+  Mech values in a top-level `env:`. Each file is gated by its own name:
+  `{% if 'review' in workflows %}review.yaml{% endif %}.jinja`.
+- The agent workflows repeat a few blocks on purpose: the pinned
+  `claude-code-action` SHA, the credential lines, the optional Langfuse
+  lines, and the run check. Change them in every file together; a test
+  checks the pin and credential lines match. Run `actionlint` on a render
+  with every workflow on (`just test` does, when actionlint is available).
+- Agents that read text anyone can write get no write permission. They
+  return structured output and a step with no model publishes it.

@@ -1,0 +1,83 @@
+---
+name: github-workflows
+description: >-
+  Turn on, configure, adapt or debug the GitHub workflows of {{ mech_name }}:
+  the QC check, the scheduled sweep, and the agent workflows (review, triage,
+  dedupe, PR shepherd, curation scanner, literature scan, compliance,
+  post-review). Use when asked to set up automation, enable an agent, set
+  secrets, change a schedule or a model, tune a prompt, or find out why a
+  workflow failed.
+---
+
+# GitHub workflows
+
+The catalog is `docs/WORKFLOWS.md`: every workflow mechmaker knows, on or
+off, with what it needs. Read it first.
+
+## Turning a workflow on or off
+
+Workflows are Copier answers, so their files stay in step with the template:
+
+```bash
+uvx copier update --skip-answered --data 'workflows=["sweep","comment-guard","review"]'
+```
+
+List every workflow to keep; the list replaces the old one. Copier writes
+and deletes the files, and merges your edits to prompts and workflows you
+kept. Review the diff. To run agent workflows on their schedules, add
+`--data agent_schedules=true`.
+
+Do not copy workflow files in by hand. Copier would not know about them.
+
+## Setting up an agent workflow
+
+1. **Credential.** A repository secret: `ANTHROPIC_API_KEY` (preferred), or
+   `CLAUDE_CODE_OAUTH_TOKEN` from `claude setup-token`.
+   ```bash
+   gh secret set ANTHROPIC_API_KEY
+   ```
+2. **Identity**, from the catalog's Identities section:
+   - `claude`: install the Claude GitHub App.
+   - `review`: create a reviewer App and set `MECH_REVIEWER_APP_ID` and
+     `MECH_REVIEWER_PRIVATE_KEY`, or allow Actions to approve pull requests.
+   - `curation-scanner`, `compliance`: create an agent App with contents,
+     issues and pull requests write, install it, and set
+     `MECH_AGENT_APP_ID` and `MECH_AGENT_PRIVATE_KEY`.
+3. **Labels.** `just labels` once. Triage, the scanner and the literature
+   scan rely on them.
+4. **First run by hand**, from the Actions tab or
+   `gh workflow run <file> -f dry_run=true` where there is a dry run. Read
+   the run summary before letting it run on a schedule.
+
+Creating Apps, setting secrets and starting workflows act on the live
+repository. Ask the person before doing any of them.
+
+## Adapting to the domain
+
+- **Prompts** are `.github/prompts/<workflow>.md`. Put the domain's rules
+  there: what counts as a record, what a good source is, what reviewers
+  should look for. Keep the "untrusted content" paragraph.
+- **Models and turn budgets** are `.github/agent-config.yaml`.
+- **Literature scan** terms are `conf/literature_scan.yaml`. Run
+  `just literature-scan --days 30` and read `build/literature/packet.md`:
+  most hits should be about the domain. Tighten `context_terms` until they
+  are.
+- **Compliance weights** are `WEIGHTS` in `src/{{ mech_slug }}/compliance.py`.
+
+Changes to prompts take effect from the default branch, so merge them before
+judging a run.
+
+## When a workflow fails
+
+The last step of every agent run, `Check the agent run`, names the cause:
+
+| It says | Do |
+|---|---|
+| ran out of turns | raise `max_turns` in `.github/agent-config.yaml`, or narrow the prompt |
+| account out of credit | top up the account behind `ANTHROPIC_API_KEY` |
+| usage limit reached | the subscription token is spent; set `ANTHROPIC_API_KEY` |
+| did not run / errored | read the log; common causes are a retired model name or a missing secret |
+
+For `qc.yaml`, run the failing recipe locally: `just qc`, or
+`just validate-changed <files>`. A term check that says the service is
+unreachable is an outage, not a data error; re-run later.

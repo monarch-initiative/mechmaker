@@ -35,6 +35,8 @@ just fetch-reference PMID:NNN   # fetch and cache a source; read it before quoti
 just search-term ADAPTER "text" # search an ontology, e.g. ols:go
 just term-ancestors CURIE       # where a term sits; use when an enum root rejects it
 just report            # corpus statistics
+just compliance        # completeness per record, lowest first
+just labels            # create the GitHub labels the workflows use
 ```
 
 Quote counts from `just report` or a live command, never from prose.
@@ -92,6 +94,7 @@ Project skills live in `.claude/skills/`. Use them.
 | `review-record` | audit one record without editing it |
 | `extend-schema` | change the data model and migrate records |
 | `source-queue` | triage the sources that feed curation |
+| `github-workflows` | turn on, configure, adapt or debug the GitHub workflows |
 
 {%- if collection == 'xmech' %}
 ## The X-Mech fleet
@@ -106,6 +109,16 @@ vendored-sync check. Adding a consumer re-pins the whole fleet, so coordinate
 it with claw's maintainers.
 
 {% endif %}
+## Workflows
+
+`docs/WORKFLOWS.md` lists every GitHub workflow, on or off.
+{%- if uses_agents %} Agent workflows
+read their prompts from `.github/prompts/` and their models from
+`.github/agent-config.yaml`. When you run inside one, the prompt is your
+task; this file and the skills still apply.
+{%- endif %} Turn workflows on or off through Copier, never by copying
+files; see the `github-workflows` skill.
+
 ## Git
 
 Branch before the first edit. One pull request per coherent change. The pull

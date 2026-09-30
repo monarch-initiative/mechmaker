@@ -165,6 +165,7 @@ A new Mech comes with:
 | Agent instructions | Skills that teach an AI agent how to curate, review records and change the data model |
 | A website | A simple browsable page for every record (optional) |
 | Automatic checks on GitHub | Every proposed change is checked before anyone reviews it |
+| Optional GitHub automation | AI agents that review pull requests, label and de-duplicate issues, scan new literature, and work through the curation queue. Each one is switched on only if you choose it |
 | A registry entry | A draft listing for MechRegistry |
 
 The commands you will use most, from inside your Mech:
@@ -202,6 +203,7 @@ The rest of this README is about working on mechmaker itself.
 | `skills/` | Skills for the agent that makes a Mech: `make-mech`, `survey-domain`, `design-mech-schema`, `register-mech` |
 | `.claude-plugin/` | Makes this repository installable as a Claude Code plugin |
 | `tests/` | Tests that generate sample Mechs and check them |
+| `template/.github/` | GitHub workflows, agent prompts, and their helper scripts. Each workflow is a Copier choice; `template/docs/WORKFLOWS.md.jinja` is the catalog |
 
 `skills/make-mech/scripts/check_terms.py` looks up ontology terms, labels and
 root terms before a Mech exists. It needs only Python.
