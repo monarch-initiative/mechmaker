@@ -71,3 +71,11 @@ def test_history_record_is_valid(tmp_path):
     assert schema_errors(record, "HistoryRecord", HISTORY_SCHEMA_PATH) == []
     assert out.parent.name == "convert-old-kb"
     assert "b2 (no name)" in record["events"][0]["details"]
+
+
+def test_long_lines_are_not_folded(tmp_path):
+    # add-evidence never folds; if this writer did, each would reformat the other's output.
+    long = "word " * 40
+    report = convert([entry("a1", "Alpha", description=long.strip())], source="Old KB",
+                     apply=True, records_dir=tmp_path)
+    assert f"description: {long.strip()}\n" in report.written[0][1].read_text()

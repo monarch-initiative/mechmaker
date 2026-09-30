@@ -1,7 +1,6 @@
 id: ingestmech:go-ingest
 name: go-ingest
-description: Modular ingest for Gene Ontology annotations. Creates gene-to-GO term associations for molecular
-  activity, biological process, and cellular component.
+description: Modular ingest for Gene Ontology annotations. Creates gene-to-GO term associations for molecular activity, biological process, and cellular component.
 repository: https://github.com/monarch-initiative/go-ingest
 source_commit: fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca
 code_license:
@@ -273,13 +272,11 @@ evidence:
   - reference: url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/.copier-answers.yml
     supports: SUPPORT
     evidence_source: INGEST_REPOSITORY
-    snippet: 'project_description: Modular ingest for Gene Ontology annotations. Creates gene-to-GO term
-      associations for molecular activity, biological process, and cellular component.'
+    snippet: 'project_description: Modular ingest for Gene Ontology annotations. Creates gene-to-GO term associations for molecular activity, biological process, and cellular component.'
     explanation: The record's description is the repository's own.
 discussions:
   - discussion_id: go-ingest-data-licenses
-    prompt: No ingest records the terms of its upstream data. Curate each source's data_license from the
-      source's own terms.
+    prompt: No ingest records the terms of its upstream data. Curate each source's data_license from the source's own terms.
     kind: CURATION_TODO
     status: OPEN
     attaches_to:

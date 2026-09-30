@@ -23,8 +23,9 @@ from .validate import evidence_errors, rule_errors, schema_errors, slugify
 class _Dumper(yaml.SafeDumper):
     """Block-style YAML with multi-line strings as literal blocks.
 
-    Lists are indented under their key ("  - item"), the layout `just
-    add-evidence` keeps, so the two writers never reformat each other.
+    Lists are indented under their key ("  - item") and long lines are never
+    folded: the layout `just add-evidence` keeps, so the two writers never
+    reformat each other.
     """
 
     def increase_indent(self, flow=False, indentless=False):
@@ -40,7 +41,7 @@ _Dumper.add_representer(str, _str)
 
 
 def dump(data: dict) -> str:
-    return yaml.dump(data, Dumper=_Dumper, sort_keys=False, allow_unicode=True, width=100)
+    return yaml.dump(data, Dumper=_Dumper, sort_keys=False, allow_unicode=True, width=4096)
 
 
 def record_path(data: dict) -> Path:

@@ -62,8 +62,7 @@ discussions:
     attaches_to:
       - organisms
   - discussion_id: omim-ingest-data-licenses
-    prompt: No ingest records the terms of its upstream data. Curate each source's data_license from the
-      source's own terms.
+    prompt: No ingest records the terms of its upstream data. Curate each source's data_license from the source's own terms.
     kind: CURATION_TODO
     status: OPEN
     attaches_to:
