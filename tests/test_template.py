@@ -246,6 +246,38 @@ def test_actionlint(tmp_path):
     assert result.returncode == 0, result.stdout + result.stderr
 
 
+def _action_refs(root: Path) -> set[tuple[str, str]]:
+    refs = set()
+    for f in list(root.rglob("*.yml")) + list(root.rglob("*.yaml")):
+        if ".github" not in f.parts:
+            continue
+        for m in re.finditer(r"uses:\s*([\w.-]+/[\w.-]+)(?:/[\w./-]+)?@([\w.-]+)", f.read_text()):
+            refs.add((m.group(1), m.group(2)))
+    return refs
+
+
+@pytest.mark.slow
+def test_every_action_ref_exists(tmp_path):
+    """actionlint does not check that a tag exists. A missing one fails CI at "Set up job"."""
+    dest = render(tmp_path / "refs", SCENARIOS["all-workflows"])
+    refs = _action_refs(dest) | _action_refs(ROOT)
+    assert refs
+    missing = []
+    for repo in sorted({r for r, _ in refs}):
+        out = subprocess.run(["git", "ls-remote", f"https://github.com/{repo}"],
+                             capture_output=True, text=True, timeout=60).stdout
+        names = {line.split("\t")[1].removesuffix("^{}") for line in out.splitlines() if "\t" in line}
+        shas = {line.split("\t")[0] for line in out.splitlines() if "\t" in line}
+        for r, ref in refs:
+            if r != repo:
+                continue
+            ok = ref in shas if re.fullmatch(r"[0-9a-f]{40}", ref) else (
+                f"refs/tags/{ref}" in names or f"refs/heads/{ref}" in names)
+            if not ok:
+                missing.append(f"{repo}@{ref}")
+    assert not missing, missing
+
+
 def test_identity_prefix_requires_root(tmp_path):
     data = {**BASE, "mech_name": "NoRootMech", "record_class": "Thing", "identity_prefix": "ENVO"}
     with pytest.raises(Exception):  # noqa: B017  copier raises its own validation errors
