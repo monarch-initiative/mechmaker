@@ -126,5 +126,8 @@ drop or make optional.
 ## When done
 
 `docs/DOMAIN.md` has no TODOs. The example record exercises every section.
-`just qc` passes. Update `CLAUDE.md` if a rule changed, and
+`just qc` passes. Run `just docs-serve` and read the schema pages as a
+newcomer would: every class, slot and enum should have a description that
+says what it is for. They are generated from the schema, so fix a thin page
+in the schema. Update `CLAUDE.md` if a rule changed, and
 `registry/<slug>.md` if the record type or ontologies changed.

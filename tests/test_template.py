@@ -59,7 +59,7 @@ SCENARIOS = {
 }
 
 ALL_WORKFLOWS = [
-    "sweep", "pages", "comment-guard", "close-fork-prs", "release-records", "warm-reference-cache",
+    "sweep", "docs", "comment-guard", "close-fork-prs", "release-records", "warm-reference-cache",
     "pypi-publish", "claude", "review", "triage", "dedupe", "pr-shepherd", "curation-scanner",
     "literature-scan", "compliance", "post-review",
 ]
@@ -67,7 +67,7 @@ AGENT_WORKFLOWS = {"claude", "review", "triage", "dedupe", "pr-shepherd", "curat
                    "literature-scan", "compliance", "post-review"}
 # Workflow files each answer produces.
 WORKFLOW_FILES = {
-    "sweep": ["sweep.yaml"], "pages": ["pages.yaml"], "comment-guard": ["comment-guard.yaml"],
+    "sweep": ["sweep.yaml"], "docs": ["docs.yaml"], "comment-guard": ["comment-guard.yaml"],
     "close-fork-prs": ["close-fork-prs.yaml"], "release-records": ["release-records.yaml"],
     "warm-reference-cache": ["warm-reference-cache.yaml"], "pypi-publish": ["pypi-publish.yaml"],
     "claude": ["claude.yaml"], "review": ["review.yaml"], "triage": ["triage.yaml"],
@@ -125,10 +125,28 @@ def test_no_unrendered_template_syntax(generated):
         assert not f.name.endswith(".jinja"), f
 
 
+class _AnyTagLoader(yaml.SafeLoader):
+    """mkdocs.yml uses a !!python/name tag; parse it without importing anything."""
+
+
+_AnyTagLoader.add_multi_constructor("", lambda loader, suffix, node: None)
+
+
 def test_yaml_parses(generated):
     _, _, dest = generated
     for f in list(dest.rglob("*.yaml")) + list(dest.rglob("*.yml")):
-        yaml.safe_load(f.read_text())
+        yaml.load(f.read_text(), Loader=_AnyTagLoader)
+
+
+def test_docs_site_config(generated):
+    _, answers, dest = generated
+    cfg = yaml.load((dest / "mkdocs.yml").read_text(), Loader=_AnyTagLoader)
+    assert cfg["site_name"] == answers["mech_name"]
+    nav = yaml.dump(cfg["nav"])
+    assert "elements/index.md" in nav and "structure.md" in nav
+    assert ("/records/" in nav) == answers["include_site"]
+    for page in ["index.md", "DOMAIN.md", "CURATION.md", "WORKFLOWS.md"]:
+        assert (dest / "docs" / page).exists(), page
 
 
 def test_registry_entry_front_matter(generated):
