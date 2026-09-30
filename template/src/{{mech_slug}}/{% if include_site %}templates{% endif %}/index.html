@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ mech_name }}</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header><h1>{{ mech_name }}</h1><p><a href="{{ repo_url }}">Repository</a></p></header>
+<main>
+<p>{{ records | length }} {{ record_noun }} record(s).</p>
+<input id="filter" type="search" placeholder="Filter by name or id" aria-label="Filter">
+<table id="records">
+<thead><tr><th>Name</th><th>ID</th><th>Status</th></tr></thead>
+<tbody>
+{%- for r in records %}
+<tr><td><a href="records/{{ r.stem }}.html">{{ r.data.name }}</a></td><td>{{ r.data.id }}</td><td>{{ r.data.status or "" }}</td></tr>
+{%- endfor %}
+</tbody>
+</table>
+</main>
+<footer><p>AI-curated. Validation checks that citations exist, quotes are exact and ontology terms are real. It does not check that the science is right.</p></footer>
+<script>
+document.getElementById("filter").addEventListener("input", e => {
+  const q = e.target.value.toLowerCase();
+  for (const row of document.querySelectorAll("#records tbody tr")) {
+    row.hidden = !row.textContent.toLowerCase().includes(q);
+  }
+});
+</script>
+</body>
+</html>
