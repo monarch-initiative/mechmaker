@@ -9,6 +9,7 @@ causal_graphs: false
 code_license: BSD-3-Clause
 collection: none
 copyright_year: '2026'
+deep_research: true
 data_license: CC-BY-4.0
 description: 'GoatMech records goat breeds: where each comes from, what it is kept
     for, and the features that tell it apart, with every claim quoted from its source.'

@@ -147,6 +147,25 @@ labels *args:
 literature-scan *args:
     uv run python -m {{slug}}.literature "$@"
 
+# ---------------------------------------------------------------- research
+
+# Which deep-research providers this machine can use.
+research-providers:
+    uv run python -m {{slug}}.research providers
+
+# Research one record (its filename stem) or a new name. Costs a provider run.
+# `just research claude_code saanen`, or `just research falcon saanen -- --fallback`
+research provider target *args:
+    uv run python -m {{slug}}.research run "$@"
+
+# Redo a report's reference and term checks, into the report.
+research-validate report:
+    uv run python -m {{slug}}.research validate "$1"
+
+# Which records have research, and from which providers.
+research-status:
+    uv run python -m {{slug}}.research status
+
 # ---------------------------------------------------------------- docs
 
 # Build the documentation site into site/ (strict: a broken link fails).

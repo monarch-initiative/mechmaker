@@ -39,6 +39,8 @@ just compliance        # completeness per record, lowest first
 just labels            # create the GitHub labels the workflows use
 just docs-serve        # the documentation site at http://127.0.0.1:8000
 just site-check        # check conf/site.yaml: colors, theme, contrast
+just research-providers         # which deep-research providers are ready here
+just research PROVIDER TARGET   # a deep-research report on one record (costs a run)
 ```
 
 Quote counts from `just report` or a live command, never from prose.
@@ -56,6 +58,8 @@ Quote counts from `just report` or a live command, never from prose.
   `just validate-references` fails a paraphrase, and it should.
 - **Bind the most specific accurate term.** If only a broad term fits, bind
   it and say so in `notes`. Do not bind a narrow term because it exists.
+- **A deep-research report is a lead, never a source.** Never cite one in a
+  record. Fetch the primary source it points to and quote that.
 - **Closed schema.** An unknown field is an error. If the schema lacks a
   place for something real, use the `extend-schema` skill. Do not stuff it
   into `notes`.
@@ -95,6 +99,7 @@ Project skills live in `.claude/skills/`. Use them.
 | `source-queue` | triage the sources that feed curation |
 | `github-workflows` | turn on, configure, adapt or debug the GitHub workflows |
 | `site-design` | change how the documentation site and record browser look |
+| `deep-research` | run deep research on a record, and turn its leads into evidence |
 
 
 ## Workflows
