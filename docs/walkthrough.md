@@ -6,6 +6,11 @@ records. Every command and output below comes from that run, on 2026-09-30.
 The result is in the repository at
 [`example/goatmech`](https://github.com/monarch-initiative/mechmaker/tree/main/example/goatmech).
 
+!!! example "See the result"
+    GoatMech's own documentation site is published here, as a Mech would
+    publish it: [GoatMech](example/goatmech/index.html), with its schema
+    pages, and its [record browser](example/goatmech/records/index.html).
+
 The run was made by Claude Code following the skills. You can repeat it
 with an agent, or by hand; each step says what to run.
 
@@ -275,7 +280,8 @@ QC passed: 9 gate(s).
 ## 6. Register
 
 The draft entry in `registry/goatmech.md` passes MechRegistry's own
-validator:
+validator. Its homepage would be the Mech's documentation site; for the
+example, that is the copy [published here](example/goatmech/index.html).
 
 ```console
 $ uv run mechregistry validate mech/goatmech/goatmech.md
@@ -293,5 +299,5 @@ GoatMech is an example, so it was not submitted.
 | check a pull request | `review-record`, or the `review` workflow on GitHub |
 | find the least complete records | `just compliance` |
 | find new papers | `just literature-scan --days 30`, or the `literature-scan` workflow |
-| see the site | `just docs-serve` |
+| see the site | `just docs-serve`; GoatMech's is [here](example/goatmech/index.html) |
 | check everything | `just qc-full` |
