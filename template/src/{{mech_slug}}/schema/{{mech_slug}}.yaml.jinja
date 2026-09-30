@@ -110,7 +110,7 @@ classes:
 
   {{ o.descriptor }}:
     is_a: Descriptor
-    description: A {{ o.noun }}, bindable to {{ o.prefix }}.
+    description: {{ 'An' if o.noun[0] in 'aeiou' else 'A' }} {{ o.noun }}, bindable to {{ o.prefix }}.
     slot_usage:
       term:
         bindings:
@@ -359,7 +359,7 @@ enums:
 {%- if identity_prefix and identity_root %}
 
   IdentityTerm:
-    description: A {{ identity_prefix }} term that can key a {{ record_noun }}.
+    description: A {{ identity_prefix }} term that can key {{ record_article }} {{ record_noun }}.
     reachable_from:
       source_nodes:
         - {{ identity_root }}
@@ -371,7 +371,7 @@ enums:
 {%- for o in selected %}
 
   {{ o.enum }}:
-    description: A {{ o.noun }} term, descending from {{ o.root }} ({{ o.root_label }}).
+    description: {{ 'An' if o.noun[0] in 'aeiou' else 'A' }} {{ o.noun }} term, descending from {{ o.root }} ({{ o.root_label }}).
     reachable_from:
       source_nodes:
         - {{ o.root }}  # {{ o.root_label }}
