@@ -1,0 +1,44 @@
+"""Every committed record and history record is valid."""
+
+import argparse
+
+import pytest
+
+from goatmech import history, paths, validate
+
+RECORDS = validate.iter_records()
+
+
+@pytest.mark.parametrize("path", RECORDS, ids=[p.name for p in RECORDS])
+def test_record_is_valid(path):
+    assert validate.validate_paths([path]) == {}
+
+
+def test_history_is_valid():
+    if not paths.HISTORY_DIR.exists():
+        pytest.skip("no history/")
+    assert history.validate_history(paths.HISTORY_DIR) == {}
+
+
+def test_history_scaffold_is_valid():
+    out, record = history.build(
+        argparse.Namespace(
+            kind="record", slug="example", path=None, event="CREATE", outcome="changed",
+            summary="Create example", details="Created for the test.", section=None,
+            actor="tester", actor_type="ai_agent", model="test-model", agent_tool="pytest",
+            issue=["1"], pr=None,
+        )
+    )
+    assert out.stem == record["session"]["id"]
+    assert validate.schema_errors(record, "HistoryRecord", paths.HISTORY_SCHEMA_PATH) == []
+
+
+def test_unfilled_history_is_rejected():
+    _, record = history.build(
+        argparse.Namespace(
+            kind="record", slug="example", path=None, event="EDIT", outcome="changed",
+            summary="Edit", details=None, section=None, actor="tester", actor_type="human",
+            model=None, agent_tool=None, issue=None, pr=None,
+        )
+    )
+    assert validate.schema_errors(record, "HistoryRecord", paths.HISTORY_SCHEMA_PATH)

@@ -1,0 +1,40 @@
+# Changes here will be overwritten by Copier. Do not edit by hand.
+_commit: d04762c
+_src_path: gh:monarch-initiative/mechmaker
+author_email: jhc@lbl.gov
+author_name: J. Harry Caufield
+author_orcid: 0000-0001-5705-7831
+causal_graphs: false
+code_license: BSD-3-Clause
+collection: none
+copyright_year: '2026'
+data_license: CC-BY-4.0
+description: 'GoatMech records goat breeds: where each comes from, what it is kept
+    for, and the features that tell it apart, with every claim quoted from its source.'
+domains:
+- organisms
+- phenotype
+full_title: Goat Breed Knowledge Base
+github_org: monarch-initiative
+github_user: caufieldjh
+identity_adapter: ols:vbo
+identity_prefix: VBO
+identity_root: VBO:0400025
+identity_uri: http://purl.obolibrary.org/obo/VBO_
+include_claude_hook: true
+include_site: true
+mech_name: GoatMech
+mech_slug: goatmech
+ontologies:
+- NCBITaxon
+- UO
+python_min: '3.11'
+record_class: GoatBreed
+record_noun: goat breed
+records_dir: data/goat_breeds
+repo_name: goatmech
+taxon_scope: NCBITaxon:9925
+workflows:
+- sweep
+- docs
+- comment-guard

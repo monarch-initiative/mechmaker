@@ -1,0 +1,194 @@
+# GoatMech: Goat Breed Knowledge Base
+#
+# These recipes are the repository's real interface. CI calls recipes, not
+# inlined shell. `just qc` is the one executable definition of green.
+
+set positional-arguments := true
+
+slug := "goatmech"
+schema := "src/goatmech/schema/goatmech.yaml"
+history_schema := "src/goatmech/schema/history.yaml"
+record_class := "GoatBreed"
+records := "data/goat_breeds"
+oak_config := "conf/oak_config.yaml"
+ref_config := ".linkml-reference-validator.yaml"
+
+default:
+    @just --list --unsorted
+
+# Install the package and dev tools
+install:
+    uv sync --extra dev
+
+# ---------------------------------------------------------------- validation
+
+# Full validation of one record: closed schema, ontology terms, verbatim quotes.
+# Network on first use of a term or reference; cached after.
+validate file:
+    uv run python -m {{slug}}.validate "$1"
+    @just validate-terms "$1"
+    @just validate-references "$1"
+
+# Closed-schema validation of one record. Unknown fields are errors.
+validate-schema file:
+    uv run python -m {{slug}}.validate "$1"
+
+# Every bound CURIE exists, sits under its enum root, and carries its real label.
+validate-terms *files:
+    uv run linkml-term-validator validate-data "$@" -s {{schema}} -t {{record_class}} --labels -c {{oak_config}}
+
+# Same, from the term cache only. Never touches the network.
+validate-terms-offline *files:
+    uv run linkml-term-validator validate-data "$@" -s {{schema}} -t {{record_class}} --labels -c {{oak_config}} --offline
+
+# Every snippet appears verbatim in its cited source.
+validate-references *files:
+    uv run linkml-reference-validator validate data "$@" --schema {{schema}} --target-class {{record_class}} --config {{ref_config}}
+
+# Closed-schema validation of every record.
+validate-all:
+    uv run python -m {{slug}}.validate
+
+# Term validation of every record (network on first run).
+validate-terms-all:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    shopt -s nullglob globstar
+    files=({{records}}/**/*.yaml)
+    if [ ${#files[@]} -eq 0 ]; then echo "No records under {{records}}."; exit 0; fi
+    uv run linkml-term-validator validate-data "${files[@]}" -s {{schema}} -t {{record_class}} --labels -c {{oak_config}}
+
+# Reference validation of every record (network on first run).
+validate-references-all:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    shopt -s nullglob globstar
+    files=({{records}}/**/*.yaml)
+    if [ ${#files[@]} -eq 0 ]; then echo "No records under {{records}}."; exit 0; fi
+    uv run linkml-reference-validator validate data "${files[@]}" --schema {{schema}} --target-class {{record_class}} --config {{ref_config}}
+
+# Terms and quotes for some records, for CI on the records a PR changed.
+# Cache-first; does not download full text. If the ontology service does not
+# answer (exit 2), the terms are checked against the committed cache instead.
+validate-changed *files:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    uv run linkml-term-validator validate-data "$@" -s {{schema}} -t {{record_class}} --labels -c {{oak_config}}
+    rc=$?
+    if [ "$rc" -eq 2 ]; then
+        echo "::warning title=Ontology service unreachable::Checking terms against the committed cache only."
+        uv run linkml-term-validator validate-data "$@" -s {{schema}} -t {{record_class}} --labels -c {{oak_config}} --offline
+        rc=$?
+        if [ "$rc" -ne 0 ]; then
+            echo "::error title=Terms not checked::The ontology service is down and some terms are not in cache/. Run 'just validate FILE' locally and commit cache/, or re-run this job later."
+        fi
+    fi
+    [ "$rc" -eq 0 ] || exit "$rc"
+    uv run linkml-reference-validator validate data "$@" --schema {{schema}} --target-class {{record_class}} --config {{ref_config}} --no-full-text
+
+# Fetch a reference into references_cache/ and print it. Read it before quoting it.
+fetch-reference ref:
+    uv run linkml-reference-validator lookup "$1" --config {{ref_config}}
+
+# Search an ontology: `just search-term ols:go "cell wall organization"`
+search-term adapter query:
+    uv run runoak -i "$1" search "$2"
+
+# Show one term: `just term-info ols:go GO:0071555`
+term-info adapter curie:
+    uv run runoak -i "$1" info "$2"
+
+# is-a ancestors of a term, from OLS: `just term-ancestors ENVO:00000051`
+term-ancestors curie:
+    uv run python -m {{slug}}.ols ancestors "$1"
+
+# Does a term sit under a root? `just term-under GO:0015979 GO:0008150`
+term-under curie root:
+    uv run python -m {{slug}}.ols check "$1" --root "$2"
+
+# ---------------------------------------------------------------- curation
+
+# Scaffold a record. Dry-run by default; --apply writes it.
+# `just new-record --id {{slug}}:example --name "Example" --apply`
+new-record *args:
+    uv run python -m {{slug}}.records new "$@"
+
+# Scaffold a repository-level history record under history/. Dry-run unless --apply.
+# `just new-history --kind record --slug example --event CREATE --outcome changed --summary "..." --details "..."`
+new-history *args:
+    uv run python -m {{slug}}.history new "$@"
+
+# Validate history records against the vendored history schema.
+validate-history target="history":
+    uv run python -m {{slug}}.history validate "$1"
+
+# Corpus statistics.
+report *args:
+    uv run python -m {{slug}}.report "$@"
+
+# Completeness score per record, lowest first; or what one record lacks.
+compliance *files:
+    uv run python -m {{slug}}.compliance "$@"
+
+# Bundle the records into build/ for a release.
+export:
+    uv run python -m {{slug}}.export
+
+# Create or update the GitHub labels listed in .github/labels.yaml.
+labels *args:
+    uv run --no-project --with pyyaml python .github/scripts/sync_labels.py "$@"
+
+# ---------------------------------------------------------------- docs
+
+# Build the documentation site into site/ (strict: a broken link fails).
+docs-build:
+    uv run python -m {{slug}}.docs build
+
+# Serve the documentation at http://127.0.0.1:8000 while you edit.
+docs-serve:
+    uv run python -m {{slug}}.docs generate
+    uv run mkdocs serve
+
+# ---------------------------------------------------------------- site
+
+# Render the static browser into pages/.
+render:
+    uv run python -m {{slug}}.render
+
+# Fail if pages/ is out of step with the records.
+render-check:
+    uv run python -m {{slug}}.render --check
+
+# ---------------------------------------------------------------- code
+
+# Run the test suite
+test *args:
+    uv run pytest "$@"
+
+# Lint. Schema warnings print but do not fail; the vendored module carries some.
+lint:
+    uv run ruff check .
+    uv run linkml-lint --config .linkmllint.yaml --ignore-warnings {{schema}}
+
+# Auto-fix lint findings
+lint-fix:
+    uv run ruff check --fix .
+
+# Generate Pydantic classes from the schema into build/
+gen-python:
+    mkdir -p build
+    uv run gen-pydantic {{schema}} > build/{{slug}}_pydantic.py
+
+# ---------------------------------------------------------------- gates
+
+# The authoritative offline gate. CI runs the same script.
+qc:
+    uv run python -m {{slug}}.qc
+
+# qc plus the network gates: terms and references for every record.
+qc-full:
+    uv run python -m {{slug}}.qc --network
+
+# Pull template changes from mechmaker into this repository.
+update-template:
+    uvx copier update --skip-answered

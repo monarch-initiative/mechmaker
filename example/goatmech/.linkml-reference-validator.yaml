@@ -1,0 +1,7 @@
+# linkml-reference-validator settings. Fetched sources are cached under
+# references_cache/ and the cache is committed, so a quote stays checkable
+# after the source moves.
+validation:
+  cache_dir: references_cache
+  # An unrecognized reference prefix is an error, not a silent pass.
+  unknown_prefix_severity: ERROR

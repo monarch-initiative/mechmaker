@@ -1,0 +1,8 @@
+# Mech convention: enum values are UPPER_SNAKE_CASE, and PMID/DOI expand to
+# their resolver URLs. mech_shared.yaml is vendored and linted upstream.
+extends: recommended
+rules:
+  standard_naming:
+    level: disabled
+  canonical_prefixes:
+    level: disabled
