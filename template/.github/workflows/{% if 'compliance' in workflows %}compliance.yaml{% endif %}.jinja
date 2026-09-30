@@ -1,0 +1,115 @@
+# Weekly: score every record for completeness with `just compliance`, take
+# the least complete ones that have no open improvement PR, fill what the
+# sources support, and open one pull request per record.
+#
+# Needs a GitHub App for the agent (MECH_AGENT_APP_ID, MECH_AGENT_PRIVATE_KEY)
+# so its pull requests start CI, plus ANTHROPIC_API_KEY or
+# CLAUDE_CODE_OAUTH_TOKEN. It never merges or approves.
+# Adapted from DisMech's weekly-compliance.
+name: Compliance
+
+on:
+{% if agent_schedules %}  schedule:
+    - cron: "0 8 * * 5"  # Fridays 08:00 UTC
+{% endif %}  workflow_dispatch:
+    inputs:
+      num_records:
+        description: How many records to improve
+        type: string
+        default: "3"
+      focus:
+        description: What to focus on
+        type: string
+        default: "ontology bindings, evidence, and descriptions"
+      model:
+        description: Model override (blank uses .github/agent-config.yaml)
+        type: string
+        default: ""
+{% raw %}
+permissions:
+  contents: read
+
+concurrency:
+  group: compliance
+  cancel-in-progress: false
+
+jobs:
+  improve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Require the agent GitHub App
+        env:
+          APP_ID: ${{ secrets.MECH_AGENT_APP_ID }}
+        run: |
+          if [ -z "$APP_ID" ]; then
+            echo "::error title=No agent App::Set MECH_AGENT_APP_ID and MECH_AGENT_PRIVATE_KEY. See docs/WORKFLOWS.md. Pushes made with the built-in token do not start CI, so this workflow will not run without the App."
+            exit 1
+          fi
+      - name: Agent App token
+        id: app
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.MECH_AGENT_APP_ID }}
+          private-key: ${{ secrets.MECH_AGENT_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+          permission-issues: write
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          token: ${{ steps.app.outputs.token }}
+          persist-credentials: false
+      - name: Git identity of the App
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          SLUG: ${{ steps.app.outputs.app-slug }}
+        run: |
+          id=$(gh api "/users/${SLUG}[bot]" --jq .id)
+          git config --global user.name "${SLUG}[bot]"
+          git config --global user.email "${id}+${SLUG}[bot]@users.noreply.github.com"
+          gh auth setup-git
+      - name: Build prompt
+        id: prompt
+        env:
+          PROMPT_REPO: ${{ github.repository }}
+          PROMPT_NUM_RECORDS: ${{ inputs.num_records || '3' }}
+          PROMPT_FOCUS: ${{ inputs.focus || 'ontology bindings, evidence, and descriptions' }}
+        run: python3 .github/scripts/render_prompt.py compliance
+      - id: agent
+        uses: ./.github/actions/setup-agent
+        with:
+          workflow: compliance
+          model-override: ${{ inputs.model }}
+      - id: run
+        uses: anthropics/claude-code-action@fd1c128679612beff4ca259c78021c506e8aa7a7 # v1.0.237
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+{% endraw %}{% if langfuse %}          LANGFUSE_PUBLIC_KEY: ${{ '{{' }} secrets.LANGFUSE_PUBLIC_KEY {{ '}}' }}
+          LANGFUSE_SECRET_KEY: ${{ '{{' }} secrets.LANGFUSE_SECRET_KEY {{ '}}' }}
+          LANGFUSE_BASE_URL: ${{ '{{' }} secrets.LANGFUSE_BASE_URL {{ '}}' }}
+          CC_LANGFUSE_TRACE_TAGS: >-
+            ["repo:${{ '{{' }} github.repository {{ '}}' }}", "workflow:compliance",
+            "run:${{ '{{' }} github.run_id {{ '}}' }}", "job:${{ '{{' }} github.job {{ '}}' }}"]
+{% endif %}{% raw %}        with:
+          # The API key is preferred: it has no weekly cap. The subscription
+          # token is used only when no API key is set.
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.ANTHROPIC_API_KEY == '' && secrets.CLAUDE_CODE_OAUTH_TOKEN || '' }}
+          path_to_claude_code_executable: ${{ steps.agent.outputs.executable }}
+          github_token: ${{ steps.app.outputs.token }}
+          prompt: ${{ steps.prompt.outputs.prompt }}
+{% endraw %}{% if langfuse %}          plugin_marketplaces: |
+            https://github.com/langfuse/Claude-Observability-Plugin.git
+          plugins: |
+            langfuse-observability@langfuse-observability
+{% endif %}{% raw %}          claude_args: |
+            --model ${{ steps.agent.outputs.model }}
+            --max-turns ${{ steps.agent.outputs.max-turns }}
+            --allowedTools "Bash(just:*),Bash(uv run:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git add:*),Bash(git commit:*),Bash(git checkout:*),Bash(git switch:*),Bash(git push:*),Bash(gh pr list:*),Bash(gh pr view:*),Bash(gh pr create:*),Read,Edit,Write,Glob,Grep,WebFetch,WebSearch,TodoWrite,Task"
+      - name: Check the agent run
+        if: always() && steps.agent.outcome == 'success'
+        env:
+          EXECUTION_FILE: ${{ steps.run.outputs.execution_file }}
+        run: python3 .github/scripts/check_agent_run.py "$EXECUTION_FILE" "Compliance"
+{% endraw %}

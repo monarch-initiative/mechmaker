@@ -1,0 +1,135 @@
+# Review every same-repository pull request with the review-record skill and
+# post a formal review: approve, or request changes. Comment `/review` on a
+# PR to run it again, or start it by hand with a PR number.
+#
+# Needs ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN. To have its approvals
+# count toward branch protection, either set MECH_REVIEWER_APP_ID and
+# MECH_REVIEWER_PRIVATE_KEY (a GitHub App used only for reviews), or allow
+# GitHub Actions to approve pull requests in Settings > Actions > General.
+# Adapted from DisMech's claude-code-review.
+name: Review
+run-name: "Review PR #${{ '{{' }} github.event.pull_request.number || github.event.issue.number || inputs.pr_number {{ '}}' }}"
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request to review
+        required: true
+        type: number
+{% raw %}
+concurrency:
+  group: review-${{ github.event.pull_request.number || github.event.issue.number || inputs.pr_number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    if: |
+      (github.event_name == 'pull_request' && !github.event.pull_request.draft &&
+        github.event.pull_request.head.repo.full_name == github.repository) ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request &&
+        github.event.comment.body == '/review' &&
+        contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association))
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: read
+      id-token: write
+    env:
+      PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number || inputs.pr_number }}
+    steps:
+      # The prompt and helper scripts come from the default branch, so a PR
+      # cannot change the instructions it is reviewed under.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - name: Build prompt
+        id: prompt
+        env:
+          PROMPT_REPO: ${{ github.repository }}
+          PROMPT_PR_NUMBER: ${{ env.PR_NUMBER }}
+        run: python3 .github/scripts/render_prompt.py review
+      - id: agent
+        uses: ./.github/actions/setup-agent
+        with:
+          workflow: review
+          install-project: "false"
+      - name: Reviewer App token
+        id: reviewer
+        continue-on-error: true
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.MECH_REVIEWER_APP_ID }}
+          private-key: ${{ secrets.MECH_REVIEWER_PRIVATE_KEY }}
+          permission-pull-requests: write
+      - name: Check out the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh auth setup-git
+          gh pr checkout "$PR_NUMBER"
+          just install
+      # GitHub's API returns no file list for very large diffs, and the review
+      # action fails on that. Skip loudly instead. Any other probe result runs
+      # the review.
+      - name: Check the diff is small enough to fetch
+        id: size
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -uo pipefail
+          # shellcheck disable=SC2016  # $owner etc. are GraphQL variables, not shell
+          verdict=$(gh api graphql -F owner="${REPO%/*}" -F name="${REPO#*/}" -F pr="$PR_NUMBER" \
+            -f query='query($owner:String!,$name:String!,$pr:Int!){repository(owner:$owner,name:$name){pullRequest(number:$pr){files(first:100){nodes{path}}}}}' \
+            --jq 'if .data.repository.pullRequest == null then "PR_NULL" elif .data.repository.pullRequest.files == null then "FILES_NULL" else "FILES_OK" end' || true)
+          if [ "$verdict" = "FILES_NULL" ]; then
+            echo "::notice title=Review skipped::The diff of PR #$PR_NUMBER is too large for the API to list. It needs a human review."
+            echo "oversized=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "oversized=false" >> "$GITHUB_OUTPUT"
+          fi
+      - id: run
+        if: steps.size.outputs.oversized != 'true'
+        uses: anthropics/claude-code-action@fd1c128679612beff4ca259c78021c506e8aa7a7 # v1.0.237
+        env:
+          GH_TOKEN: ${{ steps.reviewer.outputs.token || github.token }}
+{% endraw %}{% if langfuse %}          LANGFUSE_PUBLIC_KEY: ${{ '{{' }} secrets.LANGFUSE_PUBLIC_KEY {{ '}}' }}
+          LANGFUSE_SECRET_KEY: ${{ '{{' }} secrets.LANGFUSE_SECRET_KEY {{ '}}' }}
+          LANGFUSE_BASE_URL: ${{ '{{' }} secrets.LANGFUSE_BASE_URL {{ '}}' }}
+          CC_LANGFUSE_TRACE_TAGS: >-
+            ["repo:${{ '{{' }} github.repository {{ '}}' }}", "workflow:review",
+            "run:${{ '{{' }} github.run_id {{ '}}' }}", "job:${{ '{{' }} github.job {{ '}}' }}"]
+{% endif %}{% raw %}        with:
+          # The API key is preferred: it has no weekly cap. The subscription
+          # token is used only when no API key is set.
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.ANTHROPIC_API_KEY == '' && secrets.CLAUDE_CODE_OAUTH_TOKEN || '' }}
+          path_to_claude_code_executable: ${{ steps.agent.outputs.executable }}
+          github_token: ${{ steps.reviewer.outputs.token || github.token }}
+          prompt: ${{ steps.prompt.outputs.prompt }}
+          track_progress: ${{ github.event_name == 'pull_request' }}
+          # PRs opened by the agent App or the Claude App are reviewed too.
+          allowed_bots: "*"
+{% endraw %}{% if langfuse %}          plugin_marketplaces: |
+            https://github.com/langfuse/Claude-Observability-Plugin.git
+          plugins: |
+            langfuse-observability@langfuse-observability
+{% endif %}{% raw %}          claude_args: |
+            --model ${{ steps.agent.outputs.model }}
+            --max-turns ${{ steps.agent.outputs.max-turns }}
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr review:*),Bash(cat:*),Bash(grep:*),Bash(head:*),Bash(tail:*),Bash(wc:*),Bash(find:*),Bash(ls:*),Bash(just:*),Bash(uv run:*),Read,Glob,Grep"
+      - name: Check the agent run
+        if: always() && steps.agent.outcome == 'success' && steps.size.outputs.oversized != 'true'
+        env:
+          EXECUTION_FILE: ${{ steps.run.outputs.execution_file }}
+        run: python3 .github/scripts/check_agent_run.py "$EXECUTION_FILE" "Review"
+{% endraw %}

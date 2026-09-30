@@ -1,0 +1,99 @@
+# Find stuck pull requests and post one comment saying why, on the most stuck.
+# Comment-only by design: without separate writer and reviewer identities, a
+# push from it would skip CI and an approval would be the bot reviewing
+# itself. Adapted from the X-Mech fleet's shepherd.
+name: PR shepherd
+
+on:
+{% if agent_schedules %}  schedule:
+    - cron: "37 */6 * * *"  # every six hours
+{% endif %}  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Report only; post nothing
+        type: choice
+        options: ["true", "false"]
+        default: "true"
+      max_prs:
+        description: How many PRs to assess
+        type: string
+        default: "3"
+      pr_number:
+        description: Assess only this PR (blank scans open PRs)
+        type: string
+        default: ""
+      model:
+        description: Model override (blank uses .github/agent-config.yaml)
+        type: string
+        default: ""
+{% raw %}
+permissions:
+  contents: read
+  pull-requests: write
+  issues: read
+
+concurrency:
+  group: pr-shepherd
+  cancel-in-progress: false
+
+jobs:
+  shepherd:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # Scheduled runs post; runs started by hand default to a dry run.
+      DRY_RUN: ${{ github.event_name == 'schedule' && 'false' || inputs.dry_run }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Build prompt
+        id: prompt
+        env:
+          PROMPT_REPO: ${{ github.repository }}
+          PROMPT_DRY_RUN: ${{ env.DRY_RUN }}
+          PROMPT_MAX_PRS: ${{ inputs.max_prs || '3' }}
+          PROMPT_SPECIFIC_PR: ${{ inputs.pr_number }}
+        run: python3 .github/scripts/render_prompt.py pr-shepherd
+      - id: agent
+        uses: ./.github/actions/setup-agent
+        with:
+          workflow: pr-shepherd
+          model-override: ${{ inputs.model }}
+          install-project: "false"
+      # `gh api` is left out on purpose: it could submit an approval. The
+      # comment tool is granted only when this is not a dry run, so a dry run
+      # cannot post even if told to.
+      - id: run
+        uses: anthropics/claude-code-action@fd1c128679612beff4ca259c78021c506e8aa7a7 # v1.0.237
+        env:
+          GH_TOKEN: ${{ github.token }}
+{% endraw %}{% if langfuse %}          LANGFUSE_PUBLIC_KEY: ${{ '{{' }} secrets.LANGFUSE_PUBLIC_KEY {{ '}}' }}
+          LANGFUSE_SECRET_KEY: ${{ '{{' }} secrets.LANGFUSE_SECRET_KEY {{ '}}' }}
+          LANGFUSE_BASE_URL: ${{ '{{' }} secrets.LANGFUSE_BASE_URL {{ '}}' }}
+          CC_LANGFUSE_TRACE_TAGS: >-
+            ["repo:${{ '{{' }} github.repository {{ '}}' }}", "workflow:pr-shepherd",
+            "run:${{ '{{' }} github.run_id {{ '}}' }}", "job:${{ '{{' }} github.job {{ '}}' }}"]
+{% endif %}{% raw %}        with:
+          # The API key is preferred: it has no weekly cap. The subscription
+          # token is used only when no API key is set.
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.ANTHROPIC_API_KEY == '' && secrets.CLAUDE_CODE_OAUTH_TOKEN || '' }}
+          path_to_claude_code_executable: ${{ steps.agent.outputs.executable }}
+          github_token: ${{ github.token }}
+          prompt: ${{ steps.prompt.outputs.prompt }}
+{% endraw %}{% if langfuse %}          plugin_marketplaces: |
+            https://github.com/langfuse/Claude-Observability-Plugin.git
+          plugins: |
+            langfuse-observability@langfuse-observability
+{% endif %}{% raw %}          claude_args: |
+            --model ${{ steps.agent.outputs.model }}
+            --max-turns ${{ steps.agent.outputs.max-turns }}
+            --allowedTools "Bash(gh pr list:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr checks:*),Bash(git log:*),Bash(git diff:*),Read,Grep,Glob${{ env.DRY_RUN == 'false' && ',Bash(gh pr comment:*)' || '' }}"
+      - name: Check the agent run
+        if: always() && steps.agent.outcome == 'success'
+        env:
+          EXECUTION_FILE: ${{ steps.run.outputs.execution_file }}
+        run: python3 .github/scripts/check_agent_run.py "$EXECUTION_FILE" "PR shepherd"
+{% endraw %}

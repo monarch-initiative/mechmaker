@@ -1,0 +1,122 @@
+# Weekly: find human review comments nobody has answered, and propose one
+# action for each: a suggested change, a reply, or an `Editorial:` issue for a
+# pattern across records. The agent reads with a read-only token and returns
+# its actions; a second job with no model checks and posts them.
+# Adapted from DisMech's post-review-agent.
+name: Post-review
+
+on:
+{% if agent_schedules %}  schedule:
+    - cron: "0 8 * * 6"  # Saturdays 08:00 UTC
+{% endif %}  workflow_dispatch:
+    inputs:
+      days_back:
+        description: How many days of PR activity to scan
+        type: string
+        default: "7"
+      pr_number:
+        description: Scan only this PR (blank scans recent PRs)
+        type: string
+        default: ""
+      max_actions:
+        description: Most actions to post (1 to 20)
+        type: string
+        default: "8"
+      dry_run:
+        description: Report actions without posting them
+        type: boolean
+        default: false
+{% raw %}
+permissions: {}
+
+concurrency:
+  group: post-review
+  cancel-in-progress: false
+
+jobs:
+  propose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+    outputs:
+      actions: ${{ steps.run.outputs.structured_output }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Build prompt
+        id: prompt
+        env:
+          PROMPT_REPO: ${{ github.repository }}
+          PROMPT_DAYS_BACK: ${{ inputs.days_back || '7' }}
+          PROMPT_SPECIFIC_PR: ${{ inputs.pr_number }}
+          PROMPT_MAX_ACTIONS: ${{ inputs.max_actions || '8' }}
+        run: python3 .github/scripts/render_prompt.py post-review
+      - id: agent
+        uses: ./.github/actions/setup-agent
+        with:
+          workflow: post-review
+      - id: run
+        uses: anthropics/claude-code-action@fd1c128679612beff4ca259c78021c506e8aa7a7 # v1.0.237
+        env:
+          GH_TOKEN: ${{ github.token }}
+{% endraw %}{% if langfuse %}          LANGFUSE_PUBLIC_KEY: ${{ '{{' }} secrets.LANGFUSE_PUBLIC_KEY {{ '}}' }}
+          LANGFUSE_SECRET_KEY: ${{ '{{' }} secrets.LANGFUSE_SECRET_KEY {{ '}}' }}
+          LANGFUSE_BASE_URL: ${{ '{{' }} secrets.LANGFUSE_BASE_URL {{ '}}' }}
+          CC_LANGFUSE_TRACE_TAGS: >-
+            ["repo:${{ '{{' }} github.repository {{ '}}' }}", "workflow:post-review",
+            "run:${{ '{{' }} github.run_id {{ '}}' }}", "job:${{ '{{' }} github.job {{ '}}' }}"]
+{% endif %}{% raw %}        with:
+          # The API key is preferred: it has no weekly cap. The subscription
+          # token is used only when no API key is set.
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.ANTHROPIC_API_KEY == '' && secrets.CLAUDE_CODE_OAUTH_TOKEN || '' }}
+          path_to_claude_code_executable: ${{ steps.agent.outputs.executable }}
+          github_token: ${{ github.token }}
+          prompt: ${{ steps.prompt.outputs.prompt }}
+{% endraw %}{% if langfuse %}          plugin_marketplaces: |
+            https://github.com/langfuse/Claude-Observability-Plugin.git
+          plugins: |
+            langfuse-observability@langfuse-observability
+{% endif %}{% raw %}          claude_args: |
+            --model ${{ steps.agent.outputs.model }}
+            --max-turns ${{ steps.agent.outputs.max-turns }}
+            --allowedTools "Bash(gh pr list:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh api:*),Bash(gh issue list:*),Bash(just:*),Read,Glob,Grep,WebFetch"
+            --json-schema '{"type":"object","properties":{"actions":{"type":"array","maxItems":20,"items":{"type":"object","properties":{"kind":{"enum":["suggestion","reply","issue"]},"pr":{"type":"integer","minimum":1},"comment_id":{"type":"integer","minimum":1},"path":{"type":"string"},"line":{"type":"integer","minimum":1},"start_line":{"type":"integer","minimum":1},"title":{"type":"string","maxLength":200},"body":{"type":"string","minLength":1,"maxLength":6000}},"required":["kind","body"],"additionalProperties":false}}},"required":["actions"],"additionalProperties":false}'
+      - name: Check the agent run
+        if: always() && steps.agent.outcome == 'success'
+        env:
+          EXECUTION_FILE: ${{ steps.run.outputs.execution_file }}
+        run: python3 .github/scripts/check_agent_run.py "$EXECUTION_FILE" "Post-review"
+
+  publish:
+    needs: propose
+    if: needs.propose.outputs.actions != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+          sparse-checkout: .github/scripts
+      - uses: actions/github-script@v9
+        env:
+          ACTIONS: ${{ needs.propose.outputs.actions }}
+          MAX_ACTIONS: ${{ inputs.max_actions || '8' }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+        with:
+          script: |
+            const { publish } = require('./.github/scripts/post-review-publish.js');
+            await publish(github, context.repo, JSON.parse(process.env.ACTIONS), {
+              max: Number(process.env.MAX_ACTIONS), dryRun: process.env.DRY_RUN === 'true',
+              log: core.info, warn: core.warning,
+            });
+{% endraw %}

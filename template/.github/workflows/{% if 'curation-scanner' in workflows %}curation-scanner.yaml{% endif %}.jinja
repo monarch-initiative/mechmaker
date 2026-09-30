@@ -1,0 +1,122 @@
+# Work the curation queue. For each effort tier, the agent picks one open,
+# unassigned issue or PR labelled `curation` and advances it: an assessment,
+# a first pull request, a fix for review comments, or closing work that is
+# already done. Assign an item to a person to keep agents off it.
+#
+# Needs a GitHub App for the agent (MECH_AGENT_APP_ID, MECH_AGENT_PRIVATE_KEY)
+# so its pull requests start CI, plus ANTHROPIC_API_KEY or
+# CLAUDE_CODE_OAUTH_TOKEN. It never merges or approves.
+# Adapted from DisMech's curation-scanner.
+name: Curation scanner
+
+on:
+{% if agent_schedules %}  schedule:
+    - cron: "0 */4 * * 1-5"  # every four hours on weekdays
+{% endif %}  workflow_dispatch:
+    inputs:
+      note:
+        description: Optional note for this run
+        type: string
+        default: ""
+{% raw %}
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        include:
+          - effort: low_effort
+            selector: "label:curation label:low_effort"
+          - effort: medium_effort
+            selector: "label:curation label:medium_effort -label:low_effort"
+          - effort: high_effort
+            selector: "label:curation -label:low_effort -label:medium_effort"
+    # A new run waits for a running tier; it never kills an agent mid-edit.
+    concurrency:
+      group: curation-scanner-${{ matrix.effort }}
+      cancel-in-progress: false
+    steps:
+      - name: Require the agent GitHub App
+        env:
+          APP_ID: ${{ secrets.MECH_AGENT_APP_ID }}
+        run: |
+          if [ -z "$APP_ID" ]; then
+            echo "::error title=No agent App::Set MECH_AGENT_APP_ID and MECH_AGENT_PRIVATE_KEY. See docs/WORKFLOWS.md. Pushes made with the built-in token do not start CI, so this workflow will not run without the App."
+            exit 1
+          fi
+      - name: Agent App token
+        id: app
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.MECH_AGENT_APP_ID }}
+          private-key: ${{ secrets.MECH_AGENT_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+          permission-issues: write
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          token: ${{ steps.app.outputs.token }}
+          persist-credentials: false
+      - name: Git identity of the App
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          SLUG: ${{ steps.app.outputs.app-slug }}
+        run: |
+          id=$(gh api "/users/${SLUG}[bot]" --jq .id)
+          git config --global user.name "${SLUG}[bot]"
+          git config --global user.email "${id}+${SLUG}[bot]@users.noreply.github.com"
+          gh auth setup-git
+      - name: Build prompt
+        id: prompt
+        env:
+          PROMPT_REPO: ${{ github.repository }}
+          PROMPT_TRIGGER: ${{ github.event_name }}
+          PROMPT_EFFORT: ${{ matrix.effort }}
+          PROMPT_SELECTOR: ${{ matrix.selector }}
+          PROMPT_NOTE: ${{ inputs.note }}
+        run: python3 .github/scripts/render_prompt.py curation-scanner
+      - id: agent
+        uses: ./.github/actions/setup-agent
+        with:
+          workflow: curation-scanner
+          tier: ${{ matrix.effort }}
+      - id: run
+        uses: anthropics/claude-code-action@fd1c128679612beff4ca259c78021c506e8aa7a7 # v1.0.237
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+{% endraw %}{% if langfuse %}          LANGFUSE_PUBLIC_KEY: ${{ '{{' }} secrets.LANGFUSE_PUBLIC_KEY {{ '}}' }}
+          LANGFUSE_SECRET_KEY: ${{ '{{' }} secrets.LANGFUSE_SECRET_KEY {{ '}}' }}
+          LANGFUSE_BASE_URL: ${{ '{{' }} secrets.LANGFUSE_BASE_URL {{ '}}' }}
+          CC_LANGFUSE_TRACE_TAGS: >-
+            ["repo:${{ '{{' }} github.repository {{ '}}' }}", "workflow:curation-scanner",
+            "run:${{ '{{' }} github.run_id {{ '}}' }}", "job:${{ '{{' }} github.job {{ '}}' }}"]
+{% endif %}{% raw %}        with:
+          # The API key is preferred: it has no weekly cap. The subscription
+          # token is used only when no API key is set.
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.ANTHROPIC_API_KEY == '' && secrets.CLAUDE_CODE_OAUTH_TOKEN || '' }}
+          path_to_claude_code_executable: ${{ steps.agent.outputs.executable }}
+          github_token: ${{ steps.app.outputs.token }}
+          prompt: ${{ steps.prompt.outputs.prompt }}
+          allowed_bots: "*"
+{% endraw %}{% if langfuse %}          plugin_marketplaces: |
+            https://github.com/langfuse/Claude-Observability-Plugin.git
+          plugins: |
+            langfuse-observability@langfuse-observability
+{% endif %}{% raw %}          claude_args: |
+            --model ${{ steps.agent.outputs.model }}
+            --max-turns ${{ steps.agent.outputs.max-turns }}
+            --allowedTools "Bash(just:*),Bash(uv run:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git add:*),Bash(git commit:*),Bash(git checkout:*),Bash(git switch:*),Bash(git fetch:*),Bash(git merge:*),Bash(git push:*),Bash(gh issue view:*),Bash(gh issue list:*),Bash(gh issue comment:*),Bash(gh issue close:*),Bash(gh pr list:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr checks:*),Bash(gh pr create:*),Bash(gh pr comment:*),Bash(gh search:*),Read,Edit,Write,Glob,Grep,WebFetch,WebSearch,TodoWrite,Task"
+      - name: Check the agent run
+        if: always() && steps.agent.outcome == 'success'
+        env:
+          EXECUTION_FILE: ${{ steps.run.outputs.execution_file }}
+        run: python3 .github/scripts/check_agent_run.py "$EXECUTION_FILE" "Curation scanner"
+{% endraw %}

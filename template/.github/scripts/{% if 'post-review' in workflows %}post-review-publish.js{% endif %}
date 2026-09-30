@@ -1,0 +1,88 @@
+// Post the actions the post-review agent proposed. No model runs here: this
+// code checks each action against GitHub before posting it, so the agent's
+// output cannot reach anything it was not meant to.
+
+const MARKER = 'mech-post-review:v1';
+
+function clean(text) {
+  // One agent's words must not summon people or other agents.
+  return String(text).replace(/@/g, '@​').trim();
+}
+
+async function alreadyAnswered(github, repo, pr, commentId) {
+  const comments = await github.paginate(github.rest.pulls.listReviewComments, {
+    ...repo, pull_number: pr, per_page: 100,
+  });
+  return comments.some(c => c.body?.includes(`<!-- ${MARKER} ${commentId} -->`));
+}
+
+async function reviewComment(github, repo, pr, commentId) {
+  try {
+    const { data } = await github.rest.pulls.getReviewComment({ ...repo, comment_id: commentId });
+    return data.pull_request_url?.endsWith(`/pulls/${pr}`) ? data : null;
+  } catch {
+    return null;
+  }
+}
+
+async function publish(github, repo, result, { max = 8, dryRun = false, log = console.log, warn = console.warn } = {}) {
+  const actions = Array.isArray(result?.actions) ? result.actions : [];
+  const cap = Math.min(Math.max(1, Number(max) || 1), 20);
+  let posted = 0;
+  for (const a of actions) {
+    if (posted >= cap) { log(`Cap of ${cap} reached; ${actions.length - posted} not posted.`); break; }
+    try {
+      if (a.kind === 'issue') {
+        const title = String(a.title || '').trim();
+        if (!title.startsWith('Editorial:')) { warn(`Skipping issue without an Editorial: title`); continue; }
+        const found = await github.rest.search.issuesAndPullRequests({
+          q: `repo:${repo.owner}/${repo.repo} is:issue is:open in:title "${title.replace(/"/g, '')}"`,
+        });
+        if (found.data.total_count > 0) { log(`Issue already open: ${title}`); continue; }
+        log(`${dryRun ? 'Would open' : 'Opening'} issue: ${title}`);
+        if (!dryRun) {
+          await github.rest.issues.create({ ...repo, title, body: clean(a.body), labels: ['editorial'] });
+        }
+        posted += 1;
+        continue;
+      }
+      if (!Number.isSafeInteger(a.pr) || !Number.isSafeInteger(a.comment_id)) {
+        warn(`Skipping ${a.kind}: needs pr and comment_id`); continue;
+      }
+      const { data: pr } = await github.rest.pulls.get({ ...repo, pull_number: a.pr });
+      if (pr.state !== 'open' || pr.head.repo?.full_name !== `${repo.owner}/${repo.repo}`) {
+        warn(`Skipping PR #${a.pr}: not an open same-repository PR`); continue;
+      }
+      const original = await reviewComment(github, repo, a.pr, a.comment_id);
+      if (!original) { warn(`Skipping: comment ${a.comment_id} is not on PR #${a.pr}`); continue; }
+      if (await alreadyAnswered(github, repo, a.pr, a.comment_id)) { log(`Already answered ${a.comment_id}`); continue; }
+      const tag = `\n\n<!-- ${MARKER} ${a.comment_id} -->`;
+      if (a.kind === 'reply') {
+        log(`${dryRun ? 'Would reply' : 'Replying'} to comment ${a.comment_id} on #${a.pr}`);
+        if (!dryRun) {
+          await github.rest.pulls.createReplyForReviewComment({
+            ...repo, pull_number: a.pr, comment_id: a.comment_id, body: clean(a.body) + tag,
+          });
+        }
+      } else if (a.kind === 'suggestion') {
+        if (!a.path || !Number.isSafeInteger(a.line)) { warn('Skipping suggestion without path and line'); continue; }
+        const body = `Suggested change for ${original.html_url}:\n\n\`\`\`suggestion\n${String(a.body).replace(/\n$/, '')}\n\`\`\`${tag}`;
+        const params = { ...repo, pull_number: a.pr, commit_id: pr.head.sha, path: a.path, line: a.line, side: 'RIGHT', body };
+        if (Number.isSafeInteger(a.start_line) && a.start_line < a.line) {
+          Object.assign(params, { start_line: a.start_line, start_side: 'RIGHT' });
+        }
+        log(`${dryRun ? 'Would suggest' : 'Suggesting'} a change to ${a.path}:${a.line} on #${a.pr}`);
+        if (!dryRun) await github.rest.pulls.createReviewComment(params);
+      } else {
+        warn(`Skipping unknown action kind ${a.kind}`); continue;
+      }
+      posted += 1;
+    } catch (error) {
+      warn(`Action failed (${a.kind} on #${a.pr}): ${error.message}`);
+    }
+  }
+  log(`${dryRun ? 'Would post' : 'Posted'} ${posted} action(s).`);
+  return posted;
+}
+
+module.exports = { publish };

@@ -1,0 +1,28 @@
+REPO: ${REPO}
+NUM RECORDS: ${NUM_RECORDS}
+FOCUS: ${FOCUS}
+
+You improve the least complete records in {{ mech_name }}, a knowledge base
+of {{ record_noun }} records under `{{ records_dir }}/`. Read `CLAUDE.md`
+first. Use the `curate-record`, `ontology-terms` and `evidence-references`
+skills.
+
+1. Run `just compliance`. It scores every record for completeness, lowest
+   first.
+2. Find records that already have an open improvement pull request:
+   `gh pr list --repo ${REPO} --state open --search "head:compliance/" --json headRefName`.
+   Skip them.
+3. Take the NUM RECORDS lowest-scoring remaining records. Focus on: ${FOCUS}.
+4. For each record, on its own branch `compliance/<date>-<record stem>`:
+   - run `just compliance <file>` to see what is missing;
+   - fill what you can support: bound terms, evidence with verbatim quotes,
+     descriptions;
+   - run `just validate <file>` until clean;
+   - add a curation history event and `just new-history ... --apply`;
+   - open one pull request titled `Compliance: <record name>`, saying what
+     changed and what is still missing.
+
+Rules:
+- Better incomplete than wrong. Never guess a term, a label or a reference.
+- Leave `status` at `PROPOSED` or below.
+- Never merge, approve, or enable auto-merge.
