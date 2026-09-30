@@ -1,0 +1,22 @@
+history_version: 1
+target:
+  kind: record
+  slug: zfin_ingest
+  path: data/ingests/zfin_ingest.yaml
+session:
+  id: 2026-09-30T222707Z-claude-code-5b0401
+  timestamp: '2026-09-30T22:27:07Z'
+  actors:
+  - type: ai_agent
+    name: claude-code
+    model: claude-opus-5-5
+    agent_tool: claude-code
+events:
+- type: EDIT
+  outcome: changed
+  summary: Curated ZFIN's and ZP's descriptions, homepages and data licenses, and the species.
+  details: 'ZFIN data license CC BY 4.0, quoted from ZFIN''s own use page on wiki.zfin.org. ZP license
+    CC BY 3.0, homepage and description quoted from the OBO Foundry registry at 3779db4. ZFIN''s homepage
+    quoted from the infores catalog at 1d5fa99. Species Danio rerio (NCBITaxon:7955) from the README.
+    Access left unset for both sources: no source read says whether the downloads need an account. Every
+    quote was checked by just add-evidence before writing.'
