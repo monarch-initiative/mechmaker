@@ -30,9 +30,19 @@ record_identifier_policy: >-
 identifier_prefix: goatmech
 ontologies:
   - VBO
-  - NCBITaxon
+  - VT
+  - NCIT
   - UO
+  - NCBITaxon
 data_sources:
+  - name: Vertebrate Breed Ontology
+    url: https://github.com/monarch-initiative/vertebrate-breed-ontology
+    relation_type: prov:used
+    description: Breed identity and names.
+  - name: Wikipedia
+    url: https://en.wikipedia.org/
+    relation_type: prov:hadPrimarySource
+    description: Breed descriptions, quoted verbatim from the plain-text article.
   - name: PubMed
     url: https://pubmed.ncbi.nlm.nih.gov/
     relation_type: prov:hadPrimarySource

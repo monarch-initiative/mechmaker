@@ -11,6 +11,8 @@
 
 ontology_adapters:
   NCBITaxon: "ols:ncbitaxon"
+  NCIT: "ols:ncit"
   UO: "ols:uo"
   VBO: "ols:vbo"
+  VT: "ols:vt"
   goatmech: ""

@@ -49,7 +49,7 @@ included.
 | The breed | VBO | `VBO:0400025` Goat breed |
 | The species | NCBITaxon | `NCBITaxon:9925` Capra hircus |
 | Kind of trait a feature describes | VT (Vertebrate Trait Ontology) | `VT:0000001` vertebrate trait; e.g. `VT:0011348` horn morphology trait, `VT:0002177` outer ear morphology trait, `VT:0010463` coat/hair pigmentation trait, `VT:0011351` wattle morphology trait, `VT:0001253` body height, `VT:0001259` body mass, `VT:0015043` milk amount |
-| Country or region of origin | GAZ | `GAZ:00000448` geographic location; e.g. `GAZ:00002941` Switzerland |
+| Country of origin | NCIT | `NCIT:C25464` Country; `NCIT:C17181` Switzerland and `NCIT:C17151` South Africa confirmed under it. (Corrected: GAZ was listed here first, but only its root's label was checked. In GAZ as OLS serves it, countries have no is-a parent, and the design step found it.) |
 | Units of measurements | UO | from the catalog |
 
 Gaps: VT names the kind of trait, not its value. "White coat" and

@@ -102,6 +102,10 @@ term-info adapter curie:
 term-ancestors curie:
     uv run python -m {{slug}}.ols ancestors "$1"
 
+# Every record's VBO term is a direct child of Goat breed (network).
+check-identity:
+    uv run python -m goatmech.ols check-records
+
 # Does a term sit under a root? `just term-under GO:0015979 GO:0008150`
 term-under curie root:
     uv run python -m {{slug}}.ols check "$1" --root "$2"

@@ -1,0 +1,23 @@
+history_version: 1
+target:
+  kind: schema
+  slug: goatmech
+  path: src/goatmech/schema/goatmech.yaml
+session:
+  id: 2026-09-30T184440Z-claude-code-e21183
+  timestamp: '2026-09-30T18:44:40Z'
+  actors:
+  - type: ai_agent
+    name: claude-code
+    model: claude-opus-5-5
+    agent_tool: claude-code
+events:
+- type: EDIT
+  outcome: changed
+  summary: Design the goat breed schema from docs/DOMAIN.md
+  details: 'Replaced the scaffold''s organism and unit sections with origins (NCIT countries), purposes,
+    distinguishing_features (VT traits), horns, measurements (VT trait, UO unit), related_breeds (VBO)
+    and risk_status. Identity is VBO under VBO:0400025, direct children only, enforced by just check-identity
+    because linkml-term-validator ignores is_direct. GAZ was tried for origins and dropped: its countries
+    have no is-a parent in OLS. Added the WIKIPEDIA reference source. Checked with just qc and term validation
+    of the example record.'

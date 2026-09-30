@@ -43,6 +43,32 @@ def ancestors(curie: str, ontology: str | None = None, hierarchical: bool = Fals
     return out
 
 
+def parents(curie: str, ontology: str | None = None) -> list[tuple[str, str]]:
+    ontology = ontology or curie.split(":", 1)[0].lower()
+    iri = urllib.parse.quote(urllib.parse.quote(_iri(curie), safe=""), safe="")
+    data = _get(f"{OLS}/ontologies/{ontology}/terms/{iri}/parents?size=100")
+    return [(t.get("obo_id"), t.get("label")) for t in data.get("_embedded", {}).get("terms", [])]
+
+
+# A record is a breed: its VBO term's parent is Goat breed. linkml-term-validator
+# ignores `is_direct: true` on the identity enum, so this checks it.
+BREED_ROOT = "VBO:0400025"
+
+
+def check_records() -> int:
+    from .validate import iter_records, load
+
+    bad = 0
+    for path in iter_records():
+        rid = (load(path) or {}).get("id", "")
+        found = [cid for cid, _ in parents(rid)]
+        if BREED_ROOT not in found:
+            bad += 1
+            print(f"ERROR {path.name}: {rid} is not a direct child of {BREED_ROOT}; parents: {found}")
+    print(f"Identity check: {bad} record(s) are not breeds.")
+    return 1 if bad else 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -50,12 +76,15 @@ def main(argv: list[str] | None = None) -> int:
     a.add_argument("curie")
     a.add_argument("--ontology", help="OLS ontology id (default: lowercased prefix)")
     a.add_argument("--part-of", action="store_true", help="include part-of ancestors")
+    sub.add_parser("check-records", help="every record's id is a direct child of Goat breed")
     c = sub.add_parser("check", help="is ROOT an ancestor of CURIE (or CURIE itself)?")
     c.add_argument("curie")
     c.add_argument("--root", required=True)
     c.add_argument("--ontology")
     args = parser.parse_args(argv)
 
+    if args.cmd == "check-records":
+        return check_records()
     if args.cmd == "ancestors":
         for cid, label in sorted(ancestors(args.curie, args.ontology, args.part_of)):
             print(f"{cid}\t{label}")
