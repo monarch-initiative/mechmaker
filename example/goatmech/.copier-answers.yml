@@ -1,6 +1,7 @@
 # Changes here will be overwritten by Copier. Do not edit by hand.
 _commit: d04762c
 _src_path: gh:monarch-initiative/mechmaker
+agent_schedules: false
 author_email: jhc@lbl.gov
 author_name: J. Harry Caufield
 author_orcid: 0000-0001-5705-7831
@@ -23,6 +24,7 @@ identity_root: VBO:0400025
 identity_uri: http://purl.obolibrary.org/obo/VBO_
 include_claude_hook: true
 include_site: true
+langfuse: false
 mech_name: GoatMech
 mech_slug: goatmech
 ontologies:
@@ -38,3 +40,8 @@ workflows:
 - sweep
 - docs
 - comment-guard
+- claude
+- review
+- triage
+- dedupe
+- literature-scan

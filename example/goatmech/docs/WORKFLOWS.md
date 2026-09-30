@@ -38,13 +38,13 @@ until `agent_schedules` is turned on.
 
 | Key | State | File | What it does | Writes | Needs |
 |---|---|---|---|---|---|
-| `claude` | off | `claude.yaml` | Answers `@claude` from people with write access, in issues and PRs. | branches, PRs, comments | Claude GitHub App installed |
-| `review` | off | `review.yaml` | Reviews each same-repo PR with the `review-record` skill and approves or requests changes. `/review` re-runs it. | reviews | reviewer App, or Actions allowed to approve PRs |
-| `triage` | off | `triage.yaml` | Labels new issues. The agent only reads; a step with no model applies labels that exist. | labels | `just labels` run once |
-| `dedupe` | off | `dedupe.yaml`, `auto-close-duplicates.yaml` | Flags likely duplicates; closes them after three days unless a person objects. | one comment, a label, closure | nothing more |
+| `claude` | **on** | `claude.yaml` | Answers `@claude` from people with write access, in issues and PRs. | branches, PRs, comments | Claude GitHub App installed |
+| `review` | **on** | `review.yaml` | Reviews each same-repo PR with the `review-record` skill and approves or requests changes. `/review` re-runs it. | reviews | reviewer App, or Actions allowed to approve PRs |
+| `triage` | **on** | `triage.yaml` | Labels new issues. The agent only reads; a step with no model applies labels that exist. | labels | `just labels` run once |
+| `dedupe` | **on** | `dedupe.yaml`, `auto-close-duplicates.yaml` | Flags likely duplicates; closes them after three days unless a person objects. | one comment, a label, closure | nothing more |
 | `pr-shepherd` | off | `pr-shepherd.yaml` | Comments on the most stuck PR, saying why and what would unstick it. Never pushes or approves. | one comment | nothing more |
 | `curation-scanner` | off | `curation-scanner.yaml` | Picks one unassigned `curation` issue or PR per effort tier and advances it. | branches, PRs, comments | agent App |
-| `literature-scan` | off | `literature-scan.yaml` | Finds recent papers (PubMed or preprints) that match records and files a few `curation` issues. Tune `conf/literature_scan.yaml`. | issues | nothing more |
+| `literature-scan` | **on** | `literature-scan.yaml` | Finds recent papers (PubMed or preprints) that match records and files a few `curation` issues. Tune `conf/literature_scan.yaml`. | issues | nothing more |
 | `compliance` | off | `compliance.yaml` | Improves the least complete records by `just compliance`, one PR each. | branches, PRs | agent App |
 | `post-review` | off | `post-review.yaml` | Proposes a suggestion, reply or `Editorial:` issue for each unanswered human review comment; a step with no model posts them. | suggestions, replies, issues | nothing more |
 

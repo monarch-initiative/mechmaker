@@ -94,7 +94,10 @@ Project skills live in `.claude/skills/`. Use them.
 | `github-workflows` | turn on, configure, adapt or debug the GitHub workflows |
 ## Workflows
 
-`docs/WORKFLOWS.md` lists every GitHub workflow, on or off. Turn workflows on or off through Copier, never by copying
+`docs/WORKFLOWS.md` lists every GitHub workflow, on or off. Agent workflows
+read their prompts from `.github/prompts/` and their models from
+`.github/agent-config.yaml`. When you run inside one, the prompt is your
+task; this file and the skills still apply. Turn workflows on or off through Copier, never by copying
 files; see the `github-workflows` skill.
 
 ## Git

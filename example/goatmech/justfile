@@ -142,6 +142,11 @@ export:
 labels *args:
     uv run --no-project --with pyyaml python .github/scripts/sync_labels.py "$@"
 
+# Recent papers that may bear on records: build/literature/packet.md.
+# `just literature-scan --source PPR --days 14`
+literature-scan *args:
+    uv run python -m {{slug}}.literature "$@"
+
 # ---------------------------------------------------------------- docs
 
 # Build the documentation site into site/ (strict: a broken link fails).

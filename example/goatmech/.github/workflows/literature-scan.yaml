@@ -1,0 +1,92 @@
+# Weekly: pull recent papers from Europe PMC that mention this Mech's
+# records (conf/literature_scan.yaml sets the query), then let an agent file
+# at most a few curation issues for the strongest leads. The agent can only
+# read and create issues. Adapted from DisMech's literature, preprint and
+# knowledge-gap scans, folded into one.
+name: Literature scan
+
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: MED for PubMed, PPR for preprints
+        type: choice
+        options: ["MED", "PPR"]
+        default: "MED"
+      days:
+        description: How many days back to search
+        type: string
+        default: "7"
+      max_issues:
+        description: Most issues to file
+        type: string
+        default: "5"
+      create_issues:
+        description: File issues (off builds the packet only)
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: literature-scan
+  cancel-in-progress: true
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      issues: write
+    env:
+      SOURCE: ${{ inputs.source || 'MED' }}
+      PACKET: build/literature/packet.md
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - id: agent
+        uses: ./.github/actions/setup-agent
+        with:
+          workflow: literature-scan
+      - name: Build the packet
+        env:
+          DAYS: ${{ inputs.days || '7' }}
+        run: just literature-scan --source "$SOURCE" --days "$DAYS"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: literature-packet
+          path: build/literature/
+      - name: Build prompt
+        id: prompt
+        env:
+          PROMPT_REPO: ${{ github.repository }}
+          PROMPT_MAX_ISSUES: ${{ inputs.max_issues || '5' }}
+          PROMPT_SOURCE: ${{ env.SOURCE }}
+          PROMPT_PACKET: ${{ env.PACKET }}
+        run: python3 .github/scripts/render_prompt.py literature-scan
+      - id: run
+        if: github.event_name == 'schedule' || inputs.create_issues
+        uses: anthropics/claude-code-action@fd1c128679612beff4ca259c78021c506e8aa7a7 # v1.0.237
+        env:
+          GH_TOKEN: ${{ github.token }}
+        with:
+          # The API key is preferred: it has no weekly cap. The subscription
+          # token is used only when no API key is set.
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.ANTHROPIC_API_KEY == '' && secrets.CLAUDE_CODE_OAUTH_TOKEN || '' }}
+          path_to_claude_code_executable: ${{ steps.agent.outputs.executable }}
+          github_token: ${{ github.token }}
+          prompt: ${{ steps.prompt.outputs.prompt }}
+          claude_args: |
+            --model ${{ steps.agent.outputs.model }}
+            --max-turns ${{ steps.agent.outputs.max-turns }}
+            --allowedTools "Bash(gh label list:*),Bash(gh issue list:*),Bash(gh issue create:*),Read,Glob,Grep"
+      - name: Check the agent run
+        if: always() && steps.run.outcome != 'skipped' && steps.agent.outcome == 'success'
+        env:
+          EXECUTION_FILE: ${{ steps.run.outputs.execution_file }}
+        run: python3 .github/scripts/check_agent_run.py "$EXECUTION_FILE" "Literature scan"
+
