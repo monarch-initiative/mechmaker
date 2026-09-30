@@ -1,0 +1,19 @@
+history_version: 1
+target:
+  kind: record
+  slug: saanen
+  path: data/goat_breeds/saanen.yaml
+session:
+  id: 2026-09-30T212816Z-claude-code-f7710c
+  timestamp: '2026-09-30T21:28:16Z'
+  actors:
+  - type: ai_agent
+    name: claude-code
+    model: claude-opus-5-5
+    agent_tool: claude-code
+events:
+- type: EDIT
+  outcome: changed
+  summary: 'Add evidence: Saanen gave rise to local breeds'
+  details: Added a second quote from WIKIPEDIA:Saanen_goat to related_breeds[0] (Banat White) with just
+    add-evidence, which checked the quote against the cached article before writing.
