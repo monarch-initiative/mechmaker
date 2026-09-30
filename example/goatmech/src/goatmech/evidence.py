@@ -99,7 +99,8 @@ def add(path: Path, place: str, item: dict, event: dict, check=fetch_and_check) 
     ok, message, title = check(item["reference"], item["snippet"])
     if not ok:
         problems.append(f"the snippet was not found in {item['reference']}: {message}")
-    if title and "reference_title" not in item:
+    # A url: source with no title of its own reports the URL; that says nothing new.
+    if title and title != item["reference"].removeprefix("url:") and "reference_title" not in item:
         item = {"reference": item["reference"], "reference_title": str(title),
                 **{k: v for k, v in item.items() if k != "reference"}}
     existing = target.get("evidence") or []

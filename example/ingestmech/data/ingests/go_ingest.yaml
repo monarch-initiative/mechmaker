@@ -22,7 +22,6 @@ upstream_sources:
       url: https://creativecommons.org/licenses/by/4.0/legalcode
       evidence:
         - reference: url:https://raw.githubusercontent.com/geneontology/geneontology.github.io/3911c58b7a09a5f925672debdc88ef20b78d32e4/_docs/go-citation-policy.md
-          reference_title: https://raw.githubusercontent.com/geneontology/geneontology.github.io/3911c58b7a09a5f925672debdc88ef20b78d32e4/_docs/go-citation-policy.md
           supports: SUPPORT
           evidence_source: SOURCE_DOCUMENTATION
           snippet: Gene Ontology Consortium data and data products are licensed under the ... Creative Commons Attribution 4.0 Unported License
@@ -126,13 +125,11 @@ upstream_sources:
         snippet: '"id": "infores:goa", "name": "GO Annotations (GOA)"'
         explanation: The ingest's own name and id for the source.
       - reference: url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/README.md
-        reference_title: https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/README.md
         supports: SUPPORT
         evidence_source: INGEST_REPOSITORY
         snippet: provides annotations linking genes to GO terms describing molecular functions, biological processes, and cellular components.
         explanation: The description of the source.
       - reference: url:https://raw.githubusercontent.com/biolink/information-resource-registry/1d5fa9924e518315dbcbeb87c80e9d783c8fd2fc/infores_catalog.yaml
-        reference_title: https://raw.githubusercontent.com/biolink/information-resource-registry/1d5fa9924e518315dbcbeb87c80e9d783c8fd2fc/infores_catalog.yaml
         supports: SUPPORT
         evidence_source: REGISTRY
         snippet: 'name: Gene Ontology Annotations id: infores:goa xref: - http://www.geneontology.org/'
@@ -147,7 +144,6 @@ upstream_sources:
       url: https://creativecommons.org/publicdomain/zero/1.0/
       evidence:
         - reference: url:https://raw.githubusercontent.com/OBOFoundry/OBOFoundry.github.io/3779db4e6678b5550c40efa2995359b84539d758/ontology/eco.md
-          reference_title: https://raw.githubusercontent.com/OBOFoundry/OBOFoundry.github.io/3779db4e6678b5550c40efa2995359b84539d758/ontology/eco.md
           supports: SUPPORT
           evidence_source: REGISTRY
           snippet: 'license: label: CC0 1.0 url: https://creativecommons.org/publicdomain/zero/1.0/'
@@ -167,13 +163,11 @@ upstream_sources:
         snippet: '"id": "infores:eco", "name": "Evidence & Conclusion Ontology (gaf-eco-mapping)"'
         explanation: The ingest's own name and id for the source.
       - reference: url:https://raw.githubusercontent.com/OBOFoundry/OBOFoundry.github.io/3779db4e6678b5550c40efa2995359b84539d758/ontology/eco.md
-        reference_title: https://raw.githubusercontent.com/OBOFoundry/OBOFoundry.github.io/3779db4e6678b5550c40efa2995359b84539d758/ontology/eco.md
         supports: SUPPORT
         evidence_source: REGISTRY
         snippet: 'description: An ontology for experimental and other evidence statements.'
         explanation: The description of the source.
       - reference: url:https://raw.githubusercontent.com/OBOFoundry/OBOFoundry.github.io/3779db4e6678b5550c40efa2995359b84539d758/ontology/eco.md
-        reference_title: https://raw.githubusercontent.com/OBOFoundry/OBOFoundry.github.io/3779db4e6678b5550c40efa2995359b84539d758/ontology/eco.md
         supports: SUPPORT
         evidence_source: REGISTRY
         snippet: 'homepage: https://www.evidenceontology.org'

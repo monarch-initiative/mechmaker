@@ -84,13 +84,11 @@ upstream_sources:
         snippet: '"id": "infores:zfin", "name": "Zebrafish Information Network (ZFIN)"'
         explanation: The ingest's own name and id for the source.
       - reference: url:https://raw.githubusercontent.com/monarch-initiative/zfin-ingest/19eb80855c67406acb2deac36ad18967d643fed8/README.md
-        reference_title: https://raw.githubusercontent.com/monarch-initiative/zfin-ingest/19eb80855c67406acb2deac36ad18967d643fed8/README.md
         supports: SUPPORT
         evidence_source: INGEST_REPOSITORY
         snippet: ZFIN is the Zebrafish Model Organism Database.
         explanation: The description of the source.
       - reference: url:https://raw.githubusercontent.com/biolink/information-resource-registry/1d5fa9924e518315dbcbeb87c80e9d783c8fd2fc/infores_catalog.yaml
-        reference_title: https://raw.githubusercontent.com/biolink/information-resource-registry/1d5fa9924e518315dbcbeb87c80e9d783c8fd2fc/infores_catalog.yaml
         supports: SUPPORT
         evidence_source: REGISTRY
         snippet: 'name: Zebrafish Information Network id: infores:zfin xref: - https://zfin.org/'
@@ -105,7 +103,6 @@ upstream_sources:
       url: http://creativecommons.org/licenses/by/3.0/
       evidence:
         - reference: url:https://raw.githubusercontent.com/OBOFoundry/OBOFoundry.github.io/3779db4e6678b5550c40efa2995359b84539d758/ontology/zp.md
-          reference_title: https://raw.githubusercontent.com/OBOFoundry/OBOFoundry.github.io/3779db4e6678b5550c40efa2995359b84539d758/ontology/zp.md
           supports: SUPPORT
           evidence_source: REGISTRY
           snippet: 'license: label: CC BY 3.0 url: http://creativecommons.org/licenses/by/3.0/'
@@ -125,13 +122,11 @@ upstream_sources:
         snippet: '"id": "infores:zp", "name": "Zebrafish Phenotype Ontology id_map"'
         explanation: The ingest's own name and id for the source.
       - reference: url:https://raw.githubusercontent.com/OBOFoundry/OBOFoundry.github.io/3779db4e6678b5550c40efa2995359b84539d758/ontology/zp.md
-        reference_title: https://raw.githubusercontent.com/OBOFoundry/OBOFoundry.github.io/3779db4e6678b5550c40efa2995359b84539d758/ontology/zp.md
         supports: SUPPORT
         evidence_source: REGISTRY
         snippet: 'description: The Zebrafish Phenotype Ontology formally defines all phenotypes of the Zebrafish model organism.'
         explanation: The description of the source.
       - reference: url:https://raw.githubusercontent.com/OBOFoundry/OBOFoundry.github.io/3779db4e6678b5550c40efa2995359b84539d758/ontology/zp.md
-        reference_title: https://raw.githubusercontent.com/OBOFoundry/OBOFoundry.github.io/3779db4e6678b5550c40efa2995359b84539d758/ontology/zp.md
         supports: SUPPORT
         evidence_source: REGISTRY
         snippet: 'homepage: https://github.com/obophenotype/zebrafish-phenotype-ontology'
@@ -143,7 +138,6 @@ organisms:
       label: Danio rerio
     evidence:
       - reference: url:https://raw.githubusercontent.com/monarch-initiative/zfin-ingest/19eb80855c67406acb2deac36ad18967d643fed8/README.md
-        reference_title: https://raw.githubusercontent.com/monarch-initiative/zfin-ingest/19eb80855c67406acb2deac36ad18967d643fed8/README.md
         supports: SUPPORT
         evidence_source: INGEST_REPOSITORY
         snippet: ZFIN is the Zebrafish Model Organism Database.

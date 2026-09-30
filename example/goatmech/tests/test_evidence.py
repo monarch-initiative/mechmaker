@@ -72,3 +72,11 @@ def test_place_must_carry_evidence(record):
 def test_bad_place_is_explained(record, place):
     with pytest.raises(ValueError):
         evidence.add(record, place, item(), dict(EVENT), check=found)
+
+
+def test_url_title_that_is_only_the_url_is_not_kept(record):
+    url = "https://example.org/notes.txt"
+    ref = {"reference": f"url:{url}", "supports": "SUPPORT", "snippet": "A line."}
+    _, new, problems = evidence.add(record, "record", ref, dict(EVENT), check=lambda r, s: (True, "", url))
+    assert problems == []
+    assert "reference_title" not in new.split("url:" + url, 1)[1].split("snippet")[0]

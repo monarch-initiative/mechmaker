@@ -32,13 +32,11 @@ upstream_sources:
         snippet: '"id": "infores:omim", "name": "OMIM (Online Mendelian Inheritance in Man)"'
         explanation: The ingest's own name and id for the source.
       - reference: url:https://raw.githubusercontent.com/monarch-initiative/omim-ingest/de31fd083c8fd894eda3767085fa0452f581298c/README.md
-        reference_title: https://raw.githubusercontent.com/monarch-initiative/omim-ingest/de31fd083c8fd894eda3767085fa0452f581298c/README.md
         supports: SUPPORT
         evidence_source: INGEST_REPOSITORY
         snippet: Data is downloaded from OMIM's data portal (requires access key)
         explanation: Why access is REGISTRATION_REQUIRED, with the key placeholder in download.yaml.
       - reference: url:https://raw.githubusercontent.com/biolink/information-resource-registry/1d5fa9924e518315dbcbeb87c80e9d783c8fd2fc/infores_catalog.yaml
-        reference_title: https://raw.githubusercontent.com/biolink/information-resource-registry/1d5fa9924e518315dbcbeb87c80e9d783c8fd2fc/infores_catalog.yaml
         supports: SUPPORT
         evidence_source: REGISTRY
         snippet: 'name: Online Mendelian Inheritance in Man (OMIM) id: infores:omim xref: - https://www.omim.org/about'
@@ -50,7 +48,6 @@ upstream_sources:
         snippet: grew to be the primary repository of curated information on both genes and genetic phenotypes and the relationships between them
         explanation: The source's own paper on what it holds.
       - reference: url:https://raw.githubusercontent.com/monarch-initiative/omim-ingest/de31fd083c8fd894eda3767085fa0452f581298c/README.md
-        reference_title: https://raw.githubusercontent.com/monarch-initiative/omim-ingest/de31fd083c8fd894eda3767085fa0452f581298c/README.md
         supports: SUPPORT
         evidence_source: INGEST_REPOSITORY
         snippet: (Online Mendelian Inheritance in Man) is a comprehensive database of human genes and genetic phenotypes, with a particular focus on the molecular relationship between genetic variation and phenotypic expression.
@@ -62,7 +59,6 @@ organisms:
       label: Homo sapiens
     evidence:
       - reference: url:https://raw.githubusercontent.com/monarch-initiative/omim-ingest/de31fd083c8fd894eda3767085fa0452f581298c/README.md
-        reference_title: https://raw.githubusercontent.com/monarch-initiative/omim-ingest/de31fd083c8fd894eda3767085fa0452f581298c/README.md
         supports: SUPPORT
         evidence_source: INGEST_REPOSITORY
         snippet: a comprehensive database of human genes and genetic phenotypes
