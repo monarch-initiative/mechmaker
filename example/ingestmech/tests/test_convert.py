@@ -6,9 +6,15 @@ from ingestmech.convert import Entry, Skip, convert, history_record
 from ingestmech.history import HISTORY_SCHEMA_PATH
 from ingestmech.validate import load, schema_errors
 
+# Entries start from the Mech's own example record, so the tests keep passing
+# when the schema gains required fields.
+EXAMPLE = load(Path(__file__).parent / "data" / "example_record.yaml")
+
 
 def entry(key, name, **extra):
-    return Entry(key, {"id": f"ingestmech:{key}", "name": name, **extra})
+    record = {k: v for k, v in EXAMPLE.items() if k not in ("curation_history", "status")}
+    prefix = str(EXAMPLE["id"]).split(":", 1)[0]
+    return Entry(key, {**record, "id": f"{prefix}:{key}", "name": name, **extra})
 
 
 def test_dry_run_writes_nothing(tmp_path):

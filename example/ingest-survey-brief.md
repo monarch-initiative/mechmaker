@@ -56,7 +56,7 @@ record was converted from are kept as fields.
 | Source | Gives | License | Access |
 |---|---|---|---|
 | The ingest repositories | everything the conversion reads | BSD-3-Clause or MIT | raw files at a pinned commit |
-| Biolink information resource catalog | infores ids, names, homepages | CC0 (repository `LICENSE`, not read in full) | one YAML file |
+| Biolink information resource catalog | infores ids, names, homepages | Apache-2.0 (repository `LICENSE`) | one YAML file |
 | Each upstream source's own site | description, data license, access terms | varies | pages; omim.org answers 403 to scripted requests |
 
 ## Neighbors

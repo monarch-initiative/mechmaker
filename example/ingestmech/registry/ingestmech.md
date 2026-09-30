@@ -19,7 +19,7 @@ schema_url: https://github.com/monarch-initiative/ingestmech/blob/main/src/inges
 domains:
   - biomedical
   - genomics
-record_type: an ingest
+record_type: an ingest repository in the Monarch koza template layout
 record_count: 0
 record_count_date: 2026-09-30
 record_identifier_policy: >-
@@ -28,10 +28,16 @@ identifier_prefix: ingestmech
 ontologies:
   - NCBITaxon
 data_sources:
-  - name: PubMed
-    url: https://pubmed.ncbi.nlm.nih.gov/
-    relation_type: prov:hadPrimarySource
-    description: Evidence snippets are verbatim quotes, checked against the cached source.
+  - name: Monarch Initiative ingest repositories
+    url: https://github.com/monarch-initiative
+    relation_type: prov:wasDerivedFrom
+    description: >-
+      Records are converted from each ingest repository's own files, at a
+      pinned commit, by scripts/convert_monarch_ingests.py.
+  - name: Biolink information resource catalog
+    url: https://github.com/biolink/information-resource-registry
+    relation_type: prov:used
+    description: Checks the infores ids of upstream sources.
 license:
   id: https://creativecommons.org/licenses/by/4.0/
   label: CC BY 4.0

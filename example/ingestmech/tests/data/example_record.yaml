@@ -1,17 +1,40 @@
 # A schema-shaped example for the tests. It is not a curated record and
 # carries no citations. Real records live under data/ingests/.
-id: ingestmech:example
-name: Example ingest
+id: ingestmech:example-ingest
+name: example-ingest
 description: A placeholder that exercises the record structure.
 status: DRAFT
+repository: https://github.com/monarch-initiative/example-ingest
+source_commit: 0123456789abcdef0123456789abcdef01234567
+code_license:
+  name: BSD-3-Clause
+  spdx_id: BSD-3-Clause
+upstream_sources:
+  - infores: infores:example
+    name: Example Source
+    homepage: https://example.org/
+    access: REGISTRATION_REQUIRED
+    data_license:
+      name: CC BY 4.0
+      spdx_id: CC-BY-4.0
+      url: https://creativecommons.org/licenses/by/4.0/
+    files:
+      - download_url: https://example.org/downloads/{EXAMPLE_KEY}/genes.txt
+        local_name: data/genes.txt
 organisms:
   - preferred_term: root
     term:
       id: NCBITaxon:1
       label: root
+associations:
+  - category: biolink:GeneToPhenotypicFeatureAssociation
+    predicates:
+      - biolink:has_phenotype
+koza_transforms:
+  - example_gene_to_phenotype
 discussions:
   - discussion_id: example-gap-1
-    prompt: Which sources should seed this record?
+    prompt: Which terms is the example source's data under?
     kind: CURATION_TODO
     status: OPEN
 creation_date: 2026-01-01
