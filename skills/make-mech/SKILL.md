@@ -145,7 +145,9 @@ then a readable diff against the template.
 ## 4. Design
 
 Run the `design-mech-schema` skill in the new repository. It fills in
-`docs/DOMAIN.md` and reshapes the scaffold schema to the domain. Commit.
+`docs/DOMAIN.md`, reshapes the scaffold schema to the domain, and, if deep
+research is on, rewrites the research prompt from the same sections and
+tries it with the free mock provider. Commit.
 
 ## 4b. Choose the workflows
 
@@ -188,6 +190,9 @@ with `just docs-serve`.
 
 Pick three to five records that span the domain: one typical, one hard, one
 at the edge of scope. Curate each with the new Mech's `curate-record` skill.
+If deep research is on and the person agrees to the cost, run it on one
+seed record first (`just research <provider> <stem>`) and use its leads:
+it is the real test of the research prompt.
 Real sources, real quotes, `status: PROPOSED`. Run `just qc-full`.
 
 Seeding tests the design. When a record will not fit, change the schema now

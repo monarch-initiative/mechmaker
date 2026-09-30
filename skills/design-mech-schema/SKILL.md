@@ -22,8 +22,10 @@ ontology chosen at generation time. It validates, and it is not a design.
 3. Update `tests/data/example_record.yaml` to exercise every section.
 4. Write two real records on paper against the schema (the paper test,
    below). Fix what does not fit.
-5. `just lint`, `just test`, `just qc`.
-6. Record the change: `just new-history --kind schema --slug <slug>
+5. If the Mech has `research/` (deep research is on), rewrite the research
+   prompt from `docs/DOMAIN.md` (see "The research prompt", below).
+6. `just lint`, `just test`, `just qc`.
+7. Record the change: `just new-history --kind schema --slug <slug>
    --event EDIT --outcome changed --summary ... --details ... --apply`.
 
 ## Sections
@@ -101,6 +103,33 @@ Mech and how the link is checked.
 static enum with a `description` on each value. When they come from an
 ontology, use a dynamic enum. Do not copy ontology terms into a static enum.
 
+## The research prompt
+
+When deep research is on, `research/templates/record.md` is the question
+every report answers. Copier writes a generic one. Rewrite it now, from the
+same sections as the schema, so a report comes back in the order a curator
+fills a record:
+
+- one numbered section per record section in `docs/DOMAIN.md`, in the same
+  order, each saying what to report in the domain's own words (the
+  controlled values, the kinds of measurement, what counts as a feature);
+- keep the opening demands: primary sources with PMID or DOI, a verbatim
+  quote for each statement, exact ontology labels, uncertainty marked;
+- use only the placeholders `{name}`, `{id}`, `{label}`, `{synonyms}` and
+  `{record_noun}`, in single braces, and no other braces anywhere.
+
+Then:
+
+```bash
+just research-check                              # fillable, and no longer generic
+ENABLE_MOCK_PROVIDER=true just research mock <a record stem>   # free; tries the wiring
+```
+
+Read the mock report's `## Question` section: the placeholders must be
+filled. Delete the mock report; it is fake text. A real run on one record,
+to judge whether the prompt yields useful reports, costs money: ask the
+person first.
+
 ## The paper test
 
 Take two real entities, one typical and one awkward. Write their records in
@@ -126,7 +155,8 @@ drop or make optional.
 ## When done
 
 `docs/DOMAIN.md` has no TODOs. The example record exercises every section.
-`just qc` passes. Run `just docs-serve` and read the schema pages as a
+If deep research is on, the research prompt follows the same sections and
+`just research-check` gives no warning. `just qc` passes. Run `just docs-serve` and read the schema pages as a
 newcomer would: every class, slot and enum should have a description that
 says what it is for. They are generated from the schema, so fix a thin page
 in the schema. Update `CLAUDE.md` if a rule changed, and

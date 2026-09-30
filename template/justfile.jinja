@@ -165,6 +165,10 @@ research-validate report:
 # Which records have research, and from which providers.
 research-status:
     uv run python -m {{slug}}.research status
+
+# The research prompt's placeholders can be filled; warns if it is still generic.
+research-check:
+    uv run python -m {{slug}}.research check-template
 {% endraw %}{% endif %}{% raw %}
 # ---------------------------------------------------------------- docs
 

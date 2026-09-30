@@ -4,6 +4,7 @@
     python -m <slug>.research run PROVIDER TARGET [...]  # research one record, or a new name
     python -m <slug>.research validate REPORT            # redo a report's reference and term checks
     python -m <slug>.research status                     # which records have research, by provider
+    python -m <slug>.research check-template             # the prompt can be filled, and is adapted
 
 TARGET is a record's filename stem, or the name of something that has no
 record yet. The report goes to research/<stem>-deep-research-<provider>.md,
@@ -58,6 +59,46 @@ CHECKS = [
 ]
 
 
+# The placeholders target_vars fills. The client reads any other {...} as a
+# placeholder too, and fails on it.
+PLACEHOLDERS = {"name", "id", "label", "synonyms", "record_noun"}
+# A line of the generic prompt the template ships; still present means the
+# prompt was never adapted to docs/DOMAIN.md.
+GENERIC_LINE = "1. What it is, and how it is identified."
+
+
+def template_problems(text: str) -> tuple[list[str], list[str]]:
+    """Errors (the client cannot fill it) and warnings (it is not adapted)."""
+    errors = []
+    for m in re.finditer(r"\{([^{}]*)\}", text):
+        if m.group(1) not in PLACEHOLDERS:
+            found = "{" + m.group(1) + "}"
+            errors.append(f"{found} is not a placeholder this Mech fills; "
+                          f"use one of {', '.join(sorted(PLACEHOLDERS))}, or remove the braces")
+    stray = re.sub(r"\{[^{}]*\}", "", text)
+    if "{" in stray or "}" in stray:
+        errors.append("a brace outside a placeholder; the client would read it as one")
+    warnings = []
+    if GENERIC_LINE in text:
+        warnings.append("the prompt still has the generic sections; rewrite them from docs/DOMAIN.md "
+                        "(the design-mech-schema and deep-research skills say how)")
+    return errors, warnings
+
+
+def check_template() -> int:
+    if not TEMPLATE.exists():
+        print(f"ERROR: no research prompt at {TEMPLATE.relative_to(REPO_ROOT)}")
+        return 1
+    errors, warnings = template_problems(TEMPLATE.read_text())
+    for e in errors:
+        print(f"ERROR {TEMPLATE.relative_to(REPO_ROOT)}: {e}")
+    for w in warnings:
+        print(f"WARNING {TEMPLATE.relative_to(REPO_ROOT)}: {w}")
+    if not errors:
+        print(f"{TEMPLATE.relative_to(REPO_ROOT)}: placeholders are fillable.")
+    return 1 if errors else 0
+
+
 def available() -> dict[str, bool]:
     """Which providers look usable here. Key values are never read, only their presence."""
     out = {}
@@ -93,6 +134,10 @@ def target_vars(target: str) -> tuple[str, list[str]]:
 def run(provider: str, target: str, extra: list[str], force: bool) -> int:
     if not TEMPLATE.exists():
         print(f"ERROR: no research template at {TEMPLATE.relative_to(REPO_ROOT)}")
+        return 1
+    errors, _ = template_problems(TEMPLATE.read_text())
+    if errors:
+        print("ERROR: the research prompt cannot be filled; run check-template. No provider was called.")
         return 1
     stem, var_args = target_vars(target)
     out = RESEARCH_DIR / f"{stem}-deep-research-{provider}.md"
@@ -164,6 +209,7 @@ def main(argv: list[str] | None = None) -> int:
     v = sub.add_parser("validate", help="redo a report's checks")
     v.add_argument("report", type=Path)
     sub.add_parser("status", help="which records have research")
+    sub.add_parser("check-template", help="the prompt can be filled, and is adapted")
     # Anything run does not recognize, such as `-- --fallback`, goes to the client.
     args, extra = parser.parse_known_args(argv)
     if extra and args.cmd != "run":
@@ -174,6 +220,8 @@ def main(argv: list[str] | None = None) -> int:
         return run(args.provider, args.target, [a for a in extra if a != "--"], args.force)
     if args.cmd == "validate":
         return validate(args.report)
+    if args.cmd == "check-template":
+        return check_template()
     return status()
 
 

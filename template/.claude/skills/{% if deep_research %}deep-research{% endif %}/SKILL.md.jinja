@@ -91,7 +91,9 @@ frontmatter), and which of its leads became evidence.
 `research/templates/record.md` is the question every report answers. Its
 `{name}`, `{id}`, `{label}`, `{synonyms}` and `{record_noun}` placeholders
 (single braces) are filled from the record. Any other brace in the file is
-read as a placeholder too, so do not add literal braces. Rewrite its sections to match `docs/DOMAIN.md`, so a
+read as a placeholder too, so do not add literal braces. `just research-check`
+catches both, and `just research` will not call a provider with a prompt
+that fails it. Rewrite its sections to match `docs/DOMAIN.md`, so a
 report comes back in the order a curator fills the record. Keep the demands
 for primary citations, verbatim quotes and exact term labels: the checks
 depend on them.

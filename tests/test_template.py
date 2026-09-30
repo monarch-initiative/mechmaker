@@ -266,8 +266,14 @@ def test_every_action_ref_exists(tmp_path):
     assert refs
     missing = []
     for repo in sorted({r for r, _ in refs}):
-        out = subprocess.run(["git", "ls-remote", f"https://github.com/{repo}"],
-                             capture_output=True, text=True, timeout=60).stdout
+        out = ""
+        for _ in range(3):  # GitHub is sometimes slow to answer; retry before failing
+            try:
+                out = subprocess.run(["git", "ls-remote", f"https://github.com/{repo}"],
+                                     capture_output=True, text=True, timeout=60).stdout
+                break
+            except subprocess.TimeoutExpired:
+                continue
         names = {line.split("\t")[1].removesuffix("^{}") for line in out.splitlines() if "\t" in line}
         shas = {line.split("\t")[0] for line in out.splitlines() if "\t" in line}
         for r, ref in refs:
