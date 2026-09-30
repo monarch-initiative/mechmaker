@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -56,6 +57,34 @@ SCENARIOS = {
         "code_license": "Apache-2.0",
     },
 }
+
+ALL_WORKFLOWS = [
+    "sweep", "pages", "comment-guard", "close-fork-prs", "release-records", "warm-reference-cache",
+    "pypi-publish", "claude", "review", "triage", "dedupe", "pr-shepherd", "curation-scanner",
+    "literature-scan", "compliance", "post-review",
+]
+AGENT_WORKFLOWS = {"claude", "review", "triage", "dedupe", "pr-shepherd", "curation-scanner",
+                   "literature-scan", "compliance", "post-review"}
+# Workflow files each answer produces.
+WORKFLOW_FILES = {
+    "sweep": ["sweep.yaml"], "pages": ["pages.yaml"], "comment-guard": ["comment-guard.yaml"],
+    "close-fork-prs": ["close-fork-prs.yaml"], "release-records": ["release-records.yaml"],
+    "warm-reference-cache": ["warm-reference-cache.yaml"], "pypi-publish": ["pypi-publish.yaml"],
+    "claude": ["claude.yaml"], "review": ["review.yaml"], "triage": ["triage.yaml"],
+    "dedupe": ["dedupe.yaml", "auto-close-duplicates.yaml"], "pr-shepherd": ["pr-shepherd.yaml"],
+    "curation-scanner": ["curation-scanner.yaml"], "literature-scan": ["literature-scan.yaml"],
+    "compliance": ["compliance.yaml"], "post-review": ["post-review.yaml"],
+}
+
+SCENARIOS["all-workflows"] = {
+    **SCENARIOS["habitat"],
+    "mech_name": "EveryWorkflowMech",
+    "mech_slug": "everyworkflowmech",
+    "workflows": ALL_WORKFLOWS,
+    "agent_schedules": True,
+    "langfuse": True,
+}
+SCENARIOS["minimal"]["workflows"] = []
 
 VENDORED_MD5 = {
     "mech_shared.yaml": "3cf80648642fcd1f824529bc40c572a5",
@@ -157,6 +186,48 @@ def test_oak_config_covers_every_prefix(generated):
     assert bound <= set(adapters)
 
 
+def test_workflow_files_match_answer(generated):
+    _, answers, dest = generated
+    got = {p.name for p in (dest / ".github" / "workflows").glob("*.yaml")}
+    want = {"qc.yaml"} | {f for key in answers["workflows"] for f in WORKFLOW_FILES[key]}
+    assert got == want
+
+
+def test_agent_support_only_with_agents(generated):
+    _, answers, dest = generated
+    uses_agents = bool(AGENT_WORKFLOWS & set(answers["workflows"]))
+    gh = dest / ".github"
+    for path in [gh / "agent-config.yaml", gh / "actions" / "setup-agent" / "action.yml",
+                 gh / "prompts", gh / "scripts" / "check_agent_run.py", gh / "scripts" / "render_prompt.py"]:
+        assert path.exists() == uses_agents, path
+    for key in AGENT_WORKFLOWS - {"claude", "dedupe"}:
+        assert (gh / "prompts" / f"{key}.md").exists() == (key in answers["workflows"])
+
+
+def test_agent_workflows_share_pin_and_credentials(generated):
+    _, answers, dest = generated
+    pins, creds = set(), set()
+    for key in AGENT_WORKFLOWS & set(answers["workflows"]):
+        text = (dest / ".github" / "workflows" / WORKFLOW_FILES[key][0]).read_text()
+        pins |= set(re.findall(r"anthropics/claude-code-action@\S+", text))
+        creds |= {line.strip() for line in text.splitlines() if "claude_code_oauth_token:" in line}
+        assert "--max-turns" in text and "check_agent_run.py" in text, key
+        assert "dangerously-skip-permissions" not in text, key
+    if AGENT_WORKFLOWS & set(answers["workflows"]):
+        assert len(pins) == 1 and len(creds) == 1, (pins, creds)
+
+
+@pytest.mark.skipif(shutil.which("actionlint") is None, reason="actionlint not installed")
+def test_actionlint(tmp_path):
+    dest = render(tmp_path / "lint", SCENARIOS["all-workflows"])
+    subprocess.run(["git", "init", "-q"], cwd=dest, check=True)
+    args = ["actionlint", "-no-color"]
+    if shutil.which("shellcheck"):
+        args += ["-shellcheck", shutil.which("shellcheck")]
+    result = subprocess.run(args, cwd=dest, capture_output=True, text=True)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
 def test_identity_prefix_requires_root(tmp_path):
     data = {**BASE, "mech_name": "NoRootMech", "record_class": "Thing", "identity_prefix": "ENVO"}
     with pytest.raises(Exception):  # noqa: B017  copier raises its own validation errors
@@ -171,7 +242,7 @@ def test_bad_slug_rejected(tmp_path):
 
 @pytest.mark.slow
 @pytest.mark.skipif(shutil.which("just") is None or shutil.which("uv") is None, reason="needs just and uv")
-@pytest.mark.parametrize("scenario", ["habitat", "minimal", "disease"])
+@pytest.mark.parametrize("scenario", ["habitat", "minimal", "disease", "all-workflows"])
 def test_generated_mech_passes_qc(tmp_path, scenario):
     dest = render(tmp_path / scenario, SCENARIOS[scenario])
     env = {k: v for k, v in os.environ.items() if k != "VIRTUAL_ENV"}
