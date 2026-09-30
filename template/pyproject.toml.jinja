@@ -27,6 +27,10 @@ dependencies = [
 dev = [
     "pytest>=8.0",
     "ruff>=0.6",
+    # The documentation site. MkDocs 2 drops the plugin and theme system
+    # Material relies on, so stay on 1.x.
+    "mkdocs>=1.6,<2",
+    "mkdocs-material>=9.7",
 ]
 
 [project.urls]

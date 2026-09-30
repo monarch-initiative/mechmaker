@@ -1,0 +1,50 @@
+# {{ mech_name }}
+
+{{ description }}
+
+{{ mech_name }} is a **Mech**: a knowledge base where AI agents do most of
+the curation and people review their work. It keeps one record per
+{{ record_noun }}, and every record follows the same rules.
+
+- **One file per {{ record_noun }}**, validated against a
+  [LinkML schema](elements/index.md).
+- **Standard vocabulary.** Records bind terms from established ontologies,
+  and each term's identifier and label are checked against the ontology.
+- **Every claim has a source.** Each claim cites a paper and quotes it word
+  for word, and a program checks that the quote is really in the paper.
+- **A full history.** Every change records who made it, human or AI, and why.
+- **People review.** Changes arrive as pull requests, and people accept them.
+
+## Explore
+
+| | |
+|---|---|
+{%- if include_site %}
+| [Records](https://{{ github_org | lower }}.github.io/{{ repo_name }}/records/) | Browse every {{ record_noun }} record |
+{%- endif %}
+| [The domain](DOMAIN.md) | What a record is, how records are keyed, what they contain |
+| [Curation](CURATION.md) | How records are written and checked |
+| [Schema](elements/index.md) | Every class, slot and enum, with diagrams |
+| [Record structure](structure.md) | Everything a record can contain, in one diagram |
+| [Corpus](corpus.md) | How many records there are, and in what state |
+| [Workflows](WORKFLOWS.md) | The automation that checks and curates the records |
+
+## Download
+
+- Records: the [repository](https://github.com/{{ github_org }}/{{ repo_name }}/tree/main/{{ records_dir }}){% if 'release-records' in workflows %}, or a bundle attached to each [release](https://github.com/{{ github_org }}/{{ repo_name }}/releases){% endif %}.
+- Schema: [{{ mech_slug }}.yaml](schema/{{ mech_slug }}.yaml) with its imports merged, and [JSON Schema](schema/{{ mech_slug }}.schema.json).
+
+## What the checks do not check
+
+Validation checks that citations exist, quotes are exact, and ontology
+terms are real. It does not check that the science is right. Treat
+{{ mech_name }} as a curated draft reviewed by people, not as an authority.
+
+## Contribute and cite
+
+Issues and reviews are welcome on
+[GitHub](https://github.com/{{ github_org }}/{{ repo_name }}). See
+[CONTRIBUTING.md](https://github.com/{{ github_org }}/{{ repo_name }}/blob/main/CONTRIBUTING.md).
+
+Records are released under {{ data_license }}. Code is released under
+{{ code_license }}.

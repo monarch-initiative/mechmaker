@@ -146,7 +146,18 @@ literature-scan *args:
 # Fetch full text for cached references that have only an abstract.
 warm-reference-cache limit="0":
     uv run python -m {{slug}}.warm --limit "$1"
-{% endraw %}{% endif %}{% if include_site %}{% raw %}
+{% endraw %}{% endif %}{% raw %}
+# ---------------------------------------------------------------- docs
+
+# Build the documentation site into site/ (strict: a broken link fails).
+docs-build:
+    uv run python -m {{slug}}.docs build
+
+# Serve the documentation at http://127.0.0.1:8000 while you edit.
+docs-serve:
+    uv run python -m {{slug}}.docs generate
+    uv run mkdocs serve
+{% endraw %}{% if include_site %}{% raw %}
 # ---------------------------------------------------------------- site
 
 # Render the static browser into pages/.
