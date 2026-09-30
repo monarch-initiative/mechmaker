@@ -129,36 +129,27 @@ written.
 
 ## What if I already have a knowledge base?
 
-You can turn it into a Mech. mechmaker does not convert existing data on its
-own, so plan on some work, most of which an agent can do for you.
+You can turn it into a Mech. Ask the agent to run the
+`convert-knowledge-base` skill. It surveys what you have, makes a Mech that
+can hold it, and writes a conversion script that turns your entries into
+records.
 
-The usual path:
-
-1. **Start a new Mech** for the same topic, as above. Keep your existing
-   knowledge base where it is. It becomes a source for the new one.
-2. **Shape the data model to fit what you have.** Ask the agent to run the
-   `design-mech-schema` skill, and point it at your existing data. Your
-   current fields tell it which sections a record needs.
-3. **Write a conversion script** that reads your existing data and writes one
-   Mech record per entry. The new Mech includes a helper,
-   `write_validated_record`, that refuses to save a record that fails the
-   checks. Converted records start as `DRAFT`.
-4. **Bring the evidence up to standard.** This is usually the biggest job.
-   A Mech needs each claim to quote its source word for word. If your
-   knowledge base already cites papers, the agent can fetch each one and find
-   the supporting sentence. Claims with no source become open questions
-   in the record, and are kept, not thrown away.
-5. **Review in batches.** Send converted records through pull requests a few
-   dozen at a time, so people can actually read them.
+Your existing knowledge base stays where it is. It becomes a source for the
+new one. Facts copied from it carry a quote of where they came from, so the
+checks can confirm each one. What it never recorded is marked in each
+record as work to do, and the agent can curate it from other sources.
 
 A good first request to the agent:
 
-> I have a knowledge base of X at (path or URL). Survey it, then make a Mech
-> that can hold it, and convert five entries as a trial.
+> I have a knowledge base of X at (path or URL). Use the
+> convert-knowledge-base skill to make a Mech that can hold it, and convert
+> five entries as a trial.
 
 Try a handful of entries before converting everything. Problems with the
 data model are cheap to fix when there are five records and costly when
-there are five thousand.
+there are five thousand. The
+[IngestMech walkthrough](https://monarch-initiative.github.io/mechmaker/walkthrough-conversion/)
+shows a real conversion.
 
 ## What you get
 

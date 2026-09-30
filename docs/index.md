@@ -28,6 +28,12 @@ in your field.
     [site](example/goatmech/index.html) and
     [record browser](example/goatmech/records/index.html).
 
+- **[Conversion walkthrough](walkthrough-conversion.md)**
+
+    An existing knowledge base, Monarch's data ingests, turned into a Mech.
+    See its [site](example/ingestmech/index.html) and
+    [record browser](example/ingestmech/records/index.html).
+
 - **[Workflows](workflows.md)**
 
     GitHub automation, from checks to curation agents. You choose.
