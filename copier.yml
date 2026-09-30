@@ -324,6 +324,15 @@ langfuse:
   default: false
   when: "{{ workflows | select('in', agent_workflows) | list | length > 0 }}"
 
+deep_research:
+  type: bool
+  help: >-
+    Add deep research through deep-research-client: AI research reports on a
+    record, from providers such as Claude Code, OpenAI or Edison, as leads for
+    curators. Most useful for Mechs built on scholarly literature. Each provider
+    needs its own access; claude_code needs only Claude Code
+  default: false
+
 python_min:
   type: str
   help: Minimum Python version
