@@ -17,7 +17,7 @@ from pathlib import Path
 import yaml
 
 from .paths import RECORD_NOUN, RECORDS_DIR, REPO_ROOT
-from .validate import rule_errors, schema_errors, slugify
+from .validate import evidence_errors, rule_errors, schema_errors, slugify
 
 
 class _Dumper(yaml.SafeDumper):
@@ -43,7 +43,7 @@ def record_path(data: dict) -> Path:
 def write_validated_record(data: dict, path: Path | None = None, *, dry_run: bool = False) -> Path:
     """Validate, then write. Raises ValueError and writes nothing if invalid."""
     path = path or record_path(data)
-    errors = schema_errors(data) + rule_errors(data, path)
+    errors = schema_errors(data) + rule_errors(data, path) + evidence_errors(data)
     if errors:
         raise ValueError("record is invalid:\n  " + "\n  ".join(errors))
     if not dry_run:

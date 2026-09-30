@@ -27,6 +27,19 @@ NETWORK = [
 ]
 
 
+def case_collisions() -> list[str]:
+    """Tracked paths that differ only by case break checkouts on macOS and Windows."""
+    out = subprocess.run(["git", "ls-files"], cwd=REPO_ROOT, capture_output=True, text=True)
+    seen: dict[str, str] = {}
+    clashes = []
+    for path in out.stdout.splitlines():
+        key = path.lower()
+        if key in seen and seen[key] != path:
+            clashes.append(f"{seen[key]} <-> {path}")
+        seen.setdefault(key, path)
+    return clashes
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--network", action="store_true", help="also run the network gates")
@@ -39,6 +52,12 @@ def main(argv: list[str] | None = None) -> int:
         steps += NETWORK
 
     failed = []
+    clashes = case_collisions()
+    print("\n=== paths differ by more than case", flush=True)
+    for c in clashes:
+        print(f"ERROR case-only difference: {c}")
+    if clashes:
+        failed.append("path case")
     for label, cmd in steps:
         print(f"\n=== {label}: {' '.join(cmd)}", flush=True)
         if subprocess.run(cmd, cwd=REPO_ROOT).returncode != 0:

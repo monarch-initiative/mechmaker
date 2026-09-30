@@ -10,6 +10,7 @@ misspelled field without complaint. Here an unknown field is an error.
 from __future__ import annotations
 
 import argparse
+import difflib
 import re
 import sys
 from collections import Counter
@@ -22,7 +23,10 @@ from linkml.validator import Validator
 from linkml.validator.plugins import JsonschemaValidationPlugin
 from linkml.validator.report import Severity
 
-from .paths import RECORD_CLASS, RECORDS_DIR, REPO_ROOT, SCHEMA_PATH
+from .paths import RECORD_CLASS, RECORDS_DIR, REFERENCES_DIR, REPO_ROOT, SCHEMA_PATH
+
+# How alike an evidence item's reference_title must be to the cached title.
+TITLE_SIMILARITY = 0.85
 
 
 def slugify(name: str) -> str:
@@ -74,7 +78,17 @@ def rule_errors(data: dict, path: Path | None = None) -> list[str]:
 
 
 class _Loader(yaml.SafeLoader):
-    """SafeLoader that leaves dates and times as strings, as the schema expects."""
+    """SafeLoader that keeps dates as strings and rejects duplicate keys."""
+
+    def construct_mapping(self, node, deep=False):
+        seen = set()
+        for key_node, _ in node.value:
+            key = self.construct_object(key_node, deep=deep)
+            if key in seen:
+                raise yaml.constructor.ConstructorError(
+                    None, None, f"duplicate key {key!r}", key_node.start_mark)
+            seen.add(key)
+        return super().construct_mapping(node, deep=deep)
 
 
 _Loader.yaml_implicit_resolvers = {
@@ -85,6 +99,66 @@ _Loader.yaml_implicit_resolvers = {
 
 def loads(text: str) -> object:
     return yaml.load(text, Loader=_Loader)
+
+
+def _norm(text: str) -> str:
+    return " ".join(re.sub(r"[^a-z0-9]+", " ", str(text).lower()).split())
+
+
+def cached_title(reference: str) -> str | None:
+    """The title linkml-reference-validator cached for a reference, if any."""
+    safe = reference.replace(":", "_").replace("/", "_").replace("?", "_").replace("=", "_")
+    path = REFERENCES_DIR / f"{safe}.md"
+    if not path.is_file():
+        return None
+    text = path.read_text(encoding="utf-8", errors="replace")
+    if not text.startswith("---"):
+        return None
+    front = text.split("---", 2)[1]
+    try:
+        meta = yaml.safe_load(front) or {}
+    except yaml.YAMLError:
+        return None
+    title = meta.get("title")
+    return str(title) if title else None
+
+
+def _evidence_items(obj, where: str = ""):
+    if isinstance(obj, dict):
+        if "reference" in obj and "supports" in obj:
+            yield where, obj
+        for k, v in obj.items():
+            yield from _evidence_items(v, f"{where}.{k}" if where else k)
+    elif isinstance(obj, list):
+        for i, v in enumerate(obj):
+            yield from _evidence_items(v, f"{where}[{i}]")
+
+
+def evidence_errors(data: dict) -> list[str]:
+    """Checks on evidence that need the reference cache but not the network.
+
+    A snippet that only repeats the paper's title overstates what the paper
+    showed. A reference_title that does not match the cached title usually
+    means the wrong reference, or a title written from memory.
+    """
+    errors: list[str] = []
+    for where, ev in _evidence_items(data):
+        title = cached_title(str(ev.get("reference", "")))
+        if title is None:
+            continue
+        t = _norm(title)
+        snippet = _norm(ev.get("snippet", "")) if ev.get("snippet") else ""
+        if snippet and len(snippet) >= 15 and snippet in t:
+            errors.append(f"{where}: snippet only quotes the title of {ev['reference']}; "
+                          "quote the abstract or text")
+        given = ev.get("reference_title")
+        if given:
+            g = _norm(given)
+            close = difflib.SequenceMatcher(None, g, t).ratio() >= TITLE_SIMILARITY
+            if not (close or g in t or t in g):
+                errors.append(f"{where}: reference_title does not match the cached title of "
+                              f"{ev['reference']}: {title!r}")
+    return errors
 
 
 def load(path: Path) -> object:
@@ -105,6 +179,8 @@ def validate_paths(paths: Iterable[Path]) -> dict[Path, list[str]]:
             failures[path] = [f"YAML parse error: {exc}"]
             continue
         errors = schema_errors(data) + rule_errors(data, path)
+        if isinstance(data, dict):
+            errors += evidence_errors(data)
         rid = data.get("id") if isinstance(data, dict) else None
         if rid in ids:
             errors.append(f"id {rid} is also used by {ids[rid]}")

@@ -6,6 +6,8 @@ SLUG = "{{ mech_slug }}"
 MECH_NAME = "{{ mech_name }}"
 RECORD_CLASS = "{{ record_class }}"
 RECORD_NOUN = "{{ record_noun }}"
+# Whether records are keyed to an ontology term in `record_term`.
+HAS_RECORD_TERM = {{ "True" if identity_prefix else "False" }}
 REPO_URL = "https://github.com/{{ github_org }}/{{ repo_name }}"
 
 PACKAGE_DIR = Path(__file__).resolve().parent
@@ -15,4 +17,6 @@ SCHEMA_PATH = SCHEMA_DIR / f"{SLUG}.yaml"
 HISTORY_SCHEMA_PATH = SCHEMA_DIR / "history.yaml"
 RECORDS_DIR = REPO_ROOT / "{{ records_dir }}"
 HISTORY_DIR = REPO_ROOT / "history"
+REFERENCES_DIR = REPO_ROOT / "references_cache"
+BUILD_DIR = REPO_ROOT / "build"
 PAGES_DIR = REPO_ROOT / "pages"
