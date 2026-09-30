@@ -1,0 +1,29 @@
+[project]
+name = "mechmaker"
+version = "0.1.0"
+description = "A Copier template and agent skills for making Mechs."
+readme = "README.md"
+license = { text = "BSD-3-Clause" }
+requires-python = ">=3.11"
+
+[dependency-groups]
+dev = [
+    "copier>=9.3",
+    "pytest>=8.0",
+    "pyyaml>=6.0",
+    "ruff>=0.6",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["slow: installs a generated Mech and runs its gates (network)"]
+
+[tool.ruff]
+line-length = 110
+extend-exclude = ["template"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]

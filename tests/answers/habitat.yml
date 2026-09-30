@@ -1,0 +1,10 @@
+mech_name: SampleHabitatMech
+mech_slug: samplehabitatmech
+record_class: Habitat
+identity_prefix: ENVO
+identity_root: "ENVO:01000813"
+ontologies: [ENVO, NCBITaxon, CHEBI, GO_BP]
+domains: [environment, microbiology]
+author_name: Test Maintainer
+author_email: test@example.org
+github_org: example-org
