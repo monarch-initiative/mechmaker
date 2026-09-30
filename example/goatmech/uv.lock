@@ -694,6 +694,7 @@ dependencies = [
     { name = "linkml-term-validator" },
     { name = "oaklib" },
     { name = "pyyaml" },
+    { name = "ruamel-yaml" },
     { name = "setuptools" },
 ]
 
@@ -717,6 +718,7 @@ requires-dist = [
     { name = "oaklib", specifier = ">=0.7.3" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
     { name = "pyyaml", specifier = ">=6.0" },
+    { name = "ruamel-yaml", specifier = ">=0.18" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.6" },
     { name = "setuptools", specifier = "<82" },
 ]

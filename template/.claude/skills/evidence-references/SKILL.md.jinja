@@ -25,7 +25,23 @@ snippet to appear in it verbatim.
 
 3. Copy the snippet from the fetched text. `...` joins two exact spans.
    `[...]` marks an editorial note. Nothing else may differ.
-4. Fill the item:
+4. Add it with `just add-evidence`. `--at` names where it goes: `record` for
+   the record's own evidence, or a path to one entry of a section, such as
+   `<section>[0]` or `<section>[2].<subsection>[1]`:
+
+   ```bash
+   just add-evidence {{ records_dir }}/<stem>.yaml --at <place> \
+     --ref PMID:<n> --snippet "<verbatim>" --source <EvidenceSourceEnum value> \
+     --explanation "<how it bears on the claim>" --model <model-id>
+   ```
+
+   That is a dry run: it fetches the source if needed, checks the quote with
+   the same validator `just validate` uses, fills `reference_title`, and
+   prints the diff. Add `--apply` to write it. It also appends a
+   `curation_history` event, and refuses a quote it cannot find, a
+   duplicate, or a place the schema gives no `evidence`.
+
+   The item it writes:
 
    ```yaml
    - reference: PMID:<n>
@@ -36,10 +52,10 @@ snippet to appear in it verbatim.
      explanation: <how it bears on the claim>
    ```
 
-5. Validate:
+5. Validate the whole record once its evidence is in:
 
    ```bash
-   just validate-references {{ records_dir }}/<stem>.yaml
+   just validate {{ records_dir }}/<stem>.yaml
    ```
 
 ## `supports`

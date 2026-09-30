@@ -31,6 +31,7 @@ just qc-full           # qc plus terms and quotes for every record (network)
 just validate FILE     # closed schema, ontology terms, verbatim quotes
 just new-record ...    # scaffold a record (dry-run unless --apply)
 just new-history ...   # scaffold a history record (dry-run unless --apply)
+just add-evidence FILE --at PLACE --ref REF --snippet "..."   # checked evidence (dry-run unless --apply)
 just fetch-reference PMID:NNN   # fetch and cache a source; read it before quoting it
 just search-term ADAPTER "text" # search an ontology, e.g. ols:go
 just term-ancestors CURIE       # where a term sits; use when an enum root rejects it
@@ -56,7 +57,8 @@ Quote counts from `just report` or a live command, never from prose.
 - **A label is the ontology's label.** `term.label` must match the ontology
   exactly. Put nuance in `preferred_term`, never in `label`.
 - **A snippet is a verbatim quote.** Fetch the source with
-  `just fetch-reference` and copy the text. Paraphrase goes in `explanation`.
+  `just fetch-reference`, copy the text, and add it with `just add-evidence`,
+  which checks the quote before writing. Paraphrase goes in `explanation`.
   `just validate-references` fails a paraphrase, and it should.
 - **Bind the most specific accurate term.** If only a broad term fits, bind
   it and say so in `notes`. Do not bind a narrow term because it exists.

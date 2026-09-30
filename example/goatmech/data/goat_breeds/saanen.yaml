@@ -158,6 +158,12 @@ related_breeds:
         supports: SUPPORT
         evidence_source: ENCYCLOPEDIA
         snippet: Among these local variants are the Banat White in Romania, the British Saanen, the French Saanen, the Israeli Saanen, the Russian White, the Weiße Deutsche Edelziege in Germany, and the Yugoslav Saanen.
+      - reference: WIKIPEDIA:Saanen_goat
+        reference_title: Saanen goat
+        supports: SUPPORT
+        evidence_source: ENCYCLOPEDIA
+        snippet: Since the nineteenth century it has been exported to many countries around the world and has given rise to many local sub-breeds, often through cross-breeding with local goats.
+        explanation: Says the Saanen gave rise to local breeds; the Banat White is named as one in the next sentence.
   - relation: GAVE_RISE_TO
     preferred_term: British Saanen
     breed:
@@ -229,15 +235,21 @@ discussions:
 creation_date: '2026-09-30'
 updated_date: '2026-09-30'
 curation_history:
-- timestamp: '2026-09-30T18:46:24+00:00'
-  curator: claude-code
-  llm_assisted: true
-  model: claude-opus-5-5
-  action: CREATE
-  description: Scaffolded with `just new-record`.
-- timestamp: '2026-09-30T19:05:00+00:00'
-  curator: claude-code
-  llm_assisted: true
-  model: claude-opus-5-5
-  action: EDIT
-  description: Curated from Wikipedia (WIKIPEDIA:Saanen_goat) and PMID:35034210 with the curate-record skill.
+  - timestamp: '2026-09-30T18:46:24+00:00'
+    curator: claude-code
+    llm_assisted: true
+    model: claude-opus-5-5
+    action: CREATE
+    description: Scaffolded with `just new-record`.
+  - timestamp: '2026-09-30T19:05:00+00:00'
+    curator: claude-code
+    llm_assisted: true
+    model: claude-opus-5-5
+    action: EDIT
+    description: Curated from Wikipedia (WIKIPEDIA:Saanen_goat) and PMID:35034210 with the curate-record skill.
+  - timestamp: '2026-09-30T21:28:14+00:00'
+    curator: claude-code
+    llm_assisted: true
+    model: claude-opus-5-5
+    action: EDIT
+    description: Added evidence from WIKIPEDIA:Saanen_goat to related_breeds[0].

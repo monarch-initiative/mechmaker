@@ -20,6 +20,8 @@ dependencies = [
     # oaklib imports eutils, which still imports pkg_resources.
     "setuptools<82",
     "pyyaml>=6.0",
+    # Edits records in place with their layout kept (just add-evidence).
+    "ruamel.yaml>=0.18",
     "jinja2>=3.1",
 ]
 
