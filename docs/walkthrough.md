@@ -29,9 +29,13 @@ copier 9.10.1
 2.1.285 (Claude Code)
 ```
 
-If any is missing, see [Getting started](getting-started.md). There is no
-single command that checks them all yet
-([#2](https://github.com/monarch-initiative/mechmaker/issues/2)).
+If any is missing, see [Getting started](getting-started.md). This run
+checked them one by one; there is now a single command for it
+(`check_env.py`, from [#2](https://github.com/monarch-initiative/mechmaker/issues/2)):
+
+```console
+$ python3 skills/make-mech/scripts/check_env.py --network
+```
 
 ## 1. Survey the domain
 

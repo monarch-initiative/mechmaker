@@ -63,11 +63,16 @@ uv tool install copier
 Close and reopen your terminal, then check that everything is there:
 
 ```bash
-git --version
-uv --version
-just --version
-copier --version
+curl -fsSLO https://raw.githubusercontent.com/monarch-initiative/mechmaker/main/skills/make-mech/scripts/check_env.py
+python3 check_env.py --network
 ```
+
+It lists each tool with its version, checks that the services a Mech uses
+answer, and gives the command that fixes anything missing.
+
+No Python on your machine? uv brings its own: run
+`uv run --no-project check_env.py --network` instead. (On Windows, the
+command may be `python` rather than `python3`.)
 
 ## Start a new Mech with an AI agent (recommended)
 
