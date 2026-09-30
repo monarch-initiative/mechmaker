@@ -32,4 +32,5 @@ site_palette: brown
 site_accent: amber
 site_theme: auto
 workflows: [sweep, docs, comment-guard]
+deep_research: true
 python_min: "3.11"

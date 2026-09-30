@@ -63,6 +63,9 @@ use ontologies OLS does not serve, and sources other than PubMed, so if one
 does not answer the check warns and still passes. If `just` or `copier` is installed but your terminal cannot find it,
 the check says so and tells you to run `uv tool update-shell`.
 
+Planning to use deep research? Add `--research` to see which providers
+are ready. See [Deep research](deep-research.md).
+
 No Python on your machine? uv brings its own: run
 `uv run --no-project check_env.py --network` instead. (On Windows, the
 command may be `python` rather than `python3`.)

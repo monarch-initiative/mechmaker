@@ -37,6 +37,9 @@ of those is expensive to change once records exist.
 python3 skills/make-mech/scripts/check_env.py --network
 ```
 
+If the Mech will use deep research (see step 2), add `--research`: at
+least one provider must be ready.
+
 It checks for git, uv, just and Copier (and Claude Code and gh, which are
 optional), and that GitHub and PyPI answer. OLS and PubMed are checked too,
 as optional: warn the person if one is down and the Mech will depend on it. Exit 0 means ready.
@@ -61,7 +64,10 @@ Some answers belong to the user. Ask for them; do not invent them:
 - the data and code licenses;
 - the collection (`monarch`, `xmech` or `none`);
 - the site's colors and light or dark mode (`site_palette`, `site_accent`,
-  `site_theme`), if they care; the defaults are fine otherwise.
+  `site_theme`), if they care; the defaults are fine otherwise;
+- whether to add deep research (`deep_research`), and which provider they
+  can use and pay for. Recommend it when the survey found a large
+  literature; skip it when records come from one database.
 
 The rest come from the brief. Write them to a data file:
 
@@ -95,6 +101,7 @@ site_palette: teal        # Material color names; see the site options page
 site_accent: amber
 site_theme: auto          # auto, light or dark
 workflows: [sweep, docs, comment-guard]   # step 4b revisits this
+deep_research: true      # literature-heavy domain; see the deep research page
 python_min: "3.11"
 ```
 
@@ -138,7 +145,9 @@ then a readable diff against the template.
 ## 4. Design
 
 Run the `design-mech-schema` skill in the new repository. It fills in
-`docs/DOMAIN.md` and reshapes the scaffold schema to the domain. Commit.
+`docs/DOMAIN.md`, reshapes the scaffold schema to the domain, and, if deep
+research is on, rewrites the research prompt from the same sections and
+tries it with the free mock provider. Commit.
 
 ## 4b. Choose the workflows
 
@@ -181,6 +190,9 @@ with `just docs-serve`.
 
 Pick three to five records that span the domain: one typical, one hard, one
 at the edge of scope. Curate each with the new Mech's `curate-record` skill.
+If deep research is on and the person agrees to the cost, run it on one
+seed record first (`just research <provider> <stem>`) and use its leads:
+it is the real test of the research prompt.
 Real sources, real quotes, `status: PROPOSED`. Run `just qc-full`.
 
 Seeding tests the design. When a record will not fit, change the schema now

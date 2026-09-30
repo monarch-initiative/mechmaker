@@ -5,7 +5,9 @@
 1. Pick a target. From the source queue, an issue, or a gap in `just report`.
 2. Scaffold or open the record. `just new-record --id ... --name ... --apply`.
 3. Research. Fetch every source you cite: `just fetch-reference PMID:NNN`.
-   Read what came back.
+   Read what came back. For a thin record in a large literature,
+   `just research PROVIDER <stem>` writes a deep-research report to
+   `research/`: a list of leads to check, never a source to cite.
 4. Write. Terms through `just search-term` and `just term-info`. Quotes
    copied from the fetched text.
 5. Validate. `just validate data/goat_breeds/<stem>.yaml` until clean.

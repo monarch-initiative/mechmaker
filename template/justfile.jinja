@@ -146,6 +146,29 @@ literature-scan *args:
 # Fetch full text for cached references that have only an abstract.
 warm-reference-cache limit="0":
     uv run python -m {{slug}}.warm --limit "$1"
+{% endraw %}{% endif %}{% if deep_research %}{% raw %}
+# ---------------------------------------------------------------- research
+
+# Which deep-research providers this machine can use.
+research-providers:
+    uv run python -m {{slug}}.research providers
+
+# Research one record (its filename stem) or a new name. Costs a provider run.
+# `just research claude_code saanen`, or `just research falcon saanen -- --fallback`
+research provider target *args:
+    uv run python -m {{slug}}.research run "$@"
+
+# Redo a report's reference and term checks, into the report.
+research-validate report:
+    uv run python -m {{slug}}.research validate "$1"
+
+# Which records have research, and from which providers.
+research-status:
+    uv run python -m {{slug}}.research status
+
+# The research prompt's placeholders can be filled; warns if it is still generic.
+research-check:
+    uv run python -m {{slug}}.research check-template
 {% endraw %}{% endif %}{% raw %}
 # ---------------------------------------------------------------- docs
 

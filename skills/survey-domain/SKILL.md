@@ -69,6 +69,11 @@ identifiers are CURIEs the Mech can use, and a size measured on a sample.
 
 These rows become `curation/source_queue.tsv` in the new Mech.
 
+Say whether deep research would help. It helps when a record's subject has
+a large literature a curator cannot read in one sitting; it adds little
+when the facts come from one database. Put the answer in the brief, as
+`deep_research: true` or `false`.
+
 ## 5. Neighbors
 
 Read the registry. The whole thing is one JSON file:

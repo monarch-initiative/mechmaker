@@ -62,6 +62,14 @@ until `agent_schedules` is turned on.
 - **Claude App.** The `claude` workflow acts as the Claude GitHub App
   through OIDC. Install it from https://github.com/apps/claude.
 
+### Deep research
+
+On. The `claude` and `curation-scanner` workflows pass the provider keys
+(`OPENAI_API_KEY`, `EDISON_API_KEY`, `PERPLEXITY_API_KEY`, `ASTA_API_KEY`,
+`CONSENSUS_API_KEY`, `OPENSCIENTIST_API_KEY`) from repository secrets, so an
+agent can run `just research`. Set only the ones you pay for. A run costs
+money; the agents are told to research one record at a time.
+
 ### Langfuse
 
 Off. Answer `langfuse` in Copier to add tracing to every agent workflow.

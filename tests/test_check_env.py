@@ -120,3 +120,24 @@ def test_only_github_and_pypi_are_required(monkeypatch, down, required):
     rows, problems, warnings = mod.check_services()
     assert bool(problems) == required
     assert bool(warnings) == (not required)
+
+
+def test_research_needs_one_ready_provider(tools):
+    env_path = [tools]
+    no_keys = {k: v for k, v in os.environ.items() if not k.endswith("_API_KEY")}
+    base = {**no_keys, "PATH": os.pathsep.join(str(d) for d in env_path)}
+
+    def research(env):
+        cmd = [sys.executable, str(SCRIPT), "--research"]
+        return subprocess.run(cmd, capture_output=True, text=True, env=env)
+
+    none_ready = research(base)
+    assert none_ready.returncode == 1
+    assert "no provider is ready" in none_ready.stdout
+    with_key = research({**base, "EDISON_API_KEY": "x"})
+    assert with_key.returncode == 0, with_key.stdout
+    assert re.search(r"falcon\s+ready", with_key.stdout)
+    fake(tools, "claude", 'echo "2.1.0 (Claude Code)"')
+    with_claude = research(base)
+    assert with_claude.returncode == 0
+    assert re.search(r"claude_code\s+ready", with_claude.stdout)
