@@ -1,5 +1,7 @@
 # mechmaker
 
+**Documentation: https://monarch-initiative.github.io/mechmaker/**
+
 mechmaker helps you start a new **Mech**: a knowledge base where AI agents
 do most of the curation and people review their work.
 
@@ -146,7 +148,7 @@ The usual path:
 
 A good first request to the agent:
 
-> I have a knowledge base of X at <location>. Survey it, then make a Mech
+> I have a knowledge base of X at (path or URL). Survey it, then make a Mech
 > that can hold it, and convert five entries as a trial.
 
 Try a handful of entries before converting everything. Problems with the

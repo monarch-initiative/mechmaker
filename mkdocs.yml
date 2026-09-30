@@ -1,0 +1,63 @@
+# mechmaker's own documentation. `just docs-build` generates the reference
+# pages (scripts/gen_docs.py) and builds the site in strict mode.
+site_name: mechmaker
+site_description: Make Mechs, knowledge bases curated by AI agents and reviewed by people.
+site_url: https://monarch-initiative.github.io/mechmaker/
+repo_url: https://github.com/monarch-initiative/mechmaker
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  icon:
+    logo: material/cog-transfer-outline
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-4
+        name: Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-7
+        name: Light mode
+  features:
+    - content.code.copy
+    - navigation.instant
+    - navigation.tracking
+    - navigation.top
+    - navigation.indexes
+    - search.suggest
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.magiclink
+  - pymdownx.superfences
+
+nav:
+  - Home: index.md
+  - Getting started: getting-started.md
+  - Already have a knowledge base?: existing-knowledge-base.md
+  - What a Mech contains: what-you-get.md
+  - Workflows: workflows.md
+  - Skills:
+      - skills/index.md
+      - make-mech: skills/make-mech.md
+      - survey-domain: skills/survey-domain.md
+      - design-mech-schema: skills/design-mech-schema.md
+      - register-mech: skills/register-mech.md
+  - Reference:
+      - Copier questions: reference/questions.md
+      - Ontology catalog: reference/ontologies.md
+      - Skills in a Mech: reference/mech-skills.md
+  - Developing mechmaker: developing.md
+  - Glossary: glossary.md
