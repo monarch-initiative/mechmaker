@@ -1,0 +1,35 @@
+{%- set cat = ontology_catalog -%}
+# A schema-shaped example for the tests. It is not a curated record and
+# carries no citations. Real records live under {{ records_dir }}/.
+id: {{ mech_slug }}:example
+name: Example {{ record_noun }}
+description: A placeholder that exercises the record structure.
+status: DRAFT
+{%- for key in ontologies if key in cat %}
+{{ cat[key].slot }}:
+  - preferred_term: {{ cat[key].root_label }}
+    term:
+      id: {{ cat[key].root }}
+      label: {{ cat[key].root_label }}
+{%- endfor %}
+{%- if causal_graphs %}
+mechanisms:
+  - name: upstream event
+    description: The first step.
+    downstream:
+      - target: downstream event
+  - name: downstream event
+    description: The step it leads to.
+{%- endif %}
+discussions:
+  - discussion_id: example-gap-1
+    prompt: Which sources should seed this record?
+    kind: CURATION_TODO
+    status: OPEN
+creation_date: 2026-01-01
+curation_history:
+  - timestamp: "2026-01-01T00:00:00Z"
+    curator: mechmaker
+    llm_assisted: false
+    action: CREATE
+    description: Written by the template.
