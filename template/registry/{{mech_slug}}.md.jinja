@@ -1,0 +1,138 @@
+---
+# Draft MechRegistry entry. Copy to mech/{{ mech_slug }}/{{ mech_slug }}.md in
+# https://github.com/monarch-initiative/mechregistry, update the counts, run
+# `uv run mechregistry validate`, and open a pull request. The `register-mech`
+# skill in mechmaker does this.
+id: {{ mech_slug }}
+category: Mech
+layout: mech_detail
+name: {{ mech_name }}
+synonyms:
+  - {{ full_title }}
+description: >-
+  {{ description }}
+activity_status: active
+maturity: seeded
+homepage_url: https://github.com/{{ github_org }}/{{ repo_name }}
+repository: https://github.com/{{ github_org }}/{{ repo_name }}
+schema_url: https://github.com/{{ github_org }}/{{ repo_name }}/blob/main/src/{{ mech_slug }}/schema/{{ mech_slug }}.yaml
+{%- if collection == 'monarch' %}
+collection:
+  - monarch
+{%- endif %}
+domains:
+{%- for d in domains %}
+  - {{ d }}
+{%- endfor %}
+{%- if taxon_scope %}
+taxon:
+{%- for t in taxon_scope.split(',') %}
+  - {{ t | trim }}
+{%- endfor %}
+{%- endif %}
+record_type: a {{ record_noun }}
+record_count: 0
+record_count_date: {{ '%Y-%m-%d' | strftime }}
+record_identifier_policy: >-
+{%- if identity_prefix %}
+  Records are keyed by {{ identity_prefix }} CURIEs where a term exists and
+  otherwise by a minted {{ mech_slug }}: CURIE.
+{%- else %}
+  Records are keyed by minted {{ mech_slug }}: CURIEs.
+{%- endif %}
+identifier_prefix: {{ mech_slug }}
+ontologies:
+{%- set seen = [] %}
+{%- if identity_prefix %}{% set _ = seen.append(identity_prefix) %}{% endif %}
+{%- for key in ontologies if key in ontology_catalog and ontology_catalog[key].prefix not in seen %}{% set _ = seen.append(ontology_catalog[key].prefix) %}{% endfor %}
+{%- for p in seen %}
+  - {{ p }}
+{%- endfor %}
+data_sources:
+  - name: PubMed
+    url: https://pubmed.ncbi.nlm.nih.gov/
+    relation_type: prov:hadPrimarySource
+    description: Evidence snippets are verbatim quotes, checked against the cached source.
+license:
+{%- if data_license == 'CC0-1.0' %}
+  id: https://creativecommons.org/publicdomain/zero/1.0/
+  label: CC0 1.0
+  spdx_id: CC0-1.0
+{%- else %}
+  id: https://creativecommons.org/licenses/by/4.0/
+  label: CC BY 4.0
+  spdx_id: CC-BY-4.0
+{%- endif %}
+code_license:
+{%- if code_license == 'BSD-3-Clause' %}
+  id: https://opensource.org/license/bsd-3-clause
+  label: BSD-3-Clause
+{%- elif code_license == 'MIT' %}
+  id: https://opensource.org/licenses/MIT
+  label: MIT License
+{%- else %}
+  id: https://www.apache.org/licenses/LICENSE-2.0
+  label: Apache License 2.0
+{%- endif %}
+  spdx_id: {{ code_license }}
+curation:
+  agent_curated: true
+  human_review: pull_request
+  agents:
+    - Claude Code
+  evidence_policy: >-
+    Every claim cites a source with a verbatim quote. linkml-reference-validator
+    fetches the source and checks that the quote appears in it.
+  validation:
+    - schema
+    - ontology_terms
+    - references
+  curation_history: true
+features:
+{%- if causal_graphs %}
+  - causal_mechanism_graphs
+{%- endif %}
+  - evidence_snippets
+  - ontology_grounding
+  - append_only_history
+  - knowledge_gaps
+{%- if include_site %}
+  - static_browser
+{%- endif %}
+disclaimer: >-
+  {{ mech_name }} is AI-curated. Automated validation checks that citations
+  exist, quoted snippets are exact, and ontology terms are real. It does not
+  check scientific correctness.
+contacts:
+  - category: Individual
+    label: {{ author_name }}
+{%- if author_orcid %}
+    orcid: {{ author_orcid }}
+{%- endif %}
+    contact_details:
+      - contact_type: email
+        value: {{ author_email }}
+      - contact_type: github
+        value: {{ github_user }}
+products:
+  - id: {{ mech_slug }}.records
+    category: RecordCorpus
+    name: {{ record_noun | capitalize }} records
+    description: One YAML file per {{ record_noun }} in {{ records_dir }}, validated against the {{ mech_name }} LinkML schema.
+    product_url: https://github.com/{{ github_org }}/{{ repo_name }}/tree/main/{{ records_dir }}
+    format: yaml
+  - id: {{ mech_slug }}.schema
+    category: DataModelProduct
+    name: {{ mech_name }} LinkML schema
+    product_url: https://github.com/{{ github_org }}/{{ repo_name }}/blob/main/src/{{ mech_slug }}/schema/{{ mech_slug }}.yaml
+    format: linkml
+    compatibility:
+      - linkml
+      - mech_shared
+cross_references:
+  - target: dismech
+    relation: follows_pattern_of
+creation_date: {{ '%Y-%m-%d' | strftime }}
+last_modified_date: {{ '%Y-%m-%d' | strftime }}
+---
+{{ mech_name }} was created with mechmaker. It holds no records yet.

@@ -1,0 +1,15 @@
+# Data license
+
+The records under `{{ records_dir }}/`, the curation history under `history/`
+and the schema under `src/{{ mech_slug }}/schema/` are released under
+{% if data_license == 'CC0-1.0' -%}
+[CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/).
+{%- else -%}
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+{%- endif %}
+
+The vendored modules `mech_shared.yaml` (CC0 1.0) and `history.yaml`
+(BSD-3-Clause) keep their own licenses.
+
+Quoted snippets are short excerpts from cited works, included for
+verification. The cited works keep their own licenses.
