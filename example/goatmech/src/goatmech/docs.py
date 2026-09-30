@@ -9,7 +9,7 @@ Generated, and not committed:
   docs/structure.md  what a record can contain, as one diagram
   docs/corpus.md     counts from the records
   docs/schema/       the schema with imports merged, and as JSON Schema
-  docs/records/      a copy of the record browser (pages/), when there is one
+  docs/records/      the record browser, rendered fresh, when the Mech has one
 
 `build` runs MkDocs in strict mode, so a broken link fails. Every link to the
 record browser is relative, so the site works wherever it is hosted.
@@ -22,7 +22,7 @@ import shutil
 import subprocess
 import sys
 
-from .paths import BUILD_DIR, MECH_NAME, PAGES_DIR, RECORD_CLASS, REPO_ROOT, SCHEMA_PATH, SLUG
+from .paths import BUILD_DIR, MECH_NAME, PACKAGE_DIR, PAGES_DIR, RECORD_CLASS, REPO_ROOT, SCHEMA_PATH, SLUG
 from .report import compute
 
 DOCS = REPO_ROOT / "docs"
@@ -64,8 +64,15 @@ def generate() -> None:
 
     records = DOCS / "records"
     shutil.rmtree(records, ignore_errors=True)
-    if (PAGES_DIR / "index.html").exists():
-        shutil.copytree(PAGES_DIR, records)
+    if (PACKAGE_DIR / "render.py").exists():
+        # Render the browser here rather than copy pages/: it then exists
+        # even before the first record, and always matches the records.
+        from .render import build as render_browser
+
+        for path, text in render_browser().items():
+            out = records / path.relative_to(PAGES_DIR)
+            out.parent.mkdir(parents=True, exist_ok=True)
+            out.write_text(text)
 
     stats = compute()
     rows = "\n".join(
