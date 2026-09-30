@@ -278,6 +278,17 @@ def test_every_action_ref_exists(tmp_path):
     assert not missing, missing
 
 
+def test_uv_lock_is_not_ignored(generated):
+    """The Mech standard requires uv.lock to be committed."""
+    _, _, dest = generated
+    if not (dest / ".git").exists():
+        subprocess.run(["git", "init", "-q"], cwd=dest, check=True)
+    ignored = subprocess.run(["git", "check-ignore", "-q", "uv.lock"], cwd=dest).returncode == 0
+    assert not ignored
+    lock = subprocess.run(["git", "check-ignore", "-q", "cache/go/terms.csv.lock"], cwd=dest).returncode == 0
+    assert lock
+
+
 def test_identity_prefix_requires_root(tmp_path):
     data = {**BASE, "mech_name": "NoRootMech", "record_class": "Thing", "identity_prefix": "ENVO"}
     with pytest.raises(Exception):  # noqa: B017  copier raises its own validation errors
