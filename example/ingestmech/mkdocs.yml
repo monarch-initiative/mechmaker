@@ -7,9 +7,10 @@
 # docs/ directly.
 site_name: "IngestMech"
 site_description: "IngestMech records the data ingests of the Monarch Initiative knowledge graph: the upstream sources each one reads, the files it fetches, the terms those sources are licensed under, and what it produces."
-site_url: https://monarch-initiative.github.io/ingestmech/
-repo_url: https://github.com/monarch-initiative/ingestmech
-edit_uri: edit/main/docs/
+# IngestMech is an example inside mechmaker, published with mechmaker's site.
+site_url: https://monarch-initiative.github.io/mechmaker/example/ingestmech/
+repo_url: https://github.com/monarch-initiative/mechmaker
+edit_uri: edit/main/example/ingestmech/docs/
 
 theme:
   name: material

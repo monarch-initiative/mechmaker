@@ -8,7 +8,8 @@ RECORD_CLASS = "Ingest"
 RECORD_NOUN = "ingest"
 # Whether records are keyed to an ontology term in `record_term`.
 HAS_RECORD_TERM = False
-REPO_URL = "https://github.com/monarch-initiative/ingestmech"
+# IngestMech is an example inside mechmaker; issues and links go there.
+REPO_URL = "https://github.com/monarch-initiative/mechmaker"
 
 PACKAGE_DIR = Path(__file__).resolve().parent
 REPO_ROOT = PACKAGE_DIR.parents[1]

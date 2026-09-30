@@ -29,7 +29,7 @@ ingest, and every record follows the same rules.
 
 ## Download
 
-- Records: the [repository](https://github.com/monarch-initiative/ingestmech/tree/main/data/ingests).
+- Records: the [repository](https://github.com/monarch-initiative/mechmaker/tree/main/example/ingestmech/data/ingests).
 - Schema: [ingestmech.yaml](schema/ingestmech.yaml) with its imports merged, and [JSON Schema](schema/ingestmech.schema.json).
 
 ## What the checks do not check
@@ -41,8 +41,8 @@ IngestMech as a curated draft reviewed by people, not as an authority.
 ## Contribute and cite
 
 Issues and reviews are welcome on
-[GitHub](https://github.com/monarch-initiative/ingestmech). See
-[CONTRIBUTING.md](https://github.com/monarch-initiative/ingestmech/blob/main/CONTRIBUTING.md).
+[GitHub](https://github.com/monarch-initiative/mechmaker/tree/main/example/ingestmech). See
+[CONTRIBUTING.md](https://github.com/monarch-initiative/mechmaker/blob/main/example/ingestmech/CONTRIBUTING.md).
 
 Records are released under CC-BY-4.0. Code is released under
 BSD-3-Clause.
