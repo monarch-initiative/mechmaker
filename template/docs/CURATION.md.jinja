@@ -11,7 +11,8 @@
    `research/`: a list of leads to check, never a source to cite.
 {%- endif %}
 4. Write. Terms through `just search-term` and `just term-info`. Quotes
-   copied from the fetched text.
+   copied from the fetched text and added with `just add-evidence`, which
+   checks each quote against its source before writing it.
 5. Validate. `just validate {{ records_dir }}/<stem>.yaml` until clean.
 6. Record. Append a `curation_history` event to the record. Add a history
    record with `just new-history ... --apply`.

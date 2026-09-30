@@ -264,7 +264,8 @@ fixed them. The review and the fix each have a history record.
 Curation friction, ticketed: nothing fills `reference_title` from the cache
 ([#9](https://github.com/monarch-initiative/mechmaker/issues/9));
 evidence is written into YAML by hand, where an unquoted colon broke a
-record ([#7](https://github.com/monarch-initiative/mechmaker/issues/7)); a
+record ([#7](https://github.com/monarch-initiative/mechmaker/issues/7);
+since then, `just add-evidence` does this, checking the quote first); a
 record's description has no evidence of its own
 ([#8](https://github.com/monarch-initiative/mechmaker/issues/8)).
 
@@ -299,7 +300,7 @@ GoatMech is an example, so it was not submitted.
 
 | To | Run |
 |---|---|
-| add or improve a breed | ask your agent, which uses `curate-record`; or `just new-record`, `just fetch-reference`, `just validate` |
+| add or improve a breed | ask your agent, which uses `curate-record`; or `just new-record`, `just fetch-reference`, `just add-evidence`, `just validate` |
 | check a pull request | `review-record`, or the `review` workflow on GitHub |
 | find the least complete records | `just compliance` |
 | find new papers | `just literature-scan --days 30`, or the `literature-scan` workflow |
