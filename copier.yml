@@ -1,0 +1,430 @@
+# mechmaker: a Copier template for new Mechs.
+#
+# A Mech is an AI agent-curated, ontology-grounded, evidence-backed knowledge
+# base. See https://monarch-initiative.github.io/mechregistry/docs/what-is-a-mech.html
+#
+# The template lays down the deterministic part of a Mech: package layout, a
+# starting LinkML schema, the shared Discussion/Dataset and history modules,
+# the validation gates, the justfile, CI, and the curation skills. The domain
+# part (what a record is, which sections it carries, which sources feed it) is
+# left to an agent working from the skills in this repository's `skills/`.
+
+_min_copier_version: "9.3.0"
+_subdirectory: template
+_answers_file: .copier-answers.yml
+_templates_suffix: .jinja
+_envops:
+  keep_trailing_newline: true
+
+_message_after_copy: |
+  {{ mech_name }} is laid down in {{ _copier_conf.dst_path }}.
+
+  Next:
+    cd {{ _copier_conf.dst_path }}
+    git init && just install && just qc
+
+  Then design the domain model. Ask your agent to run the
+  `design-mech-schema` skill from mechmaker, or read docs/DOMAIN.md.
+
+# ---------------------------------------------------------------- identity
+
+mech_name:
+  type: str
+  help: Display name of the Mech, CamelCase, ending in "Mech" by convention (e.g. HabitatMech)
+  validator: >-
+    {% if not (mech_name | regex_search('^[A-Z][A-Za-z0-9]*$')) %}
+    Use CamelCase letters and digits only, starting with a capital.
+    {% endif %}
+
+mech_slug:
+  type: str
+  help: Lowercase identifier. Used for the package, the schema, the CURIE prefix and the registry id
+  default: "{{ mech_name | lower }}"
+  validator: >-
+    {% if not (mech_slug | regex_search('^[a-z][a-z0-9]*$')) %}
+    Use lowercase letters and digits only, starting with a letter.
+    {% endif %}
+
+full_title:
+  type: str
+  help: Long title (e.g. "Disorder Mechanisms Knowledge Base")
+  default: "{{ mech_name }} Knowledge Base"
+
+description:
+  type: str
+  help: One or two sentences on what the Mech records and why
+  default: "{{ mech_name }} is an AI agent-curated, evidence-backed knowledge base."
+
+# ---------------------------------------------------------------- the record
+
+record_class:
+  type: str
+  help: >-
+    LinkML class name for one record, CamelCase and singular (e.g. Disease,
+    Habitat, CellStructure, Antibiotic)
+  validator: >-
+    {% if not (record_class | regex_search('^[A-Z][A-Za-z0-9]*$')) %}
+    Use CamelCase letters and digits only, starting with a capital.
+    {% endif %}
+
+record_noun:
+  type: str
+  help: Human-readable singular noun for one record (e.g. "disorder", "habitat")
+  default: "{{ record_class | regex_replace('(?<!^)([A-Z])', ' \\\\1') | lower }}"
+
+records_dir:
+  type: str
+  help: Repository-relative directory that holds one YAML file per record
+  default: "data/{{ record_noun | replace(' ', '_') }}s"
+  validator: >-
+    {% if records_dir.startswith('/') or '..' in records_dir %}
+    Give a relative path inside the repository.
+    {% endif %}
+
+identity_prefix:
+  type: str
+  help: >-
+    Ontology prefix whose CURIEs key records where a term exists (e.g. MONDO,
+    ENVO, CHEBI, GO). Leave empty to mint every id in the Mech's own namespace
+  default: ""
+  validator: >-
+    {% if identity_prefix and not (identity_prefix | regex_search('^[A-Za-z][A-Za-z0-9_]*$')) %}
+    A prefix is letters, digits and underscores, e.g. MONDO.
+    {% endif %}
+
+identity_root:
+  type: str
+  help: >-
+    Root term that every identity CURIE must descend by is-a from (e.g.
+    MONDO:0000001). Required: without it no identity term is checked at all.
+    Pick the most specific root that still covers every record, and check a
+    few expected records sit under it
+  when: "{{ identity_prefix != '' }}"
+  validator: >-
+    {% if not identity_root %}
+    A root is required. linkml-term-validator checks only bound terms.
+    {% elif not identity_root.startswith(identity_prefix ~ ':') %}
+    The root must carry the identity prefix ({{ identity_prefix }}:).
+    {% endif %}
+
+identity_uri:
+  type: str
+  help: URI expansion of the identity prefix
+  default: "http://purl.obolibrary.org/obo/{{ identity_prefix }}_"
+  when: "{{ identity_prefix != '' }}"
+
+identity_adapter:
+  type: str
+  help: OAK adapter used to check identity terms (ols:<name>, sqlite:obo:<name>, or "" to skip)
+  default: "ols:{{ identity_prefix | lower }}"
+  when: "{{ identity_prefix != '' }}"
+
+ontologies:
+  type: str
+  help: >-
+    Ontologies the record binds terms to. Each one adds a descriptor class, a
+    dynamic enum and a record section to the starting schema
+  multiselect: true
+  choices:
+    "GO biological process": GO_BP
+    "GO molecular function": GO_MF
+    "GO cellular component": GO_CC
+    "CL cell types": CL
+    "UBERON anatomy": UBERON
+    "CHEBI chemical entities": CHEBI
+    "HP phenotypes (human)": HP
+    "MONDO diseases": MONDO
+    "NCBITaxon organisms": NCBITaxon
+    "ENVO environments": ENVO
+    "PATO qualities": PATO
+    "OBI assays": OBI
+    "UO units": UO
+    "PR proteins": PR
+    "SO sequence features": SO
+    "MAXO medical actions": MAXO
+    "FOODON foods": FOODON
+  default: [GO_BP, CHEBI, NCBITaxon]
+
+causal_graphs:
+  type: bool
+  help: Include mechanism nodes and causal edges, the pathograph pattern from DisMech
+  default: true
+
+taxon_scope:
+  type: str
+  help: >-
+    NCBITaxon CURIEs the Mech is scoped to, comma-separated (e.g.
+    NCBITaxon:9606). Leave empty if not taxon-scoped
+  default: ""
+
+domains:
+  type: str
+  help: MechRegistry domain tags (the registry's DomainEnum)
+  multiselect: true
+  choices: [biomedical, clinical, microbiology, environment, organisms, phenotype,
+            pathways, pharmacology, genomics, immunology, nutrition, other]
+  default: [other]
+  validator: "{% if not domains %}Pick at least one; the registry requires it.{% endif %}"
+
+# ---------------------------------------------------------------- people
+
+author_name:
+  type: str
+  help: Maintainer name
+
+author_email:
+  type: str
+  help: Maintainer email
+
+author_orcid:
+  type: str
+  help: Maintainer ORCID (0000-0000-0000-0000), or empty
+  default: ""
+  validator: >-
+    {% if author_orcid and not (author_orcid | regex_search('^[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X]$')) %}
+    An ORCID looks like 0000-0002-1825-0097.
+    {% endif %}
+
+github_org:
+  type: str
+  help: GitHub organization or user that will own the repository
+
+github_user:
+  type: str
+  help: Maintainer GitHub login
+  default: "{{ github_org }}"
+
+repo_name:
+  type: str
+  help: GitHub repository name
+  default: "{{ mech_slug }}"
+
+collection:
+  type: str
+  help: Which family of Mechs this one joins
+  choices:
+    "Monarch Initiative (DisMech pattern)": monarch
+    "X-Mech suite (CultureBotAI fleet, claw-governed)": xmech
+    "Neither": none
+  default: none
+
+# ---------------------------------------------------------------- licenses
+
+data_license:
+  type: str
+  help: License for the records
+  choices:
+    "CC BY 4.0": CC-BY-4.0
+    "CC0 1.0": CC0-1.0
+  default: CC-BY-4.0
+
+code_license:
+  type: str
+  help: License for the code
+  choices:
+    "BSD 3-Clause": BSD-3-Clause
+    "MIT": MIT
+    "Apache 2.0": Apache-2.0
+  default: BSD-3-Clause
+
+copyright_year:
+  type: str
+  help: Copyright year
+  default: "2026"
+
+# ---------------------------------------------------------------- options
+
+include_site:
+  type: bool
+  help: Render a static record browser under pages/ with `just render`
+  default: true
+
+include_claude_hook:
+  type: bool
+  help: >-
+    Add a Claude Code PreToolUse hook that validates a record before an edit
+    to it lands
+  default: true
+
+python_min:
+  type: str
+  help: Minimum Python version
+  choices: ["3.11", "3.12", "3.13"]
+  default: "3.11"
+
+# ---------------------------------------------------------------- computed
+
+ontology_catalog:
+  type: yaml
+  when: false
+  default: |
+    GO_BP:
+      prefix: GO
+      uri: http://purl.obolibrary.org/obo/GO_
+      adapter: ols:go
+      descriptor: BiologicalProcessDescriptor
+      enum: BiologicalProcessTerm
+      slot: biological_processes
+      root: GO:0008150
+      root_label: biological_process
+      noun: biological process
+    GO_MF:
+      prefix: GO
+      uri: http://purl.obolibrary.org/obo/GO_
+      adapter: ols:go
+      descriptor: MolecularFunctionDescriptor
+      enum: MolecularFunctionTerm
+      slot: molecular_functions
+      root: GO:0003674
+      root_label: molecular_function
+      noun: molecular function
+    GO_CC:
+      prefix: GO
+      uri: http://purl.obolibrary.org/obo/GO_
+      adapter: ols:go
+      descriptor: CellularComponentDescriptor
+      enum: CellularComponentTerm
+      slot: cellular_components
+      root: GO:0005575
+      root_label: cellular_component
+      noun: cellular component
+    CL:
+      prefix: CL
+      uri: http://purl.obolibrary.org/obo/CL_
+      adapter: ols:cl
+      descriptor: CellTypeDescriptor
+      enum: CellTypeTerm
+      slot: cell_types
+      root: CL:0000000
+      root_label: cell
+      noun: cell type
+    UBERON:
+      prefix: UBERON
+      uri: http://purl.obolibrary.org/obo/UBERON_
+      adapter: ols:uberon
+      descriptor: AnatomicalEntityDescriptor
+      enum: AnatomicalEntityTerm
+      slot: anatomical_entities
+      root: UBERON:0001062
+      root_label: anatomical entity
+      noun: anatomical entity
+    CHEBI:
+      prefix: CHEBI
+      uri: http://purl.obolibrary.org/obo/CHEBI_
+      adapter: ols:chebi
+      descriptor: ChemicalEntityDescriptor
+      enum: ChemicalEntityTerm
+      slot: chemical_entities
+      root: CHEBI:24431
+      root_label: chemical entity
+      noun: chemical entity
+    HP:
+      prefix: HP
+      uri: http://purl.obolibrary.org/obo/HP_
+      adapter: ols:hp
+      descriptor: PhenotypeDescriptor
+      enum: PhenotypeTerm
+      slot: phenotypes
+      root: HP:0000118
+      root_label: Phenotypic abnormality
+      noun: phenotype
+    MONDO:
+      prefix: MONDO
+      uri: http://purl.obolibrary.org/obo/MONDO_
+      adapter: ols:mondo
+      descriptor: DiseaseDescriptor
+      enum: DiseaseTerm
+      slot: diseases
+      root: MONDO:0000001
+      root_label: disease
+      noun: disease
+    NCBITaxon:
+      prefix: NCBITaxon
+      uri: http://purl.obolibrary.org/obo/NCBITaxon_
+      adapter: ols:ncbitaxon
+      descriptor: OrganismDescriptor
+      enum: OrganismTerm
+      slot: organisms
+      root: NCBITaxon:1
+      root_label: root
+      noun: organism
+    ENVO:
+      prefix: ENVO
+      uri: http://purl.obolibrary.org/obo/ENVO_
+      adapter: ols:envo
+      descriptor: EnvironmentDescriptor
+      enum: EnvironmentTerm
+      slot: environments
+      root: ENVO:01000254
+      root_label: environmental system
+      noun: environment
+    PATO:
+      prefix: PATO
+      uri: http://purl.obolibrary.org/obo/PATO_
+      adapter: ols:pato
+      descriptor: QualityDescriptor
+      enum: QualityTerm
+      slot: qualities
+      root: PATO:0000001
+      root_label: quality
+      noun: quality
+    OBI:
+      prefix: OBI
+      uri: http://purl.obolibrary.org/obo/OBI_
+      adapter: ols:obi
+      descriptor: AssayDescriptor
+      enum: AssayTerm
+      slot: assays
+      root: OBI:0000070
+      root_label: assay
+      noun: assay
+    UO:
+      prefix: UO
+      uri: http://purl.obolibrary.org/obo/UO_
+      adapter: ols:uo
+      descriptor: UnitDescriptor
+      enum: UnitTerm
+      slot: units
+      root: UO:0000000
+      root_label: unit
+      noun: unit
+    PR:
+      prefix: PR
+      uri: http://purl.obolibrary.org/obo/PR_
+      adapter: ols:pr
+      descriptor: ProteinDescriptor
+      enum: ProteinTerm
+      slot: proteins
+      root: PR:000000001
+      root_label: protein
+      noun: protein
+    SO:
+      prefix: SO
+      uri: http://purl.obolibrary.org/obo/SO_
+      adapter: ols:so
+      descriptor: SequenceFeatureDescriptor
+      enum: SequenceFeatureTerm
+      slot: sequence_features
+      root: SO:0000110
+      root_label: sequence_feature
+      noun: sequence feature
+    MAXO:
+      prefix: MAXO
+      uri: http://purl.obolibrary.org/obo/MAXO_
+      adapter: ols:maxo
+      descriptor: MedicalActionDescriptor
+      enum: MedicalActionTerm
+      slot: medical_actions
+      root: MAXO:0000001
+      root_label: medical action
+      noun: medical action
+    FOODON:
+      prefix: FOODON
+      uri: http://purl.obolibrary.org/obo/FOODON_
+      adapter: ols:foodon
+      descriptor: FoodDescriptor
+      enum: FoodTerm
+      slot: foods
+      root: FOODON:00001002
+      root_label: food product
+      noun: food
