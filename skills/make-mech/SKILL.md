@@ -1,0 +1,142 @@
+---
+name: make-mech
+description: >-
+  Create a new Mech (an AI agent-curated, ontology-grounded, evidence-backed
+  knowledge base in the DisMech pattern) from the mechmaker Copier template,
+  end to end: survey the domain, choose the template answers, generate the
+  repository, design the schema, seed the first records, and prepare the
+  MechRegistry entry. Use when asked to make, start, scaffold or set up a new
+  Mech or knowledge base for some domain.
+---
+
+# Make a Mech
+
+mechmaker splits the work in two. Copier lays down everything that does not
+depend on the domain, the same way every time. You do the rest: the parts
+that need judgment about the domain.
+
+| Step | Who | Output |
+|---|---|---|
+| 1. Survey the domain | you, with `survey-domain` | a domain brief |
+| 2. Choose the answers | you, checked by script | `answers.yml` |
+| 3. Generate | Copier | the repository |
+| 4. Design the schema | you, with `design-mech-schema` | `docs/DOMAIN.md`, the schema |
+| 5. Seed records | you, with the new Mech's `curate-record` | 3 to 5 exemplar records |
+| 6. Register | you, with `register-mech` | a MechRegistry pull request |
+
+Do not skip to step 3. A Mech generated from unexamined answers has the wrong
+record type, the wrong identity ontology, or the wrong root, and every one
+of those is expensive to change once records exist.
+
+## 1. Survey
+
+Run the `survey-domain` skill. It answers: what is one record, what keys it,
+which ontologies ground it, what sources feed it, and which existing Mechs
+overlap. Do not continue until the brief names the record entity in one
+sentence.
+
+## 2. Answers
+
+Some answers belong to the user. Ask for them; do not invent them:
+
+- the maintainer's name, email, ORCID and GitHub login;
+- the GitHub organization that will own the repository;
+- the data and code licenses;
+- the collection (`monarch`, `xmech` or `none`).
+
+The rest come from the brief. Write them to a data file:
+
+```yaml
+# answers.yml
+mech_name: HabitatMech
+mech_slug: habitatmech
+full_title: Habitat Mechanisms Knowledge Base
+description: >-
+  HabitatMech records microbial habitats: ...
+record_class: Habitat
+record_noun: habitat
+records_dir: data/habitats
+identity_prefix: ENVO
+identity_root: ENVO:01000813        # verified below, never guessed
+ontologies: [ENVO, NCBITaxon, CHEBI, GO_BP]
+causal_graphs: true
+taxon_scope: ""
+domains: [environment, microbiology]
+author_name: ...
+author_email: ...
+author_orcid: ...
+github_org: ...
+github_user: ...
+collection: none
+data_license: CC-BY-4.0
+code_license: BSD-3-Clause
+include_site: true
+include_claude_hook: true
+python_min: "3.11"
+```
+
+`ontologies` takes these keys: `GO_BP`, `GO_MF`, `GO_CC`, `CL`, `UBERON`,
+`CHEBI`, `HP`, `MONDO`, `NCBITaxon`, `ENVO`, `PATO`, `OBI`, `UO`, `PR`, `SO`,
+`MAXO`, `FOODON`. Each adds one descriptor class, one dynamic enum with a
+verified root, and one record section. Pick what the records will really
+bind. Others can be added later with the `ontology-terms` skill.
+
+**Check the identity root before generating.** Take three to five entities
+you expect to be records, find their CURIEs, and check they sit under the
+root:
+
+```bash
+python skills/make-mech/scripts/check_terms.py search envo "hot spring"
+python skills/make-mech/scripts/check_terms.py under ENVO:01000813 ENVO:00000051 ENVO:00000022
+```
+
+The script exits 1 if any term is missing or outside the root. A root that
+rejects expected records is wrong. Choose the most specific root that
+accepts them all.
+
+## 3. Generate
+
+```bash
+copier copy --data-file answers.yml --defaults \
+  gh:monarch-initiative/mechmaker <dest>
+cd <dest>
+git init -b main
+just install
+just qc
+```
+
+Use a local path instead of `gh:...` when working from a checkout. `just qc`
+must pass on the fresh copy. If it does not, the template is broken: stop
+and report it, do not patch the output.
+
+Commit the untouched output as its own first commit. Every later change is
+then a readable diff against the template.
+
+## 4. Design
+
+Run the `design-mech-schema` skill in the new repository. It fills in
+`docs/DOMAIN.md` and reshapes the scaffold schema to the domain. Commit.
+
+## 5. Seed
+
+Pick three to five records that span the domain: one typical, one hard, one
+at the edge of scope. Curate each with the new Mech's `curate-record` skill.
+Real sources, real quotes, `status: PROPOSED`. Run `just qc-full`.
+
+Seeding tests the design. When a record will not fit, change the schema now
+with `extend-schema`, while there are five records and not five hundred.
+
+## 6. Register
+
+Run the `register-mech` skill.
+
+## Publishing
+
+Creating the GitHub repository and pushing are visible to others. Ask the
+user before either one. Tell them what will be created and where.
+
+## Report
+
+End with: the repository path, what `just qc-full` said, the records seeded,
+the decisions you made that the user should look at (record type, identity
+root, sections cut or added), and anything you could not source.

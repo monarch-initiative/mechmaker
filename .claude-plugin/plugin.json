@@ -1,0 +1,13 @@
+{
+  "name": "mechmaker",
+  "version": "0.1.0",
+  "description": "Skills for making Mechs: AI agent-curated, ontology-grounded, evidence-backed knowledge bases in the DisMech pattern, generated from the mechmaker Copier template.",
+  "author": {
+    "name": "J. Harry Caufield",
+    "email": "jhc@lbl.gov"
+  },
+  "homepage": "https://github.com/monarch-initiative/mechmaker",
+  "repository": "https://github.com/monarch-initiative/mechmaker",
+  "license": "BSD-3-Clause",
+  "keywords": ["mech", "knowledge base", "linkml", "copier", "ontology", "curation"]
+}

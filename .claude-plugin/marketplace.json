@@ -1,0 +1,14 @@
+{
+  "name": "mechmaker",
+  "description": "Skills and a Copier template for making Mechs, AI agent-curated knowledge bases.",
+  "owner": {
+    "name": "Monarch Initiative"
+  },
+  "plugins": [
+    {
+      "name": "mechmaker",
+      "source": "./",
+      "description": "Skills for making Mechs from the mechmaker Copier template."
+    }
+  ]
+}
