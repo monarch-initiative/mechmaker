@@ -37,6 +37,10 @@ example-site:
     mkdir -p docs/example
     cp -r example/goatmech/site docs/example/goatmech
 
+# Check this machine for the tools (and, with --network, the services) a Mech needs
+check-env *args:
+    python3 skills/make-mech/scripts/check_env.py {{args}}
+
 # Render a sample Mech into a directory to look at: `just sample /tmp/samplemech`
 sample dest:
     uv run copier copy --trust --defaults --data-file tests/answers/habitat.yml . {{dest}}
