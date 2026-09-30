@@ -31,14 +31,41 @@ uv tool install rust-just
 uv tool install copier
 ```
 
-Close and reopen your terminal, then check that everything is there:
+Close and reopen your terminal, then check that everything is there. One
+command checks every tool, and with `--network`, the services a Mech uses:
 
 ```bash
-git --version
-uv --version
-just --version
-copier --version
+curl -fsSLO https://raw.githubusercontent.com/monarch-initiative/mechmaker/main/skills/make-mech/scripts/check_env.py
+python3 check_env.py --network
 ```
+
+```console
+Tools
+  git     2.43.0   keeps the Mech's history
+  uv      0.11.29  installs Python and the Mech's packages
+  just    1.42.4   runs the Mech's commands
+  copier  9.10.1   copies the template
+  claude  2.1.286  the AI agent that curates
+  gh      2.74.0   publishes to GitHub and opens pull requests
+
+Services
+  GitHub                  ok (200)  the template, and publishing
+  PyPI                    ok (200)  installing packages
+  OLS (ontology lookups)  ok (200)  term checks for ontologies served by OLS (optional)
+  PubMed                  ok (200)  reference checks for PMID citations (optional)
+
+Ready.
+```
+
+Anything missing is listed with the command that installs it on your
+system. GitHub and PyPI must answer. OLS and PubMed are optional: a Mech may
+use ontologies OLS does not serve, and sources other than PubMed, so if one
+does not answer the check warns and still passes. If `just` or `copier` is installed but your terminal cannot find it,
+the check says so and tells you to run `uv tool update-shell`.
+
+No Python on your machine? uv brings its own: run
+`uv run --no-project check_env.py --network` instead. (On Windows, the
+command may be `python` rather than `python3`.)
 
 ## With an AI agent (recommended)
 

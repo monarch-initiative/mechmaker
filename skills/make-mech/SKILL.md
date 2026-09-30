@@ -17,6 +17,7 @@ that need judgment about the domain.
 
 | Step | Who | Output |
 |---|---|---|
+| 0. Check the machine | script | a ready machine |
 | 1. Survey the domain | you, with `survey-domain` | a domain brief |
 | 2. Choose the answers | you, checked by script | `answers.yml` |
 | 3. Generate | Copier | the repository |
@@ -29,6 +30,20 @@ that need judgment about the domain.
 Do not skip to step 3. A Mech generated from unexamined answers has the wrong
 record type, the wrong identity ontology, or the wrong root, and every one
 of those is expensive to change once records exist.
+
+## 0. Check the machine
+
+```bash
+python3 skills/make-mech/scripts/check_env.py --network
+```
+
+It checks for git, uv, just and Copier (and Claude Code and gh, which are
+optional), and that GitHub and PyPI answer. OLS and PubMed are checked too,
+as optional: warn the person if one is down and the Mech will depend on it. Exit 0 means ready.
+Otherwise it prints the command that fixes each problem on this operating
+system. Show those to the person; installing software on their machine is
+their call. A service that does not answer is usually a passing outage:
+wait and run it again rather than working around it.
 
 ## 1. Survey
 
