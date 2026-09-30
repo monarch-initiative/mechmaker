@@ -22,6 +22,10 @@ in your field.
 
     The files, the checks, the commands.
 
+- **[Walkthrough](walkthrough.md)**
+
+    One real run, from the tools to curated goat breeds.
+
 - **[Workflows](workflows.md)**
 
     GitHub automation, from checks to curation agents. You choose.

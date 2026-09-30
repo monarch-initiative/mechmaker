@@ -22,7 +22,7 @@ domains:
 taxon:
   - NCBITaxon:9925
 record_type: a goat breed
-record_count: 0
+record_count: 3
 record_count_date: 2026-09-30
 record_identifier_policy: >-
   Records are keyed by VBO CURIEs where a term exists and
