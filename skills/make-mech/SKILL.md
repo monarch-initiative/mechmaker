@@ -139,7 +139,8 @@ python skills/make-mech/scripts/check_terms.py --adapter simpleobo:lab.obo under
 ```
 
 BioPortal needs `BIOPORTAL_API_KEY`, here and as a repository secret for CI;
-the person sets it. Tell them a local file must be copied into
+the person sets it. Never print the key, and mask `apikey=` in any output you
+show: a failed BioPortal request prints its URL with the key in it. Tell them a local file must be copied into
 `ontologies/` and committed after generation.
 
 **Check the identity root before generating.** Take three to five entities

@@ -459,3 +459,38 @@ def test_local_ontology_file_checks_terms(tmp_path):
     assert run("term-under", "TINY:0000003", "TINY:0000001").returncode == 0
     assert run("term-under", "TINY:0000009", "TINY:0000001").returncode == 1
     assert "small widget" in run("search-term", "TINY", "l~widget").stdout
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(not os.environ.get("BIOPORTAL_API_KEY"), reason="needs BIOPORTAL_API_KEY")
+@pytest.mark.skipif(shutil.which("just") is None or shutil.which("uv") is None, reason="needs just and uv")
+def test_bioportal_terms_checked(tmp_path):
+    """SNOMED CT through BioPortal: the enum holds, and the key never prints."""
+    data = {**BASE, "mech_name": "PortalMech", "record_class": "Patient", "ontologies": [],
+            "workflows": [],
+            "extra_ontologies": [{"prefix": "SNOMEDCT", "root": "SNOMEDCT:404684003",
+                                  "root_label": "Clinical finding", "noun": "clinical finding",
+                                  "adapter": "bioportal:SNOMEDCT",
+                                  "uri": "http://purl.bioontology.org/ontology/SNOMEDCT/"}]}
+    dest = render(tmp_path / "portal", data)
+    env = {k: v for k, v in os.environ.items() if k != "VIRTUAL_ENV"}
+    subprocess.run(["just", "install"], cwd=dest, check=True, env=env)
+    probe = dest / "probe.yaml"
+    probe.write_text(
+        "id: portalmech:probe\nname: probe\nstatus: DRAFT\nclinical_findings:\n"
+        "  - preferred_term: heart attack\n    term:\n      id: SNOMEDCT:22298006\n"
+        "      label: Myocardial infarction\n")
+    good = subprocess.run(["just", "validate-terms", "probe.yaml"], cwd=dest, env=env,
+                          capture_output=True, text=True)
+    out = good.stdout + good.stderr
+    assert env["BIOPORTAL_API_KEY"] not in out
+    if "could not reach" in out:
+        pytest.skip("BioPortal did not answer")
+    assert good.returncode == 0, out[-2000:]
+    text = probe.read_text().replace("22298006", "71388002")
+    probe.write_text(text.replace("Myocardial infarction", "Procedure"))
+    bad = subprocess.run(["just", "validate-terms", "probe.yaml"], cwd=dest, env=env,
+                         capture_output=True, text=True)
+    assert env["BIOPORTAL_API_KEY"] not in bad.stdout + bad.stderr
+    if "could not reach" not in bad.stdout + bad.stderr:
+        assert bad.returncode != 0 and "not in dynamic enum" in bad.stdout + bad.stderr

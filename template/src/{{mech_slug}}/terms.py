@@ -20,6 +20,7 @@ import sys
 import yaml
 
 from . import ols
+from .oak_compat import patch
 from .paths import REPO_ROOT
 
 OAK_CONFIG = REPO_ROOT / "conf" / "oak_config.yaml"
@@ -48,12 +49,19 @@ def ancestors(curie: str, part_of: bool = False) -> list[tuple[str, str | None]]
     from oaklib import get_adapter
     from oaklib.datamodels.vocabulary import IS_A, PART_OF
 
+    patch()  # BioPortal: see oak_compat
     oak = get_adapter(adapter)
+    if part_of and adapter.startswith("bioportal:"):
+        print("BioPortal gives is-a ancestors only; part-of is not available.", file=sys.stderr)
     predicates = [IS_A, PART_OF] if part_of else [IS_A]
     return [(a, oak.label(a)) for a in oak.ancestors(curie, predicates=predicates, reflexive=False)]
 
 
 def main(argv: list[str] | None = None) -> int:
+    from .termcheck import Masked
+
+    # A failed BioPortal request prints its URL, which holds the API key.
+    sys.stdout, sys.stderr = Masked(sys.stdout), Masked(sys.stderr)
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="cmd", required=True)
     a = sub.add_parser("ancestors", help="list ancestors of a term")

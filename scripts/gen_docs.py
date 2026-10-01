@@ -148,7 +148,8 @@ def ontologies() -> str:
         "| `ols:<name>` (the default) | EBI's Ontology Lookup Service | the network |",
         "| `sqlite:obo:<name>` | a prebuilt SQLite copy of an OBO Foundry ontology "
         "| one download, then nothing |",
-        "| `bioportal:<name>` | BioPortal | `BIOPORTAL_API_KEY`, locally and as a repository secret |",
+        "| `bioportal:<name>` | BioPortal, is-a only "
+        "| `BIOPORTAL_API_KEY`, locally and as a repository secret |",
         "| `simpleobo:ontologies/<file>.obo` | an OBO file in the Mech's repository | the file, committed |",
         "| `pronto:ontologies/<file>.owl` | an OBO or OWL file in the repository | the file, committed |",
         "| `sqlite:ontologies/<file>.db` | a SQLite ontology file in the repository | the file, committed |",
@@ -161,6 +162,12 @@ def ontologies() -> str:
         "```",
         "",
         "`term_backend: sqlite` makes the catalog ontologies use `sqlite:obo:` too.",
+        "",
+        "BioPortal needs two things a Mech handles for you. OAK's BioPortal adapter",
+        "(oaklib 0.7.4) rejects the arguments the term checks pass, so every term",
+        "would fail its enum; the Mech's `oak_compat.py` patches that until OAK is",
+        "fixed. And a failed BioPortal request prints its URL with the API key in",
+        "it; the Mech's `just` recipes hide the key. Run term checks through `just`.",
         "",
         "GAZ is not in the catalog. As OLS serves it, countries have no is-a",
         "parent, so a dynamic enum rooted in GAZ cannot reach them. `NCIT_COUNTRY`",
