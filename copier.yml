@@ -407,6 +407,19 @@ output_formats:
   default: [yaml, json, jsonld, ttl, sqlite, sql, csv]
   validator: "{% if not output_formats %}Pick at least one format.{% endif %}"
 
+load_targets:
+  type: str
+  help: >-
+    Running databases `just load` can fill with the records, through
+    linkml-store: MongoDB (one collection) and Neo4j (a graph of every
+    object). Each adds linkml-store to the Mech. Addresses go in
+    conf/load.yaml, with passwords read from the environment
+  multiselect: true
+  choices:
+    "MongoDB": mongodb
+    "Neo4j (replacing data empties the whole Neo4j database)": neo4j
+  default: []
+
 tabular_layout:
   type: str
   help: >-
