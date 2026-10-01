@@ -53,12 +53,37 @@ just docs-serve     # look at both at http://127.0.0.1:8000
 
 `just qc` runs `site-check`, and fails if `pages/` is stale.
 
+## How a record page is laid out
+
+The browser reads the shape of each record and the Mech's schema, so a new
+Mech gets a readable browser with no work:
+
+- Field names come from the schema: a slot's `title` if it has one, or its
+  name with underscores as spaces (`horn_status` shows as "Horn status").
+  The slot's description appears under each section heading. To change a
+  label, give the slot a `title` in the schema.
+- Simple values, such as a repository URL or a date, go in an overview
+  table at the top.
+- A list of small, uniform objects, such as measurements, is a table, with
+  each row's quotes folded into its last column.
+- Curated mentions (anything with a `preferred_term`) and richer objects
+  are cards, with their ontology term and their quotes in view.
+- Evidence shows its source, the source's title, how it supports the
+  claim, and the quote.
+- Discussions are cards with their kind and status. Curation history is a
+  table, folded away.
+- URLs and identifiers are links. Values from the schema's enums are
+  small labels in plain words, with the enum's description on hover.
+- On a phone, tables become one block per row.
+
+The front page table sorts by any column and filters as you type.
+
 ## Readability
 
 Some palette colors are unreadable as text on a white page: yellow, amber,
 lime. The browser handles that. Links use the palette color darkened (on
 light pages) or lightened (on dark pages) just enough to reach a 4.5:1
-contrast ratio, the WCAG AA level for text, and the header uses black or
+contrast ratio on the darkest (or lightest) surface a link can sit on, the WCAG AA level for text, and the header uses black or
 white text, whichever reads better on the palette color. `just site-check`
 shows the result:
 
@@ -66,8 +91,8 @@ shows the result:
 $ just site-check
 palette yellow, accent amber, theme dark
   header: #1f1f1f on #ffec3d, contrast 13.6
-  links on light pages: #82781f (adjusted from #ffec3d), contrast 4.5
-  links on dark pages: #ffec3d, contrast 15.0
+  links on light pages: #756d1c (adjusted from #ffec3d), contrast 4.5
+  links on dark pages: #ffec3d, contrast 11.8
 ```
 
 The documentation site uses Material for MkDocs' own color pairings. For a

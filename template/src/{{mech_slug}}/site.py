@@ -42,7 +42,9 @@ ACCENT = {
     "yellow": "#ffd500", "amber": "#ffaa00", "orange": "#ff9100", "deep-orange": "#ff6e42",
 }
 THEMES = ("auto", "light", "dark")
-LIGHT_BG, DARK_BG = "#ffffff", "#151517"
+# The record browser surfaces links sit on that are closest to the link color:
+# a hovered table row (style.css --plain-bg). Contrast is checked against these.
+LIGHT_BG, DARK_BG = "#ececf0", "#2a2a30"
 MIN_CONTRAST = 4.5  # WCAG AA for body text
 
 DEFAULTS = {
