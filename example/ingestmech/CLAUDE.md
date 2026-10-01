@@ -40,6 +40,7 @@ just term-ancestors CURIE       # where a term sits; use when an enum root rejec
 just report            # corpus statistics
 just compliance        # completeness per record, lowest first
 just export            # every format in conf/export.yaml, into build/export/, each read back
+just load TARGET       # fill a database in conf/load.yaml (MongoDB, Neo4j); --replace to overwrite
 just labels            # create the GitHub labels the workflows use
 just docs-serve        # the documentation site at http://127.0.0.1:8000
 just site-check        # check conf/site.yaml: colors, theme, contrast

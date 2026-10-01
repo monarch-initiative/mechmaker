@@ -107,7 +107,8 @@ SCENARIOS["extras"] = {
 SCENARIOS["minimal"]["workflows"] = []
 ALL_FORMATS = ["yaml", "json", "jsonld", "ttl", "sqlite", "duckdb", "sql", "csv", "tsv"]
 SCENARIOS["disease"].update({"site_palette": "brown", "site_theme": "light", "deep_research": True,
-                             "output_formats": ALL_FORMATS, "tabular_layout": "flat"})
+                             "output_formats": ALL_FORMATS, "tabular_layout": "flat",
+                             "load_targets": ["mongodb", "neo4j"]})
 SCENARIOS["all-workflows"].update({"site_palette": "yellow", "site_accent": "amber", "site_theme": "dark"})
 
 VENDORED_MD5 = {
@@ -286,11 +287,16 @@ def test_export_settings_follow_answers(generated):
     assert cfg["tabular_layout"] == want
 
 
-def test_linkml_store_only_for_duckdb(generated):
+def test_linkml_store_only_when_chosen(generated):
     _, answers, dest = generated
     deps = tomllib.loads((dest / "pyproject.toml").read_text())["project"]["dependencies"]
-    has = any(d.startswith("linkml-store") for d in deps)
-    assert has == ("duckdb" in answers["output_formats"])
+    store = [d for d in deps if d.startswith("linkml-store")]
+    targets = answers.get("load_targets") or []
+    assert bool(store) == ("duckdb" in answers["output_formats"] or bool(targets))
+    for t in targets:
+        assert t in store[0]
+    load_cfg = yaml.safe_load((dest / "conf" / "load.yaml").read_text())
+    assert sorted(load_cfg["targets"]) == sorted(targets)
 
 
 def test_no_output_format_is_rejected(tmp_path):
@@ -518,3 +524,32 @@ def test_bioportal_terms_checked(tmp_path):
     assert env["BIOPORTAL_API_KEY"] not in bad.stdout + bad.stderr
     if "could not reach" not in bad.stdout + bad.stderr:
         assert bad.returncode != 0 and "not in dynamic enum" in bad.stdout + bad.stderr
+
+
+# Set these to run the load test against real servers, e.g. from Docker:
+#   MECHMAKER_TEST_MONGODB=mongodb://localhost:27017/mechtest
+#   MECHMAKER_TEST_NEO4J=neo4j://neo4j:password@localhost:7687/neo4j   (its data is deleted)
+LOAD_SERVERS = {"mongodb": os.environ.get("MECHMAKER_TEST_MONGODB"),
+                "neo4j": os.environ.get("MECHMAKER_TEST_NEO4J")}
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(not any(LOAD_SERVERS.values()), reason="no MECHMAKER_TEST_MONGODB or _NEO4J")
+@pytest.mark.skipif(shutil.which("just") is None or shutil.which("uv") is None, reason="needs just and uv")
+def test_load_into_real_servers(tmp_path):
+    targets = [t for t, h in LOAD_SERVERS.items() if h]
+    data = {**BASE, "mech_name": "LoadMech", "record_class": "Specimen", "load_targets": targets,
+            "workflows": []}
+    dest = render(tmp_path / "load", data)
+    config = {"targets": {t: LOAD_SERVERS[t] for t in targets}}
+    (dest / "conf" / "load.yaml").write_text(yaml.safe_dump(config))
+    records = dest / "data" / "specimens"
+    records.mkdir(parents=True, exist_ok=True)
+    shutil.copy(dest / "tests" / "data" / "example_record.yaml", records / "example_specimen.yaml")
+    env = {k: v for k, v in os.environ.items() if k != "VIRTUAL_ENV"}
+    subprocess.run(["just", "install"], cwd=dest, check=True, env=env)
+    for t in targets:
+        cmd = ["just", "load", t, "--replace"]
+        result = subprocess.run(cmd, cwd=dest, env=env, capture_output=True, text=True)
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert "1 document(s)" in result.stdout if t == "mongodb" else "node(s)" in result.stdout

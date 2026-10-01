@@ -56,6 +56,51 @@ To add DuckDB to an existing Mech, put `duckdb` in `conf/export.yaml`, then
 `uv add 'linkml-store>=0.3.2'` and `just install`. Without the package,
 `just export` fails and says exactly that.
 
+## Loading into a database
+
+Some uses need the records in a running database, not a file. `just load`
+fills one, through linkml-store, and counts the data back:
+
+```bash
+just load mongodb              # refuses if the collection already holds data
+just load neo4j --replace      # replace what is there
+```
+
+| Target | What it holds | `--replace` deletes |
+|---|---|---|
+| `mongodb` | One collection, named for the records folder, one document per record, nested as in the YAML | That collection only |
+| `neo4j` | A graph. Every object is a node labelled with its class; every field holding objects is an edge named for the field; each ontology term is one shared node per CURIE. Nested objects get path ids such as `VBO:0000736/origins/0` | **Every node in the Neo4j database.** Give the Mech a database of its own |
+
+A Neo4j query, on GoatMech: the features of the Boer and their terms.
+
+```cypher
+MATCH (b:GoatBreed {id: 'VBO:0000736'})-[:distinguishing_features]->(f)-[:term]->(t)
+RETURN f.preferred_term, t.label
+```
+
+Copier asks `load_targets` when the Mech is made; each choice adds
+linkml-store, with that target's extra, to the Mech's dependencies.
+Addresses live in `conf/load.yaml`. `${NAME}` in an address is read from
+the environment, so passwords stay out of the repository, and addresses are
+printed with passwords hidden.
+
+```yaml
+targets:
+  mongodb: "mongodb://localhost:27017/goatmech"
+  neo4j: "neo4j://neo4j:${NEO4J_PASSWORD}@localhost:7687/neo4j"
+```
+
+linkml-store reaches other databases too. These were tried and left out
+for now:
+
+- **Postgres** (through Ibis): linkml-store 0.3.2 passes the whole address
+  where Ibis expects a host name, so it cannot connect.
+- **Solr**: linkml-store can query Solr but not insert into it.
+- **BigQuery, Snowflake, Dremio, ClickHouse, MySQL**: not tried; each needs
+  an account or a server this work did not have.
+- **ChromaDB**: a vector store; it needs an embedding model, which is a
+  separate decision.
+
 ## Nested data in tables
 
 A record nests things: descriptors, ontology terms, quotes. Tables cannot,

@@ -23,10 +23,10 @@ dependencies = [
     # Edits records in place with their layout kept (just add-evidence).
     "ruamel.yaml>=0.18",
     "jinja2>=3.1",
-{%- if 'duckdb' in output_formats %}
-    # The DuckDB export (duckdb in conf/export.yaml). Only here because this
-    # Mech exports DuckDB: linkml-store brings many packages of its own.
-    "linkml-store>=0.3.2",
+{%- if 'duckdb' in output_formats or load_targets %}
+    # linkml-store, for{% if 'duckdb' in output_formats %} the DuckDB export{% endif %}{% if 'duckdb' in output_formats and load_targets %} and{% endif %}{% if load_targets %} `just load` ({{ load_targets | join(', ') }}){% endif %}.
+    # Only here because this Mech chose them: it brings many packages of its own.
+    "linkml-store{% if load_targets %}[{{ load_targets | join(',') }}]{% endif %}>=0.3.2",
 {%- endif %}
 ]
 
