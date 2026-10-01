@@ -6,12 +6,24 @@
         # is the first CURIE an is-a ancestor (or self) of each of the rest?
     check_terms.py search envo "hot spring"               # top matches
 
+Every command takes --adapter for an ontology OLS does not serve, with any
+adapter OAK accepts. OAK runs through uvx, so this needs uv:
+
+    check_terms.py --adapter sqlite:obo:vt label VT:0000001
+    check_terms.py --adapter bioportal:<ACRONYM> label <ACRONYM>:<id>
+    check_terms.py --adapter simpleobo:my.obo under MY:0000001 MY:0000042
+    check_terms.py --adapter simpleobo:my.obo search - "l~widget"
+
+bioportal: needs BIOPORTAL_API_KEY in the environment. With --adapter, the
+ontology argument of search is ignored; pass -.
+
 Exit status is 1 if any term is missing or any check fails, so the result can
 gate a script. It exits 2 if OLS does not answer after three tries: that is an
 outage, not a missing term. Ontology ids default to the lowercased prefix.
 """
 
 import json
+import subprocess
 import sys
 import time
 import urllib.error
@@ -19,6 +31,8 @@ import urllib.parse
 import urllib.request
 
 OLS = "https://www.ebi.ac.uk/ols4/api"
+OAK = ["uvx", "--quiet", "--from", "oaklib", "runoak"]
+ADAPTER = None  # set by --adapter; None means OLS by prefix
 
 
 class Unreachable(Exception):
@@ -42,10 +56,38 @@ def _term_url(curie, suffix=""):
     prefix, local = curie.split(":", 1)
     iri = f"http://purl.obolibrary.org/obo/{prefix}_{local}"
     enc = urllib.parse.quote(urllib.parse.quote(iri, safe=""), safe="")
-    return f"{OLS}/ontologies/{prefix.lower()}/terms/{enc}{suffix}"
+    onto = ADAPTER.removeprefix("ols:") if ADAPTER and ADAPTER.startswith("ols:") else prefix.lower()
+    return f"{OLS}/ontologies/{onto}/terms/{enc}{suffix}"
+
+
+def _oak_mode():
+    return ADAPTER is not None and not ADAPTER.startswith("ols:")
+
+
+def _oak(*args):
+    """Lines of `runoak -i ADAPTER ...` as (curie, label) pairs."""
+    try:
+        out = subprocess.run(OAK + ["-i", ADAPTER, *args], capture_output=True, text=True, timeout=3600)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise Unreachable(f"runoak did not run: {exc}") from exc
+    if out.returncode != 0:
+        last = out.stderr.strip().splitlines()[-1:] or [f"exit {out.returncode}"]
+        raise Unreachable(f"runoak -i {ADAPTER} failed: {last[0]}")
+    # `info` and `search` print "CURIE ! label"; `ancestors` prints a table
+    # with an "id label" header. A term OAK does not know has the label None.
+    pairs = []
+    for line in out.stdout.splitlines():
+        curie, _, lab = line.partition("\t") if "\t" in line else line.partition(" ! ")
+        curie, lab = curie.strip(), lab.strip()
+        if curie and curie != "id":
+            pairs.append((curie, None if lab in ("", "None") else lab))
+    return pairs
 
 
 def label(curie):
+    if _oak_mode():
+        hits = [lab for c, lab in _oak("info", curie) if c == curie and lab]
+        return hits[0] if hits else None
     try:
         return _get(_term_url(curie)).get("label")
     except urllib.error.HTTPError:
@@ -53,6 +95,8 @@ def label(curie):
 
 
 def ancestors(curie):
+    if _oak_mode():
+        return {c for c, _ in _oak("ancestors", "-p", "i", curie)}
     out, url = set(), _term_url(curie, "/ancestors?size=500")
     while url:
         data = _get(url)
@@ -62,6 +106,10 @@ def ancestors(curie):
 
 
 def main(argv):
+    global ADAPTER
+    if "--adapter" in argv:
+        i = argv.index("--adapter")
+        ADAPTER, argv = argv[i + 1], argv[:i] + argv[i + 2:]
     if len(argv) < 2 or argv[0] not in ("label", "under", "search"):
         print(__doc__)
         return 2
@@ -87,6 +135,10 @@ def main(argv):
             print(f"{c}\t{'under' if hit else 'NOT under'} {root}")
     else:
         onto, query = args[0], " ".join(args[1:])
+        if _oak_mode():
+            for c, lab in _oak("search", query)[:10]:
+                print(f"{c}\t{lab}")
+            return 0
         q = urllib.parse.urlencode({"q": query, "ontology": onto, "rows": 10, "exact": "false"})
         for d in _get(f"{OLS}/search?{q}").get("response", {}).get("docs", []):
             print(f"{d.get('obo_id')}\t{d.get('label')}")
@@ -97,5 +149,6 @@ if __name__ == "__main__":
     try:
         sys.exit(main(sys.argv[1:]))
     except Unreachable as exc:
-        print(f"OLS did not answer after three tries ({exc}). Try again later.", file=sys.stderr)
+        where = f"The adapter {ADAPTER}" if _oak_mode() else "OLS"
+        print(f"{where} did not answer ({exc}). Try again later.", file=sys.stderr)
         sys.exit(2)
