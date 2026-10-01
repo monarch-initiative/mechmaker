@@ -43,9 +43,14 @@ def _descriptors(obj):
 def score(data: dict) -> tuple[float, list[str]]:
     missing: list[str] = []
     parts: dict[str, float] = {}
-    parts["description"] = 1.0 if data.get("description") else 0.0
-    if not parts["description"]:
+    if not data.get("description"):
+        parts["description"] = 0.0
         missing.append("no description")
+    elif not data.get("description_evidence"):
+        parts["description"] = 0.5
+        missing.append("description has no description_evidence")
+    else:
+        parts["description"] = 1.0
     parts["record_term"] = 1.0 if (not HAS_RECORD_TERM or data.get("record_term")) else 0.0
     if not parts["record_term"]:
         missing.append("no record_term")

@@ -4,6 +4,7 @@ import shutil
 from pathlib import Path
 
 import pytest
+import yaml
 
 from ingestmech import evidence
 from ingestmech.validate import load, slugify
@@ -80,3 +81,21 @@ def test_url_title_that_is_only_the_url_is_not_kept(record):
     _, new, problems = evidence.add(record, "record", ref, dict(EVENT), check=lambda r, s: (True, "", url))
     assert problems == []
     assert "reference_title" not in new.split("url:" + url, 1)[1].split("snippet")[0]
+
+
+def test_description_evidence_follows_the_description(record):
+    _, new, problems = evidence.add(record, "description", item(), dict(EVENT), check=found)
+    assert problems == []
+    record.write_text(new)
+    data = load(record)
+    assert data["description_evidence"][0]["snippet"] == "Colons: they need quoting."
+    keys = list(data)
+    assert keys.index("description_evidence") == keys.index("description") + 1
+
+
+def test_description_evidence_needs_a_description(record):
+    data = load(record)
+    data.pop("description", None)
+    record.write_text(yaml.safe_dump(data, sort_keys=False))
+    with pytest.raises(ValueError):
+        evidence.add(record, "description", item(), dict(EVENT), check=found)

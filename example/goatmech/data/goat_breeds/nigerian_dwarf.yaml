@@ -3,6 +3,27 @@ name: Nigerian Dwarf
 description: >-
   A small American breed, bred to look like a miniature dairy goat. First a
   show and companion animal, it is now also kept for milk.
+description_evidence:
+  - reference: WIKIPEDIA:Nigerian_Dwarf_goat
+    reference_title: Nigerian Dwarf
+    supports: SUPPORT
+    evidence_source: ENCYCLOPEDIA
+    snippet: The Nigerian Dwarf is a modern American breed of dwarf goat.
+  - reference: WIKIPEDIA:Nigerian_Dwarf_goat
+    reference_title: Nigerian Dwarf
+    supports: SUPPORT
+    evidence_source: ENCYCLOPEDIA
+    snippet: it has been bred to have the appearance of a miniature dairy goat.
+  - reference: WIKIPEDIA:Nigerian_Dwarf_goat
+    reference_title: Nigerian Dwarf
+    supports: SUPPORT
+    evidence_source: ENCYCLOPEDIA
+    snippet: It was at first reared as a show breed and companion animal
+  - reference: WIKIPEDIA:Nigerian_Dwarf_goat
+    reference_title: Nigerian Dwarf
+    supports: SUPPORT
+    evidence_source: ENCYCLOPEDIA
+    snippet: It was later found to be suitable for small-scale dairy production
 record_term:
   id: VBO:0000811
   label: Nigerian Dwarf (Goat)
@@ -113,7 +134,7 @@ discussions:
     kind: CURATION_TODO
     status: OPEN
 creation_date: '2026-09-30'
-updated_date: '2026-09-30'
+updated_date: '2026-10-01'
 curation_history:
   - timestamp: '2026-09-30T19:20:00+00:00'
     curator: claude-code
@@ -121,3 +142,27 @@ curation_history:
     model: claude-opus-5-5
     action: CREATE
     description: Curated from WIKIPEDIA:Nigerian_Dwarf_goat with the curate-record skill.
+  - timestamp: '2026-10-01T16:42:10+00:00'
+    curator: claude-code
+    llm_assisted: true
+    model: claude-opus-5-5
+    action: EDIT
+    description: Added evidence from WIKIPEDIA:Nigerian_Dwarf_goat to description.
+  - timestamp: '2026-10-01T16:42:12+00:00'
+    curator: claude-code
+    llm_assisted: true
+    model: claude-opus-5-5
+    action: EDIT
+    description: Added evidence from WIKIPEDIA:Nigerian_Dwarf_goat to description.
+  - timestamp: '2026-10-01T16:42:14+00:00'
+    curator: claude-code
+    llm_assisted: true
+    model: claude-opus-5-5
+    action: EDIT
+    description: Added evidence from WIKIPEDIA:Nigerian_Dwarf_goat to description.
+  - timestamp: '2026-10-01T16:42:15+00:00'
+    curator: claude-code
+    llm_assisted: true
+    model: claude-opus-5-5
+    action: EDIT
+    description: Added evidence from WIKIPEDIA:Nigerian_Dwarf_goat to description.

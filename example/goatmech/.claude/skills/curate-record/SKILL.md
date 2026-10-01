@@ -57,6 +57,17 @@ Work section by section. For every descriptor:
   `evidence-references` skill). It fetches the source, checks the quote,
   fills the title and logs the change, so no one hand-writes evidence YAML.
 
+Write the `description` last, from what the sections and sources say: two
+or three sentences a newcomer can read. Every fact in it needs a quote.
+Quote it at the description, where no section states the fact with
+evidence already:
+
+```bash
+just add-evidence data/goat_breeds/<stem>.yaml --at description --ref PMID:<n> --snippet "..."
+```
+
+A fact you cannot quote does not go in the description.
+
 Set `status: PROPOSED` when the record is complete and valid. Never
 `REVIEWED`.
 

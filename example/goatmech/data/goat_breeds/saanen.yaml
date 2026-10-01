@@ -3,6 +3,22 @@ name: Saanen
 description: >-
   A large Swiss dairy goat with a short white coat, from the Saanental in the
   Bernese Oberland. It is kept for milk in more than eighty countries.
+description_evidence:
+  - reference: WIKIPEDIA:Saanen_goat
+    reference_title: Saanen goat
+    supports: SUPPORT
+    evidence_source: ENCYCLOPEDIA
+    snippet: The Saanen is the largest breed of Swiss goat
+  - reference: WIKIPEDIA:Saanen_goat
+    reference_title: Saanen goat
+    supports: SUPPORT
+    evidence_source: ENCYCLOPEDIA
+    snippet: It has white skin and a short white coat
+  - reference: WIKIPEDIA:Saanen_goat
+    reference_title: Saanen goat
+    supports: SUPPORT
+    evidence_source: ENCYCLOPEDIA
+    snippet: It is a productive dairy goat and is distributed in more than eighty countries worldwide.
 record_term:
   id: VBO:0000827
   label: Saanen (Goat)
@@ -259,3 +275,21 @@ curation_history:
     llm_assisted: false
     action: EDIT
     description: Filled reference_title from references_cache/ with `just fill-titles`.
+  - timestamp: '2026-10-01T16:41:57+00:00'
+    curator: claude-code
+    llm_assisted: true
+    model: claude-opus-5-5
+    action: EDIT
+    description: Added evidence from WIKIPEDIA:Saanen_goat to description.
+  - timestamp: '2026-10-01T16:41:59+00:00'
+    curator: claude-code
+    llm_assisted: true
+    model: claude-opus-5-5
+    action: EDIT
+    description: Added evidence from WIKIPEDIA:Saanen_goat to description.
+  - timestamp: '2026-10-01T16:42:01+00:00'
+    curator: claude-code
+    llm_assisted: true
+    model: claude-opus-5-5
+    action: EDIT
+    description: Added evidence from WIKIPEDIA:Saanen_goat to description.

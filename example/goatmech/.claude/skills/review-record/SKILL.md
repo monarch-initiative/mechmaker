@@ -25,7 +25,11 @@ reason. Fixes belong to `curate-record`, in a separate step, when asked.
 4. **Term fit.** Is each bound term the most specific accurate one? Is a
    broad binding explained in `notes`?
 5. **Direction.** Does `supports` match what the quote says?
-6. **Gaps.** What does the record claim with no evidence? What is missing
+6. **Description.** Take each fact the `description` states (a date, a
+   place, a use, a number). Each needs a quote: in `description_evidence`,
+   or in the section that states the same fact. A fact with neither is an
+   `error`, even when it is true.
+7. **Gaps.** What does the record claim with no evidence? What is missing
    that the sources would support?
 
 ## Output
