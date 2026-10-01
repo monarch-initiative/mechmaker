@@ -84,6 +84,25 @@ SCENARIOS["all-workflows"] = {
     "agent_schedules": True,
     "langfuse": True,
 }
+# Ontologies outside the catalog, read through three kinds of OAK adapter.
+TINY = {"prefix": "TINY", "root": "TINY:0000001", "root_label": "tiny thing", "noun": "tiny entity",
+        "adapter": "simpleobo:ontologies/tiny.obo", "uri": "http://example.org/TINY_"}
+SCENARIOS["extras"] = {
+    **BASE,
+    "mech_name": "ExtraMech",
+    "record_class": "Specimen",
+    "term_backend": "sqlite",
+    "ontologies": ["VBO", "VT", "NCIT_COUNTRY"],
+    "extra_ontologies": [
+        TINY,
+        # Not a real BioPortal ontology: the render is tested, not the lookup.
+        {"prefix": "BPX", "root": "BPX:1", "root_label": "example root",
+         "noun": "clinical finding", "adapter": "bioportal:BPX", "uri": "https://example.org/BPX_"},
+        {"prefix": "ZFA", "root": "ZFA:0100000", "root_label": "zebrafish anatomical entity",
+         "noun": "anatomy", "slot": "anatomy_terms"},
+    ],
+    "workflows": ["sweep"],
+}
 SCENARIOS["minimal"]["workflows"] = []
 SCENARIOS["disease"].update({"site_palette": "brown", "site_theme": "light", "deep_research": True})
 SCENARIOS["all-workflows"].update({"site_palette": "yellow", "site_accent": "amber", "site_theme": "dark"})
@@ -98,7 +117,10 @@ OWN_BRACES = {"justfile", "index.html", "record.html", "style.css"}
 
 
 def render(dest: Path, data: dict) -> Path:
-    copier.run_copy(str(ROOT), str(dest), data=data, defaults=True, unsafe=True, quiet=True)
+    # vcs_ref="HEAD": without it Copier copies the latest release tag, not the
+    # working tree, and the tests would check the release instead of the branch.
+    copier.run_copy(str(ROOT), str(dest), data=data, defaults=True, unsafe=True, quiet=True,
+                    vcs_ref="HEAD")
     return dest
 
 
@@ -181,6 +203,11 @@ def test_schema_structure(generated):
         assert entry["enum"] in schema["enums"]
         assert entry["prefix"] in schema["prefixes"]
         assert entry["slot"] in schema["classes"][rc]["slots"]
+    for extra in answers.get("extra_ontologies") or []:
+        assert extra["prefix"] in schema["prefixes"]
+        roots = [e["reachable_from"]["source_nodes"][0] for e in schema["enums"].values()
+                 if "reachable_from" in e]
+        assert extra["root"] in roots
     if answers.get("identity_prefix"):
         assert "IdentityTerm" in schema["enums"]
     assert ("mechanisms" in schema["classes"][rc]["slots"]) == answers["causal_graphs"]
@@ -204,6 +231,48 @@ def test_oak_config_covers_every_prefix(generated):
     bound = {e["reachable_from"]["source_nodes"][0].split(":")[0] for e in schema["enums"].values()
              if "reachable_from" in e}
     assert bound <= set(adapters)
+
+
+def test_adapters_follow_answers(generated):
+    name, answers, dest = generated
+    adapters = yaml.safe_load((dest / "conf" / "oak_config.yaml").read_text())["ontology_adapters"]
+    if name != "extras":
+        assert not (dest / "ontologies").exists()
+        return
+    assert adapters["VT"] == "sqlite:obo:vt"  # term_backend: sqlite
+    assert adapters["NCIT"] == "sqlite:obo:ncit"
+    assert adapters["TINY"] == "simpleobo:ontologies/tiny.obo"
+    assert adapters["BPX"] == "bioportal:BPX"
+    assert adapters["ZFA"] == "ols:zfa"  # an extra's default
+    assert "simpleobo:ontologies/tiny.obo" in (dest / "ontologies" / "README.md").read_text()
+    slug = answers["mech_slug"]
+    schema = yaml.safe_load((dest / "src" / slug / "schema" / f"{slug}.yaml").read_text())
+    slots = schema["classes"][answers["record_class"]]["slots"]
+    want = {"breeds", "traits", "countries", "tiny_entities", "clinical_findings", "anatomy_terms"}
+    assert want <= set(slots)
+    assert {"TinyEntityTerm", "ClinicalFindingTerm", "AnatomyTerm"} <= set(schema["enums"])
+    for wf in ("qc.yaml", "sweep.yaml"):
+        assert "secrets.BIOPORTAL_API_KEY" in (dest / ".github" / "workflows" / wf).read_text()
+
+
+def test_no_bioportal_secret_without_bioportal(generated):
+    name, _, dest = generated
+    if name == "extras":
+        return
+    for wf in (dest / ".github" / "workflows").glob("*.yaml"):
+        assert "BIOPORTAL" not in wf.read_text(), wf.name
+
+
+@pytest.mark.parametrize("extras", [
+    [{"prefix": "VT", "root": "VT:0000001", "noun": "trait"}],  # no root_label
+    [{"prefix": "VT", "root": "GO:0008150", "root_label": "x", "noun": "trait"}],  # root not VT
+    [{"prefix": "V T", "root": "V T:1", "root_label": "x", "noun": "trait"}],  # bad prefix
+    "VT:0000001",  # not a list
+])
+def test_bad_extra_ontologies_rejected(tmp_path, extras):
+    data = {**BASE, "mech_name": "BadExtraMech", "record_class": "Thing", "extra_ontologies": extras}
+    with pytest.raises(Exception):  # noqa: B017
+        render(tmp_path / "out", data)
 
 
 def test_workflow_files_match_answer(generated):
@@ -355,7 +424,7 @@ def test_bad_slug_rejected(tmp_path):
 
 @pytest.mark.slow
 @pytest.mark.skipif(shutil.which("just") is None or shutil.which("uv") is None, reason="needs just and uv")
-@pytest.mark.parametrize("scenario", ["habitat", "minimal", "disease", "all-workflows"])
+@pytest.mark.parametrize("scenario", ["habitat", "minimal", "disease", "all-workflows", "extras"])
 def test_generated_mech_passes_qc(tmp_path, scenario):
     dest = render(tmp_path / scenario, SCENARIOS[scenario])
     env = {k: v for k, v in os.environ.items() if k != "VIRTUAL_ENV"}
@@ -364,3 +433,29 @@ def test_generated_mech_passes_qc(tmp_path, scenario):
     result = subprocess.run(["just", "qc"], cwd=dest, env=env, capture_output=True, text=True)
     print(result.stdout[-3000:], result.stderr[-3000:])
     assert result.returncode == 0
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(shutil.which("just") is None or shutil.which("uv") is None, reason="needs just and uv")
+def test_local_ontology_file_checks_terms(tmp_path):
+    """A record bound to a local OBO file: the enum, the label and the recipes all use the file."""
+    data = {**BASE, "mech_name": "LocalMech", "record_class": "Specimen", "ontologies": [],
+            "extra_ontologies": [TINY], "workflows": []}
+    dest = render(tmp_path / "local", data)
+    shutil.copy(ROOT / "tests" / "data" / "tiny.obo", dest / "ontologies" / "tiny.obo")
+    env = {k: v for k, v in os.environ.items() if k != "VIRTUAL_ENV"}
+    subprocess.run(["just", "install"], cwd=dest, check=True, env=env)
+
+    def run(*args):
+        return subprocess.run(["just", *args], cwd=dest, env=env, capture_output=True, text=True)
+
+    assert run("validate-terms", "tests/data/example_record.yaml").returncode == 0
+    probe = dest / "probe.yaml"
+    probe.write_text(
+        "id: localmech:probe\nname: probe\nstatus: DRAFT\ntiny_entities:\n"
+        "  - preferred_term: outside\n    term:\n      id: TINY:0000009\n      label: unrelated thing\n")
+    bad = run("validate-terms", "probe.yaml")
+    assert bad.returncode != 0 and "TINY:0000009" in bad.stdout + bad.stderr
+    assert run("term-under", "TINY:0000003", "TINY:0000001").returncode == 0
+    assert run("term-under", "TINY:0000009", "TINY:0000001").returncode == 1
+    assert "small widget" in run("search-term", "TINY", "l~widget").stdout

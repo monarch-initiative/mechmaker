@@ -46,4 +46,4 @@ check-env *args:
 
 # Render a sample Mech into a directory to look at: `just sample /tmp/samplemech`
 sample dest:
-    uv run copier copy --trust --defaults --data-file tests/answers/habitat.yml . {{dest}}
+    uv run copier copy --trust --defaults --vcs-ref HEAD --data-file tests/answers/habitat.yml . {{dest}}

@@ -37,8 +37,8 @@ not need.
 
 | Section | Ontology | Purpose |
 |---|---|---|
-{%- for key in ontologies if key in ontology_catalog %}
-| `{{ ontology_catalog[key].slot }}` | {{ ontology_catalog[key].prefix }} under `{{ ontology_catalog[key].root }}` | TODO |
+{%- for o in ontology_selection %}
+| `{{ o.slot }}` | {{ o.prefix }} under `{{ o.root }}`, checked with `{{ o.adapter }}` | TODO |
 {%- endfor %}
 {%- if causal_graphs %}
 | `mechanisms` | GO processes on nodes | Causal graph: how the {{ record_noun }} works |

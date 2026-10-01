@@ -24,6 +24,12 @@ concurrency:
 env:
   RECORDS_DIR: "{{ records_dir }}"
   FORCE_COLOR: "1"
+{%- if uses_bioportal %}
+  # BioPortal terms need a key: the repository secret BIOPORTAL_API_KEY. Pull
+  # requests from forks get no secrets. Their BioPortal terms must already be
+  # in cache/, so commit cache/ with the records.
+  BIOPORTAL_API_KEY: ${{ '{{' }} secrets.BIOPORTAL_API_KEY {{ '}}' }}
+{%- endif %}
 {% raw %}
 jobs:
   qc:

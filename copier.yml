@@ -86,6 +86,19 @@ records_dir:
     Give a relative path inside the repository.
     {% endif %}
 
+term_backend:
+  type: str
+  help: >-
+    Where term checks look up the ontologies chosen from the catalog. OLS asks
+    EBI's Ontology Lookup Service online and downloads nothing. SQLite
+    downloads each ontology once, as a prebuilt semantic-sql file from OBO
+    Foundry sources, and then works offline. Ontologies added with
+    extra_ontologies name their own adapter
+  choices:
+    "OLS, online (nothing to download)": ols
+    "SQLite, downloaded once, then offline": sqlite
+  default: ols
+
 identity_prefix:
   type: str
   help: >-
@@ -120,8 +133,11 @@ identity_uri:
 
 identity_adapter:
   type: str
-  help: OAK adapter used to check identity terms (ols:<name>, sqlite:obo:<name>, or "" to skip)
-  default: "ols:{{ identity_prefix | lower }}"
+  help: >-
+    OAK adapter used to check identity terms: ols:<name>, sqlite:obo:<name>,
+    bioportal:<name>, a local file such as simpleobo:ontologies/<file>.obo,
+    or "" to skip
+  default: "{{ 'ols:' if term_backend == 'ols' else 'sqlite:obo:' }}{{ identity_prefix | lower }}"
   when: "{{ identity_prefix != '' }}"
 
 ontologies:
@@ -148,7 +164,44 @@ ontologies:
     "SO sequence features": SO
     "MAXO medical actions": MAXO
     "FOODON foods": FOODON
+    "VBO vertebrate breeds": VBO
+    "VT vertebrate traits": VT
+    "NCIT countries": NCIT_COUNTRY
   default: [GO_BP, CHEBI, NCBITaxon]
+
+extra_ontologies:
+  type: yaml
+  multiline: true
+  help: >-
+    Ontologies outside the catalog, as a YAML list. Each one gets a descriptor
+    class, a dynamic enum and a record section, as a catalog ontology does.
+    Any ontology OAK can read works: on OLS (adapter ols:vt), from OBO Foundry
+    (sqlite:obo:vt), on BioPortal (bioportal:<acronym>, needs
+    BIOPORTAL_API_KEY), or a local file in the repository
+    (simpleobo:ontologies/my.obo, pronto:ontologies/my.owl,
+    sqlite:ontologies/my.db). Each item needs prefix, root, root_label and
+    noun. adapter (default ols:<prefix>), uri (default the OBO PURL), slot,
+    descriptor and enum are optional. Check the root before using it.
+    Example: [{prefix: VT, root: "VT:0000001", root_label: vertebrate trait, noun: trait}]
+  default: []
+  validator: >-
+    {%- if extra_ontologies is not sequence or extra_ontologies is string -%}
+    Give a YAML list, e.g. [{prefix: VT, root: "VT:0000001", root_label: vertebrate trait, noun: trait}].
+    {%- else -%}
+    {%- for x in extra_ontologies -%}
+    {%- if x is not mapping -%}
+    Item {{ loop.index }} is not a mapping.
+    {%- elif not (x.prefix and x.root and x.root_label and x.noun) -%}
+    Item {{ loop.index }} needs prefix, root, root_label and noun.
+    {%- elif not (x.prefix | string | regex_search('^[A-Za-z][A-Za-z0-9_]*$')) -%}
+    Item {{ loop.index }}: a prefix is letters, digits and underscores.
+    {%- elif not (x.root | string).startswith(x.prefix ~ ':') -%}
+    Item {{ loop.index }}: the root {{ x.root }} must carry the prefix {{ x.prefix }}.
+    {%- elif not ((x.noun | string) | regex_search('^[A-Za-z][A-Za-z0-9 ]*$')) -%}
+    Item {{ loop.index }}: the noun is letters, digits and spaces, e.g. "trait".
+    {%- endif -%}
+    {%- endfor -%}
+    {%- endif -%}
 
 causal_graphs:
   type: bool
@@ -522,3 +575,90 @@ ontology_catalog:
       root: FOODON:00001002
       root_label: food product
       noun: food
+    VBO:
+      prefix: VBO
+      uri: http://purl.obolibrary.org/obo/VBO_
+      adapter: ols:vbo
+      descriptor: BreedDescriptor
+      enum: BreedTerm
+      slot: breeds
+      root: VBO:0400000
+      root_label: Vertebrate breed
+      noun: breed
+    VT:
+      prefix: VT
+      uri: http://purl.obolibrary.org/obo/VT_
+      adapter: ols:vt
+      descriptor: TraitDescriptor
+      enum: TraitTerm
+      slot: traits
+      root: VT:0000001
+      root_label: vertebrate trait
+      noun: trait
+    NCIT_COUNTRY:
+      prefix: NCIT
+      uri: http://purl.obolibrary.org/obo/NCIT_
+      adapter: ols:ncit
+      descriptor: CountryDescriptor
+      enum: CountryTerm
+      slot: countries
+      root: NCIT:C25464
+      root_label: Country
+      noun: country
+
+# Every ontology a Mech binds: the catalog picks, then extra_ontologies, with
+# names filled in. The templates read this, never the catalog directly.
+ontology_selection:
+  type: yaml
+  when: false
+  default: >-
+    {%- set sel = [] -%}
+    {%- for key in ontologies if key in ontology_catalog -%}
+    {%- set o = ontology_catalog[key] -%}
+    {%- set _ = sel.append({
+      "key": key, "prefix": o.prefix, "uri": o.uri,
+      "adapter": o.adapter if term_backend == 'ols' else o.adapter | replace('ols:', 'sqlite:obo:'),
+      "descriptor": o.descriptor, "enum": o.enum, "slot": o.slot, "root": o.root,
+      "root_label": o.root_label, "noun": o.noun,
+      "article": o.article | default('An' if o.noun[0] in 'aeiou' else 'A')}) -%}
+    {%- endfor -%}
+    {%- for x in extra_ontologies if x is mapping -%}
+    {%- set noun = x.noun | string | trim -%}
+    {%- set camel = noun.split() | map('capitalize') | join('') -%}
+    {%- set plural = (noun[:-1] ~ 'ies') if (noun.endswith('y') and noun[-2:-1] not in 'aeiou') else (noun ~ 'es' if noun.endswith(('s', 'x', 'ch', 'sh')) else noun ~ 's') -%}
+    {%- set _ = sel.append({
+      "key": x.prefix, "prefix": x.prefix | string,
+      "uri": x.uri | default('http://purl.obolibrary.org/obo/' ~ x.prefix ~ '_'),
+      "adapter": x.adapter | default('ols:' ~ (x.prefix | lower)),
+      "descriptor": x.descriptor | default(camel ~ 'Descriptor'),
+      "enum": x.enum | default(camel ~ 'Term'),
+      "slot": x.slot | default(plural | replace(' ', '_') | lower),
+      "root": x.root | string, "root_label": x.root_label | string, "noun": noun,
+      "article": 'An' if noun[0] | lower in 'aeiou' else 'A'}) -%}
+    {%- endfor -%}
+    {{ sel | tojson }}
+
+# Whether any adapter reads a file in the repository, or BioPortal.
+local_ontology_files:
+  type: bool
+  when: false
+  default: >-
+    {%- set ns = namespace(hit=false) -%}
+    {%- set adapters = ontology_selection | map(attribute='adapter') | list -%}
+    {%- if identity_prefix %}{% set adapters = adapters + [identity_adapter] %}{% endif -%}
+    {%- for a in adapters -%}
+    {%- if a.split(':')[0] in ['simpleobo', 'pronto', 'obograph', 'sqlite'] and not a.startswith('sqlite:obo:') -%}
+    {%- set ns.hit = true -%}
+    {%- endif -%}
+    {%- endfor -%}
+    {{ ns.hit }}
+
+uses_bioportal:
+  type: bool
+  when: false
+  default: >-
+    {%- set ns = namespace(hit=false) -%}
+    {%- set adapters = ontology_selection | map(attribute='adapter') | list -%}
+    {%- if identity_prefix %}{% set adapters = adapters + [identity_adapter] %}{% endif -%}
+    {%- for a in adapters if a.startswith('bioportal:') %}{% set ns.hit = true %}{% endfor -%}
+    {{ ns.hit }}

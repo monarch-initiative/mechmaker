@@ -1,16 +1,15 @@
-{%- set cat = ontology_catalog -%}
 # A schema-shaped example for the tests. It is not a curated record and
 # carries no citations. Real records live under {{ records_dir }}/.
 id: {{ mech_slug }}:example
 name: Example {{ record_noun }}
 description: A placeholder that exercises the record structure.
 status: DRAFT
-{%- for key in ontologies if key in cat %}
-{{ cat[key].slot }}:
-  - preferred_term: {{ cat[key].root_label }}
+{%- for o in ontology_selection %}
+{{ o.slot }}:
+  - preferred_term: {{ o.root_label | tojson }}
     term:
-      id: {{ cat[key].root }}
-      label: {{ cat[key].root_label }}
+      id: {{ o.root }}
+      label: {{ o.root_label | tojson }}
 {%- endfor %}
 {%- if causal_graphs %}
 mechanisms:
