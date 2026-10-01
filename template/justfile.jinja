@@ -128,6 +128,11 @@ new-record *args:
 add-evidence file *args:
     uv run python -m {{slug}}.evidence "$@"
 
+# Fill missing reference_title values from references_cache/. No network.
+# Dry run unless --apply. `just fill-titles` for every record, or name files.
+fill-titles *args:
+    uv run python -m {{slug}}.titles "$@"
+
 # Run a conversion script, which reads an existing knowledge base and writes
 # DRAFT records through validation. Dry run unless --apply; --limit 5 for a trial.
 # `just convert scripts/convert_old_kb.py --limit 5`

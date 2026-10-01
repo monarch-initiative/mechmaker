@@ -52,6 +52,9 @@ snippet to appear in it verbatim.
      explanation: <how it bears on the claim>
    ```
 
+   An item written another way, by hand or by a conversion script, gets its
+   title from the cache with `just fill-titles <file> --apply`.
+
 5. Validate the whole record once its evidence is in:
 
    ```bash
