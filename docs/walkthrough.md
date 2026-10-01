@@ -264,8 +264,10 @@ record did not; that ear and horn descriptions were missing; and that a
 review article was labelled a breed standard. A second `curate-record` pass
 fixed them. The review and the fix each have a history record.
 
-Curation friction, ticketed: nothing fills `reference_title` from the cache
-([#9](https://github.com/monarch-initiative/mechmaker/issues/9));
+Curation friction, ticketed: nothing filled `reference_title` from the cache
+([#9](https://github.com/monarch-initiative/mechmaker/issues/9); since then,
+`just fill-titles` does, and it filled the five titles the Boer and Saanen
+records lacked);
 evidence is written into YAML by hand, where an unquoted colon broke a
 record ([#7](https://github.com/monarch-initiative/mechmaker/issues/7);
 since then, `just add-evidence` does this, checking the quote first); a

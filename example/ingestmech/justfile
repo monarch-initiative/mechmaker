@@ -125,6 +125,11 @@ add-evidence file *args:
 convert script *args:
     uv run python "$@"
 
+# Fill missing reference_title values from references_cache/. No network.
+# Dry run unless --apply. `just fill-titles` for every record, or name files.
+fill-titles *args:
+    uv run python -m {{slug}}.titles "$@"
+
 # Scaffold a repository-level history record under history/. Dry-run unless --apply.
 # `just new-history --kind record --slug example --event CREATE --outcome changed --summary "..." --details "..."`
 new-history *args:

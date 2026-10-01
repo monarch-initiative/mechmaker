@@ -63,8 +63,12 @@ Set `status: PROPOSED` when the record is complete and valid. Never
 ## 4. Validate
 
 ```bash
+just fill-titles data/goat_breeds/<stem>.yaml --apply   # titles from the cache, for items written by hand
 just validate data/goat_breeds/<stem>.yaml
 ```
+
+`fill-titles` lists any reference that is not cached yet. Fetch it with
+`just fetch-reference` and run it again.
 
 Fix every error. Do not change a correct term to silence a lookup outage.
 Do not weaken a quote to make it pass. Find the real text.

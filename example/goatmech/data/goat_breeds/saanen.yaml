@@ -197,6 +197,7 @@ related_breeds:
     notes: Kıl keçi is Turkish for hair goat.
     evidence:
       - reference: PMID:35034210
+        reference_title: Comparison of phenotypic and heterotic effects affecting milk yield, composition and udder morphometry of Hair and F(1), F(2) and G(1) generation cross-breeds of Alpine × Hair and Saanen × Hair dairy goats in a semi-intensive system.
         supports: SUPPORT
         evidence_source: CHARACTERIZATION_STUDY
         snippet: Positive heterosis was found in milk production and contents both Alpine × Hair F1 (AHF1) and Saanen × Hair F1 (SHF1) generations.
@@ -233,7 +234,7 @@ discussions:
     status: OPEN
     rationale: They may exist in VBO under other names, or be candidates for new-term requests.
 creation_date: '2026-09-30'
-updated_date: '2026-09-30'
+updated_date: '2026-10-01'
 curation_history:
   - timestamp: '2026-09-30T18:46:24+00:00'
     curator: claude-code
@@ -253,3 +254,8 @@ curation_history:
     model: claude-opus-5-5
     action: EDIT
     description: Added evidence from WIKIPEDIA:Saanen_goat to related_breeds[0].
+  - timestamp: '2026-10-01T14:57:48+00:00'
+    curator: claude-code
+    llm_assisted: false
+    action: EDIT
+    description: Filled reference_title from references_cache/ with `just fill-titles`.
