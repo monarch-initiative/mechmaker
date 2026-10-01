@@ -121,3 +121,33 @@ def test_a_broken_linkml_store_is_not_called_missing(tmp_path, monkeypatch):
     monkeypatch.setattr(export, "write_duckdb", broken)
     with pytest.raises(ModuleNotFoundError):
         export.export({"formats": ["duckdb"], "tabular_layout": "per_class"}, [EXAMPLE], tmp_path)
+
+
+def reference_schema(tmp_path):
+    """A record class whose `parent` and `kin` refer to other records by id."""
+    import yaml as _yaml
+    from linkml_runtime.utils.schemaview import SchemaView
+
+    schema = {
+        "id": "https://example.org/refs", "name": "refs", "default_prefix": "ex", "default_range": "string",
+        "prefixes": {"linkml": "https://w3id.org/linkml/", "ex": "https://example.org/refs/"},
+        "imports": ["linkml:types"],
+        "classes": {RECORD_CLASS: {"tree_root": True, "attributes": {
+            "id": {"identifier": True}, "name": {},
+            "parent": {"range": RECORD_CLASS}, "kin": {"range": RECORD_CLASS, "multivalued": True}}}},
+    }
+    path = tmp_path / "refs.yaml"
+    path.write_text(_yaml.safe_dump(schema))
+    return SchemaView(str(path))
+
+
+# B comes first, so its references are stubs before A itself is read.
+REF_RECORDS = [{"id": "ex:b", "name": "B", "parent": "ex:a", "kin": ["ex:a"]}, {"id": "ex:a", "name": "A"}]
+
+
+def test_references_by_id_go_in_their_columns(tmp_path):
+    db = tmp_path / "refs.sqlite"
+    export.build_sqlite(reference_schema(tmp_path), [(None, r) for r in REF_RECORDS], db)
+    con = sqlite3.connect(db)
+    assert con.execute(f'SELECT parent FROM "{RECORD_CLASS}" WHERE id = ?', ("ex:b",)).fetchone() == ("ex:a",)
+    assert con.execute(f'SELECT kin_id FROM "{RECORD_CLASS}_kin"').fetchall() == [("ex:a",)]

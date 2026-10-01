@@ -114,6 +114,14 @@ def graph(sv, records: list[dict]) -> tuple[list[dict], list[dict]]:
                 continue
             ident = sv.get_identifier_slot(rng)
             for i, child in enumerate(value if slot.multivalued else [value]):
+                if not isinstance(child, dict):  # a reference by id, not a nested object
+                    if not ident:
+                        raise SystemExit(f"load: {cls}.{slot.name} holds {child!r}, but {rng} has no "
+                                         "identifier, so it must be a nested object")
+                    cid = str(child)
+                    nodes.setdefault(cid, {"id": cid, LABEL: rng})  # a stub until the object itself is walked
+                    edges.append({"subject": node_id, "predicate": slot.name, "object": cid})
+                    continue
                 if ident:
                     cid = str(child[ident.name])
                     if cid in nodes and nodes[cid][LABEL] != rng:

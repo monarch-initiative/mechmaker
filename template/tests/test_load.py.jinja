@@ -68,3 +68,33 @@ def test_missing_linkml_store_says_what_to_install(monkeypatch):
     with pytest.raises(SystemExit) as exc:
         load.need("neo4j")
     assert "uv add 'linkml-store[neo4j]" in str(exc.value)
+
+
+def reference_schema(tmp_path):
+    """A record class whose `parent` and `kin` refer to other records by id."""
+    import yaml as _yaml
+    from linkml_runtime.utils.schemaview import SchemaView
+
+    schema = {
+        "id": "https://example.org/refs", "name": "refs", "default_prefix": "ex", "default_range": "string",
+        "prefixes": {"linkml": "https://w3id.org/linkml/", "ex": "https://example.org/refs/"},
+        "imports": ["linkml:types"],
+        "classes": {RECORD_CLASS: {"tree_root": True, "attributes": {
+            "id": {"identifier": True}, "name": {},
+            "parent": {"range": RECORD_CLASS}, "kin": {"range": RECORD_CLASS, "multivalued": True}}}},
+    }
+    path = tmp_path / "refs.yaml"
+    path.write_text(_yaml.safe_dump(schema))
+    return SchemaView(str(path))
+
+
+# B comes first, so its references are stubs before A itself is read.
+REF_RECORDS = [{"id": "ex:b", "name": "B", "parent": "ex:a", "kin": ["ex:a"]}, {"id": "ex:a", "name": "A"}]
+
+
+def test_references_by_id_become_edges(tmp_path):
+    nodes, edges = load.graph(reference_schema(tmp_path), REF_RECORDS)
+    assert sorted(n["id"] for n in nodes) == ["ex:a", "ex:b"]
+    assert {(e["subject"], e["predicate"], e["object"]) for e in edges} == {
+        ("ex:b", "parent", "ex:a"), ("ex:b", "kin", "ex:a")}
+    assert next(n for n in nodes if n["id"] == "ex:a")["name"] == "A"  # the stub became the record

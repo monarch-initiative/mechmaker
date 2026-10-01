@@ -188,8 +188,12 @@ def build_sqlite(sv, records: list[tuple[Path, dict]], db: Path) -> None:
             if value is None:
                 continue
             rng = slot.range if slot.range in classes else None
+            if rng:
+                check_reference(cls, slot.name, rng, value)
             if slot.multivalued:
                 later.append((slot, rng, value))
+            elif rng and not isinstance(value, dict):
+                row[slot.name] = str(value)  # a reference by id: gen-sqltables names the column for the slot
             elif rng:
                 child_ident = sv.get_identifier_slot(rng)
                 row[f"{slot.name}_id"] = upsert(rng, value) if child_ident else insert(rng, value)
@@ -209,12 +213,19 @@ def build_sqlite(sv, records: list[tuple[Path, dict]], db: Path) -> None:
                     insert(rng, v, (cls, pk, slot.name))
                 else:
                     joined = f"{cls}_{slot.name}"
-                    item = upsert(rng, v) if rng else v
+                    item = upsert(rng, v) if rng and isinstance(v, dict) else v
                     col = f"{slot.name}_id" if rng else slot.name
                     table_cols(joined)
                     sql = f'INSERT OR IGNORE INTO "{joined}" ("{cls}_id", "{col}") VALUES (?, ?)'
                     con.execute(sql, (pk, item))
         return pk
+
+    def check_reference(cls: str, slot: str, rng: str, value) -> None:
+        """A field holding a class is a nested object, or an id when the class has one."""
+        for v in value if isinstance(value, list) else [value]:
+            if not isinstance(v, dict) and not sv.get_identifier_slot(rng):
+                raise SystemExit(f"export: {cls}.{slot} holds {v!r}, but {rng} has no identifier, "
+                                 "so it must be a nested object")
 
     def upsert(cls: str, obj: dict):
         ident = sv.get_identifier_slot(cls)
