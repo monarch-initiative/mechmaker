@@ -18,7 +18,10 @@ def test_graph_has_one_node_per_object_and_an_edge_per_link():
     record = next(n for n in nodes if n["id"] == EXAMPLE["id"])
     assert record[load.LABEL] == RECORD_CLASS
     assert all(e["subject"] in ids and e["object"] in ids for e in edges)
-    assert len(edges) == len(nodes) - 1  # one record, no shared terms: a tree
+    # Every node but the record hangs from something. (Not a tree: two fields
+    # may bind the same term, which is then one node with two edges into it.)
+    reached = {e["object"] for e in edges}
+    assert set(ids) - reached == {EXAMPLE["id"]}
 
 
 def test_nested_values_are_not_node_properties():
