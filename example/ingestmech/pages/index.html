@@ -7,27 +7,48 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header><h1>IngestMech records</h1><p><a href="../index.html">Documentation</a> · <a href="https://github.com/monarch-initiative/mechmaker">Repository</a></p></header>
+<header>
+<nav><a href="../index.html">Documentation</a> · <a href="https://github.com/monarch-initiative/mechmaker">Repository</a></nav>
+<h1>IngestMech records</h1>
+<p class="meta">3 ingest records · <span class="badge status v-proposed" title="Complete and validated, awaiting human review.">proposed</span> 3</p>
+</header>
 <main>
-<p>3 ingest record(s).</p>
-<input id="filter" type="search" placeholder="Filter" aria-label="Filter">
-<table id="records">
-<thead><tr><th>Name</th><th>Upstream sources</th><th>Code license</th><th>Status</th></tr></thead>
+<input id="filter" type="search" placeholder="Filter ingest records" aria-label="Filter">
+<div class="table-wrap">
+<table id="records" class="data">
+<thead><tr><th><button type="button" data-col="0">Name</button></th><th><button type="button" data-col="1">Upstream sources</button></th><th><button type="button" data-col="2">Code license</button></th><th><button type="button" data-col="3">Status</button></th></tr></thead>
 <tbody>
-<tr><td><a href="records/go_ingest.html">go-ingest</a></td><td>infores:goa, infores:eco</td><td>MIT</td><td>PROPOSED</td></tr>
-<tr><td><a href="records/omim_ingest.html">omim-ingest</a></td><td>infores:omim</td><td>BSD-3-Clause</td><td>PROPOSED</td></tr>
-<tr><td><a href="records/zfin_ingest.html">zfin-ingest</a></td><td>infores:zfin, infores:zp</td><td>BSD-3-Clause</td><td>PROPOSED</td></tr>
+<tr><td data-label="Name"><a href="records/go_ingest.html">go-ingest</a></td><td data-label="Upstream sources">infores:goa, infores:eco</td><td data-label="Code license">MIT</td><td data-label="Status"><span class="badge status v-proposed" title="Complete and validated, awaiting human review.">proposed</span></td></tr>
+<tr><td data-label="Name"><a href="records/omim_ingest.html">omim-ingest</a></td><td data-label="Upstream sources">infores:omim</td><td data-label="Code license">BSD-3-Clause</td><td data-label="Status"><span class="badge status v-proposed" title="Complete and validated, awaiting human review.">proposed</span></td></tr>
+<tr><td data-label="Name"><a href="records/zfin_ingest.html">zfin-ingest</a></td><td data-label="Upstream sources">infores:zfin, infores:zp</td><td data-label="Code license">BSD-3-Clause</td><td data-label="Status"><span class="badge status v-proposed" title="Complete and validated, awaiting human review.">proposed</span></td></tr>
 </tbody>
 </table>
+</div>
+<p id="none" class="muted" hidden>No record matches.</p>
 </main>
 <footer><p>AI-curated. Validation checks that citations exist, quotes are exact and ontology terms are real. It does not check that the science is right.</p></footer>
 <script>
+const rows = [...document.querySelectorAll("#records tbody tr")];
 document.getElementById("filter").addEventListener("input", e => {
   const q = e.target.value.toLowerCase();
-  for (const row of document.querySelectorAll("#records tbody tr")) {
+  let shown = 0;
+  for (const row of rows) {
     row.hidden = !row.textContent.toLowerCase().includes(q);
+    if (!row.hidden) shown++;
   }
+  document.getElementById("none").hidden = shown > 0;
 });
+for (const b of document.querySelectorAll("#records th button")) {
+  b.addEventListener("click", () => {
+    const i = +b.dataset.col, up = b.dataset.dir !== "up";
+    for (const o of document.querySelectorAll("#records th button")) delete o.dataset.dir;
+    b.dataset.dir = up ? "up" : "down";
+    const key = r => r.cells[i].textContent.trim().toLowerCase();
+    rows.sort((a, c) => key(a).localeCompare(key(c), undefined, {numeric: true}) * (up ? 1 : -1));
+    const body = document.querySelector("#records tbody");
+    for (const r of rows) body.appendChild(r);
+  });
+}
 </script>
 </body>
 </html>

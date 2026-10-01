@@ -54,14 +54,26 @@ just docs-serve     # look at both sites at http://127.0.0.1:8000
 
 ## Beyond the settings
 
-The browser is rendered from Jinja templates in
-`src/ingestmech/templates/`:
+A record page is laid out from the shape of the data and the schema, by
+`src/ingestmech/render.py`. Its docstring lists the rules: an overview
+table for simple values, tables for lists of small uniform objects, cards
+for curated mentions and richer objects, quote cards for evidence.
+
+Field labels come from the schema. To rename one on the page, give the slot
+a `title` in the schema; do not special-case it in a template. Its
+`description` is the help text under the section heading, so a thin page
+is fixed by improving the schema.
+
+The page frames are Jinja templates in `src/ingestmech/templates/`:
 
 | File | Page |
 |---|---|
-| `index.html` | the front page table |
-| `record.html` | one record; the `show` macro draws each section |
+| `index.html` | the front page table: sortable, filterable |
+| `record.html` | one record: header, overview, section menu, sections |
 | `style.css` | the stylesheet; colors arrive as variables from `conf/site.yaml` |
+
+To change how a kind of value is drawn (say, show a list as cards rather
+than a table), change the rule in `render.py` and keep its docstring true.
 
 Rules:
 
@@ -71,8 +83,9 @@ Rules:
   record browser sits inside the docs site at `/records/`.
 - Keep output deterministic: no dates or random values in templates, or
   `just render-check` will always fail.
-- After editing a template, `just render`, look at the result with
-  `just docs-serve`, and commit `pages/` with the template.
+- After editing a template or `render.py`, `just render`, look at the
+  result with `just docs-serve` at desktop and phone widths, and commit
+  `pages/` with the change.
 
 The docs site's layout is `mkdocs.yml`; its pages are `docs/`. Never edit
 `.mkdocs.site.yml`, `site/`, or `docs/records/`: they are generated.

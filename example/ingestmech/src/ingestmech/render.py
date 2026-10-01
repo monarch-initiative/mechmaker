@@ -4,47 +4,355 @@
     python -m <slug>.render --check   # fail if pages/ is stale
 
 Output is deterministic, so pages/ is committed and checked byte for byte.
-Edit the templates in src/<slug>/templates/, never the files in pages/.
-Colors, title, columns and hidden sections come from conf/site.yaml.
+Edit the templates in src/<slug>/templates/ or the layout rules below, never
+the files in pages/. Colors, title, columns and hidden sections come from
+conf/site.yaml.
+
+A record page is laid out from the shape of the data, with names and help
+text from the schema:
+
+  - simple values (text, numbers, dates, links) go in an overview table;
+  - a list of small, uniform objects is a table, one row per item, with
+    its quotes folded into the last column;
+  - any other object is a card, titled by its preferred term or name, with
+    its quotes in view; so is every curated mention (a preferred_term);
+  - evidence is a quote card: source, title, support, snippet;
+  - discussions are cards with their kind and status;
+  - curation history is a table, folded away.
+
+A field's label is its schema `title` if it has one, else its name with
+underscores as spaces. Its schema description is shown as help. URLs and
+CURIEs are links.
 """
 
 from __future__ import annotations
 
 import argparse
+import re
 import sys
+from functools import cache
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
+from markupsafe import Markup, escape
 
 from . import site
-from .paths import MECH_NAME, PACKAGE_DIR, PAGES_DIR, RECORD_NOUN, REPO_ROOT, REPO_URL
+from .paths import MECH_NAME, PACKAGE_DIR, PAGES_DIR, RECORD_NOUN, REPO_ROOT, REPO_URL, SCHEMA_PATH
 from .validate import iter_records, load
 
 CURIE_BASES = {
     "PMID": "https://pubmed.ncbi.nlm.nih.gov/",
     "DOI": "https://doi.org/",
+    "PMC": "https://www.ncbi.nlm.nih.gov/pmc/articles/",
+    "WIKIPEDIA": "https://en.wikipedia.org/wiki/",
 }
+CURIE = re.compile(r"^[A-Za-z][A-Za-z0-9_.]*:[^\s]+$")
+URL = re.compile(r"^https?://\S+$")
+# Keys whose CURIE values are identifiers to link, not text.
+ID_KEYS = {"id", "reference", "accession", "infores", "category", "predicates"}
+# Keys that name an object, in the order tried for a card's title.
+TITLE_KEYS = ("preferred_term", "name", "title", "label", "category", "infores", "relation", "id")
+# Most columns a list of objects may have and still show as a table.
+MAX_TABLE_COLUMNS = 6
+# Longest text a table cell may hold before the list shows as cards.
+MAX_CELL_TEXT = 90
 
 
 def curie_url(curie: str) -> str:
-    prefix, _, local = curie.partition(":")
+    prefix, _, local = str(curie).partition(":")
+    if prefix == "url":
+        return local
     if prefix in CURIE_BASES:
         return CURIE_BASES[prefix] + local
     return f"https://bioregistry.io/{curie}"
 
 
-def cell(value) -> str:
-    """How a record field shows in the front-page table."""
-    if isinstance(value, dict):
-        named = value.get("label") or value.get("preferred_term") or value.get("id")
+@cache
+def schema_info() -> tuple[dict[str, tuple[str | None, str | None]], dict[str, str]]:
+    """({slot: (title, description)}, {enum value: its description, or itself}) from the schema."""
+    try:
+        from linkml_runtime.utils.schemaview import SchemaView
+
+        sv = SchemaView(str(SCHEMA_PATH))
+    except Exception:  # a schema that does not load still gets a browser, with plain labels
+        return {}, {}
+    slots = {name: (s.title, s.description) for name, s in sv.all_slots().items()}
+    values: dict[str, str] = {}
+    for enum in sv.all_enums().values():
+        for value, pv in (enum.permissible_values or {}).items():
+            values.setdefault(value, pv.description or value)
+    return slots, values
+
+
+def label(key: str) -> str:
+    title = schema_info()[0].get(key, (None, None))[0]
+    if title:
+        return title
+    text = str(key).replace("_", " ")
+    return text[:1].upper() + text[1:]
+
+
+def help_text(key: str) -> str | None:
+    return schema_info()[0].get(key, (None, None))[1]
+
+
+# ---------------------------------------------------------------- values
+
+
+def is_evidence(v) -> bool:
+    return isinstance(v, dict) and "reference" in v and "supports" in v
+
+
+def is_term(v) -> bool:
+    return isinstance(v, dict) and set(v) == {"id", "label"}
+
+
+def is_scalar(v) -> bool:
+    return v is None or isinstance(v, (str, int, float, bool))
+
+
+def link(href: str, text: str) -> Markup:
+    return Markup('<a href="{}">{}</a>').format(href, text)
+
+
+def ref_text(ref: str, keep: int = 64) -> str:
+    """A reference as link text: a url: reference without its scheme, shortened in the middle."""
+    text = re.sub(r"^url:https?://", "", ref)
+    if len(text) <= keep:
+        return text
+    head = keep * 2 // 5
+    return text[:head] + "…" + text[-(keep - head - 1):]
+
+
+def badge(value: str, kind: str = "") -> Markup:
+    text = str(value).replace("_", " ").lower()
+    tip = schema_info()[1].get(str(value)) or str(value)
+    cls = f"badge {kind} v-{str(value).lower()}".strip()
+    return Markup('<span class="{}" title="{}">{}</span>').format(cls, tip, text)
+
+
+def scalar(v, key: str = "") -> Markup:
+    if v is None:
+        return Markup("")
+    if isinstance(v, bool):
+        return Markup("yes" if v else "no")
+    text = str(v)
+    if URL.match(text):
+        return link(text, text)
+    if key in ID_KEYS and CURIE.match(text):
+        return link(curie_url(text), text)
+    if text in schema_info()[1]:
+        return badge(text)
+    return escape(text)
+
+
+def term(v: dict) -> Markup:
+    anchor = link(curie_url(v["id"]), v["label"])
+    return Markup('<span class="term">{} <code>{}</code></span>').format(anchor, v["id"])
+
+
+def value(v, key: str = "") -> Markup:
+    """Any value, inline: for table cells and overview rows."""
+    if is_term(v):
+        return term(v)
+    if is_evidence(v):
+        return evidence_list([v])
+    if isinstance(v, dict):
+        return card(v)
+    if isinstance(v, list):
+        if all(is_scalar(x) for x in v):
+            return Markup(" ").join(Markup('<span class="chip">{}</span>').format(scalar(x, key)) for x in v)
+        return items(key, v)
+    return scalar(v, key)
+
+
+# ---------------------------------------------------------------- blocks
+
+
+def evidence_list(items_: list) -> Markup:
+    out = []
+    for e in items_:
+        ref = str(e.get("reference", ""))
+        head = [Markup('<a href="{}" title="{}">{}</a>').format(curie_url(ref), ref, ref_text(ref))]
+        if e.get("reference_title"):
+            head.append(Markup('<span class="src-title">{}</span>').format(e["reference_title"]))
+        tags = [badge(e["supports"], "support")]
+        if e.get("evidence_source"):
+            tags.append(badge(e["evidence_source"], "source"))
+        body = []
+        if e.get("snippet"):
+            body.append(Markup("<blockquote>{}</blockquote>").format(e["snippet"]))
+        if e.get("explanation"):
+            body.append(Markup('<p class="explanation">{}</p>').format(e["explanation"]))
+        out.append(Markup('<div class="quote"><div class="quote-head">{} {}</div>{}</div>').format(
+            Markup(" ").join(head), Markup(" ").join(tags), Markup("").join(body)))
+    return Markup('<div class="quotes">{}</div>').format(Markup("").join(out))
+
+
+def card_title(v: dict) -> tuple[str | None, str | None]:
+    for k in TITLE_KEYS:
+        if is_scalar(v.get(k)) and v.get(k) not in (None, ""):
+            return k, str(v[k])
+    return None, None
+
+
+def card(v: dict, skip: tuple = ()) -> Markup:
+    title_key, title = card_title(v)
+    parts = []
+    if title:
+        parts.append(Markup('<h3 class="card-title">{}</h3>').format(scalar(title, title_key)))
+    if is_term(v.get("term")):
+        parts.append(Markup('<p class="card-term">{}</p>').format(term(v["term"])))
+    if v.get("description") and is_scalar(v["description"]):
+        parts.append(Markup('<p class="card-desc">{}</p>').format(scalar(v["description"])))
+    rows, blocks = [], []
+    for k, x in v.items():
+        if k in (title_key, "description", "evidence", *skip) or (k == "term" and is_term(x)):
+            continue
+        if x in (None, "", []):
+            continue
+        if is_scalar(x) or is_term(x) or (isinstance(x, list) and all(is_scalar(i) for i in x)):
+            rows.append(Markup("<tr><th>{}</th><td>{}</td></tr>").format(label(k), value(x, k)))
+        else:
+            blocks.append(Markup('<div class="sub"><h4>{}</h4>{}</div>').format(label(k), value(x, k)))
+    if rows:
+        parts.append(Markup('<table class="kv">{}</table>').format(Markup("").join(rows)))
+    parts.extend(blocks)
+    if v.get("evidence"):
+        parts.append(evidence_list(v["evidence"]))
+    # A card holding its own sections (files, a license) gets the full row.
+    cls = "card wide" if blocks else "card"
+    return Markup('<div class="{}">{}</div>').format(cls, Markup("").join(parts))
+
+
+def tabular(rows: list) -> list[str] | None:
+    """The columns, if a list of objects reads best as a table; else None."""
+    if not rows or not all(isinstance(r, dict) for r in rows):
+        return None
+    # Curated mentions read best as cards, with their quotes in view.
+    if any("preferred_term" in r for r in rows):
+        return None
+    cols: list[str] = []
+    for r in rows:
+        for k, x in r.items():
+            if k == "evidence":
+                continue
+            if not (is_scalar(x) or is_term(x)):
+                return None
+            if isinstance(x, str) and len(x) > MAX_CELL_TEXT:
+                return None
+            if k not in cols:
+                cols.append(k)
+    return cols if 1 < len(cols) <= MAX_TABLE_COLUMNS else None
+
+
+def table(key: str, rows: list, cols: list[str]) -> Markup:
+    has_ev = any(r.get("evidence") for r in rows)
+    head = Markup("").join(Markup("<th>{}</th>").format(label(c)) for c in cols)
+    if has_ev:
+        head += Markup("<th>Evidence</th>")
+    body = []
+    for r in rows:
+        cells = Markup("").join(Markup('<td data-label="{}">{}</td>').format(label(c), value(r.get(c), c))
+                                for c in cols)
+        if has_ev:
+            ev = r.get("evidence") or []
+            cells += Markup('<td data-label="Evidence">{}</td>').format(Markup(
+                '<details><summary>{} quote{}</summary>{}</details>').format(
+                len(ev), "" if len(ev) == 1 else "s", evidence_list(ev)) if ev else "")
+        body.append(Markup("<tr>{}</tr>").format(cells))
+    return Markup('<div class="table-wrap"><table class="data"><thead><tr>{}</tr></thead>'
+                  '<tbody>{}</tbody></table></div>').format(head, Markup("").join(body))
+
+
+def plain_card(x) -> Markup:
+    return card(x) if isinstance(x, dict) else Markup('<div class="card">{}</div>').format(value(x))
+
+
+def items(key: str, v: list) -> Markup:
+    if all(is_evidence(x) for x in v):
+        return evidence_list(v)
+    if all(is_term(x) for x in v):
+        return Markup(" ").join(term(x) for x in v)
+    cols = tabular(v)
+    if cols:
+        return table(key, v, cols)
+    return Markup('<div class="cards">{}</div>').format(
+        Markup("").join(plain_card(x) for x in v))
+
+
+def discussions(v: list) -> Markup:
+    out = []
+    for d in v:
+        tags = Markup(" ").join(badge(d[k], k) for k in ("kind", "status") if d.get(k))
+        body = [Markup('<p class="prompt">{}</p>').format(d.get("prompt", ""))]
+        for k in ("rationale", "resolution_note", "notes"):
+            if d.get(k):
+                body.append(Markup('<p><strong>{}.</strong> {}</p>').format(label(k), d[k]))
+        if d.get("attaches_to"):
+            about = ", ".join(map(str, d["attaches_to"]))
+            body.append(Markup('<p class="muted">About: {}</p>').format(about))
+        if d.get("evidence"):
+            body.append(evidence_list(d["evidence"]))
+        out.append(Markup('<div class="card discussion"><div class="card-tags">{}</div>{}</div>').format(
+            tags, Markup("").join(body)))
+    return Markup('<div class="cards">{}</div>').format(Markup("").join(out))
+
+
+def history(v: list) -> Markup:
+    rows = Markup("").join(
+        Markup('<tr><td data-label="Date">{}</td><td data-label="Curator">{}</td>'
+               '<td data-label="Action">{}</td><td data-label="What changed">{}</td></tr>').format(
+            str(e.get("timestamp", ""))[:10], e.get("curator", ""),
+            badge(e["action"]) if e.get("action") else "", e.get("description", ""))
+        for e in v)
+    return Markup('<details class="history"><summary>{} change{}</summary><div class="table-wrap">'
+                  '<table class="data"><thead><tr><th>Date</th><th>Curator</th><th>Action</th>'
+                  '<th>What changed</th></tr></thead><tbody>{}</tbody></table></div></details>').format(
+        len(v), "" if len(v) == 1 else "s", rows)
+
+
+HEADER_KEYS = ("id", "name", "description", "status", "record_term", "synonyms")
+
+
+def record_body(data: dict, hidden: list[str]) -> dict:
+    """The parts of a record page: overview rows, then sections."""
+    overview, sections = [], []
+    for k, v in data.items():
+        if k in HEADER_KEYS or k in hidden or v in (None, "", [], {}):
+            continue
+        if is_scalar(v) or is_term(v):
+            overview.append((label(k), help_text(k), value(v, k)))
+            continue
+        if k == "discussions":
+            html = discussions(v)
+        elif k == "curation_history":
+            html = history(v)
+        elif isinstance(v, list):
+            html = items(k, v)
+        elif isinstance(v, dict):
+            html = card(v)
+        else:
+            html = value(v, k)
+        sections.append({"key": k, "label": label(k), "help": help_text(k), "html": html,
+                         "count": len(v) if isinstance(v, list) else None})
+    return {"overview": overview, "sections": sections}
+
+
+def cell(v) -> str:
+    """How a record field shows in the front-page table, as plain text."""
+    if isinstance(v, dict):
+        named = v.get("label") or v.get("preferred_term") or v.get("id")
         if named:
             return str(named)
         # A small statement such as {"purpose": "DAIRY"}: show its first plain value.
-        plain = [v for v in value.values() if isinstance(v, (str, int, float))]
-        return str(plain[0]) if plain else ""
-    if isinstance(value, list):
-        return ", ".join(cell(v) for v in value)
-    return "" if value is None else str(value)
+        plain = [x for x in v.values() if isinstance(x, (str, int, float))]
+        return cell(plain[0]) if plain else ""
+    if isinstance(v, list):
+        return ", ".join(cell(x) for x in v)
+    if isinstance(v, str) and v in schema_info()[1]:
+        return v.replace("_", " ").lower()
+    return "" if v is None else str(v)
 
 
 def build() -> dict[Path, str]:
@@ -57,18 +365,24 @@ def build() -> dict[Path, str]:
         autoescape=select_autoescape(["html"]),
         keep_trailing_newline=True,
     )
-    env.filters["curie_url"] = curie_url
-    env.filters["cell"] = cell
+    env.filters.update(curie_url=curie_url, cell=cell, label=label, scalar=scalar, badge=badge, term=term)
     records = []
     for path in iter_records():
         data = load(path) or {}
         records.append({"stem": path.stem, "data": data})
     records.sort(key=lambda r: str(r["data"].get("name", r["stem"])).lower())
+    statuses: dict[str, int] = {}
+    for r in records:
+        s = str(r["data"].get("status") or "")
+        if s:
+            statuses[s] = statuses.get(s, 0) + 1
     ctx = {"mech_name": MECH_NAME, "record_noun": RECORD_NOUN, "repo_url": REPO_URL, "site": settings}
-    out = {PAGES_DIR / "index.html": env.get_template("index.html").render(records=records, **ctx)}
+    out = {PAGES_DIR / "index.html": env.get_template("index.html").render(
+        records=records, statuses=sorted(statuses.items()), **ctx)}
     tmpl = env.get_template("record.html")
     for r in records:
-        out[PAGES_DIR / "records" / f"{r['stem']}.html"] = tmpl.render(record=r, **ctx)
+        body = record_body(r["data"], settings["hidden_sections"])
+        out[PAGES_DIR / "records" / f"{r['stem']}.html"] = tmpl.render(record=r, body=body, **ctx)
     css = env.get_template("style.css").render(theme=settings["theme"], **site.colors(settings))
     out[PAGES_DIR / "style.css"] = css
     return out
