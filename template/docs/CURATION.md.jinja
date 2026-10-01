@@ -34,6 +34,10 @@ evidence:
     explanation: <how the quote bears on the claim, in your words>
 ```
 
+- The description is a claim too. Each fact in it is quoted in
+  `description_evidence` (`just add-evidence FILE --at description ...`), or
+  stated with evidence in a section. `just compliance` flags a description
+  with no `description_evidence`, and review checks each fact.
 - The snippet is checked verbatim against the cached source. `...` marks
   omitted text between two exact spans. `[...]` marks an editorial note.
   Nothing else may differ from the source.

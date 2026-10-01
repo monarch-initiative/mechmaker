@@ -3,8 +3,9 @@
     python -m <slug>.evidence FILE --at PLACE --ref REFERENCE --snippet "QUOTE" [options] [--apply]
 
 PLACE is where the evidence goes: `record` for the record's own `evidence`
-list, or a path such as `distinguishing_features[0]`, `measurements[2]` or
-`mechanisms[0].downstream[1]`.
+list, `description` for the facts in the record's description (its
+`description_evidence`), or a path such as `distinguishing_features[0]`,
+`measurements[2]` or `mechanisms[0].downstream[1]`.
 
 Before anything is written:
   - the reference is fetched into references_cache/ if it is not there yet;
@@ -93,7 +94,12 @@ def add(path: Path, place: str, item: dict, event: dict, check=fetch_and_check) 
     y = _yaml()
     old = path.read_text()
     data = y.load(old)
-    target = resolve(data, place)
+    if place == "description":
+        if not data.get("description"):
+            raise ValueError("the record has no description to support")
+        target, key = data, "description_evidence"
+    else:
+        target, key = resolve(data, place), "evidence"
 
     problems = []
     ok, message, title = check(item["reference"], item["snippet"])
@@ -103,15 +109,19 @@ def add(path: Path, place: str, item: dict, event: dict, check=fetch_and_check) 
     if title and title != item["reference"].removeprefix("url:") and "reference_title" not in item:
         item = {"reference": item["reference"], "reference_title": str(title),
                 **{k: v for k, v in item.items() if k != "reference"}}
-    existing = target.get("evidence") or []
+    existing = target.get(key) or []
     if any(e.get("reference") == item["reference"] and e.get("snippet") == item["snippet"] for e in existing):
         problems.append("this reference and snippet are already on that item")
     if problems:
         return old, old, problems
 
-    if "evidence" not in target:
-        target["evidence"] = []
-    target["evidence"].append(item)
+    if key not in target:
+        if key == "description_evidence":
+            # Right after the description, where a reader looks for it.
+            target.insert(list(target.keys()).index("description") + 1, key, [])
+        else:
+            target[key] = []
+    target[key].append(item)
     data.setdefault("curation_history", []).append(event)
     if "updated_date" in data:
         data["updated_date"] = dt.date.today().isoformat()
@@ -127,7 +137,7 @@ def add(path: Path, place: str, item: dict, event: dict, check=fetch_and_check) 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("file", type=Path)
-    parser.add_argument("--at", required=True, help="record, or a path such as measurements[0]")
+    parser.add_argument("--at", required=True, help="record, description, or a path such as measurements[0]")
     parser.add_argument("--ref", required=True, help="e.g. PMID:12345678, DOI:10..., WIKIPEDIA:Title")
     parser.add_argument("--snippet", required=True, help="a verbatim quote from the source")
     parser.add_argument("--supports", default="SUPPORT")

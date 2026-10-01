@@ -19,6 +19,9 @@
 <main>
 {%- if record.data.description %}
 <p class="lead">{{ record.data.description }}</p>
+{%- if body.description_evidence %}
+<details class="lead-quotes"><summary>Sources for this description: {{ body.description_quotes }} quote{{ "" if body.description_quotes == 1 else "s" }}</summary>{{ body.description_evidence }}</details>
+{%- endif %}
 {%- endif %}
 {%- if record.data.synonyms %}
 <p class="synonyms"><span class="muted">{{ "synonyms" | label }}:</span>{% for s in record.data.synonyms %} <span class="chip">{{ s }}</span>{% endfor %}</p>
