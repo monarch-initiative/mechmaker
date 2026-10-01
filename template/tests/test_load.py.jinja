@@ -59,3 +59,12 @@ def test_unknown_target_is_rejected(tmp_path, monkeypatch):
     monkeypatch.setattr(load, "SETTINGS", bad)
     with pytest.raises(SystemExit):
         load.settings()
+
+
+def test_missing_linkml_store_says_what_to_install(monkeypatch):
+    import sys
+
+    monkeypatch.setitem(sys.modules, "linkml_store", None)  # as if not installed
+    with pytest.raises(SystemExit) as exc:
+        load.need("neo4j")
+    assert "uv add 'linkml-store[neo4j]" in str(exc.value)

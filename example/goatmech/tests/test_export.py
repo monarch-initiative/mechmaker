@@ -112,3 +112,12 @@ def test_duckdb_holds_the_records(tmp_path):
     assert problems == []
     con = duckdb.connect(str(written[0]), read_only=True)
     assert con.execute(f'SELECT count(*) FROM "{export.RECORDS_DIR.name}"').fetchone()[0] == 1
+
+
+def test_a_broken_linkml_store_is_not_called_missing(tmp_path, monkeypatch):
+    def broken(*args, **kwargs):
+        raise ModuleNotFoundError("No module named 'pymongo'", name="pymongo")
+
+    monkeypatch.setattr(export, "write_duckdb", broken)
+    with pytest.raises(ModuleNotFoundError):
+        export.export({"formats": ["duckdb"], "tabular_layout": "per_class"}, [EXAMPLE], tmp_path)

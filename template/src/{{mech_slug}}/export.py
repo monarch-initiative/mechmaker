@@ -264,7 +264,7 @@ def write_duckdb(sv, records: list[tuple[Path, dict]], out: Path) -> Path:
 
     Nested values become DuckDB JSON columns, queryable in SQL, e.g.
     SELECT name, p->>'$.term.label' FROM <table>, unnest(<section>) AS t(p).
-    Raises ImportError when linkml-store is not installed.
+    Raises ModuleNotFoundError (name linkml_store) when linkml-store is not installed.
     """
     from linkml_store import Client
 
@@ -349,7 +349,9 @@ def export(
     if "duckdb" in fmts:
         try:
             out = write_duckdb(sv, records, out_dir / f"{SLUG}-records.duckdb")
-        except ImportError:
+        except ModuleNotFoundError as exc:
+            if exc.name != "linkml_store":  # installed, but something it needs is not: show that
+                raise
             problems.append(DUCKDB_MISSING)
         else:
             written.append(out)

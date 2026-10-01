@@ -72,7 +72,9 @@ def masked(handle: str) -> str:
 def need(target: str):
     try:
         from linkml_store import Client
-    except ImportError:
+    except ModuleNotFoundError as exc:
+        if exc.name != "linkml_store":  # installed, but something it needs is not: show that
+            raise
         raise SystemExit(
             f"{target}: needs linkml-store, which this Mech does not install. Run "
             f"`uv add 'linkml-store[{EXTRA[target]}]>=0.3.2'` and `just install`.") from None
