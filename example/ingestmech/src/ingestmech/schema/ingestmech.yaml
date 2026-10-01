@@ -269,6 +269,7 @@ slots:
   local_name:
     description: Where the ingest saves the file, relative to the repository.
   spdx_id:
+    title: SPDX id
     pattern: "^[A-Za-z0-9.+-]+$"
     description: SPDX license identifier, when the terms are an SPDX license.
   associations:
