@@ -51,6 +51,8 @@ FROM goat_breeds, unnest(distinguishing_features) AS t(f);
 
 For one table per class in DuckDB, attach the SQLite export instead:
 `ATTACH '<slug>-records.sqlite' AS s (TYPE sqlite);`, then query `s.<Class>`.
+The first `ATTACH` downloads DuckDB's SQLite extension, so it needs the
+network once; run `INSTALL sqlite;` ahead of time for offline use.
 
 To add DuckDB to an existing Mech, put `duckdb` in `conf/export.yaml`, then
 `uv add 'linkml-store>=0.3.2'` and `just install`. Without the package,
