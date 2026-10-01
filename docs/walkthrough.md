@@ -77,8 +77,11 @@ What the survey found, in
 Two gaps showed here. The identity enum cannot yet say "direct children
 only", so a national population would pass as a record
 ([#3](https://github.com/monarch-initiative/mechmaker/issues/3)). And VBO,
-VT and the gazetteer are not in the template's ontology choices
-([#4](https://github.com/monarch-initiative/mechmaker/issues/4)).
+VT and the gazetteer were not in the template's ontology choices
+([#4](https://github.com/monarch-initiative/mechmaker/issues/4)). VBO, VT and
+NCIT countries are now; GAZ is not, for the reason the design step found
+below. Any other ontology OAK can read goes in the `extra_ontologies`
+question.
 
 ### Wikipedia as a source
 
