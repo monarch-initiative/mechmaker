@@ -1,0 +1,74 @@
+"""Every export format, from the example record: written, and read back clean.
+
+This is where a schema change that breaks a format shows first: an RDF IRI
+that does not expand (a prefix with no URI), or a table layout the loader
+does not know.
+"""
+
+import csv
+import io
+import sqlite3
+import zipfile
+from pathlib import Path
+
+import pytest
+
+from {{ mech_slug }} import export
+from {{ mech_slug }}.paths import RECORD_CLASS, SLUG
+
+EXAMPLE = Path(__file__).parent / "data" / "example_record.yaml"
+
+
+@pytest.mark.parametrize("layout", ["per_class", "flat"])
+def test_every_format_reads_back(tmp_path, layout):
+    cfg = {"formats": list(export.FORMATS), "tabular_layout": layout}
+    written, problems = export.export(cfg, [EXAMPLE], tmp_path)
+    assert problems == []
+    names = {p.name for p in written}
+    assert f"{SLUG}-records.ttl" in names and f"{SLUG}-records.jsonld" in names
+    assert f"{SLUG}-schema.sql" in names and f"{SLUG}-records.sqlite" in names
+    if layout == "flat":
+        assert f"{SLUG}-records.csv" in names
+    else:
+        with zipfile.ZipFile(tmp_path / f"{SLUG}-tables-csv.zip") as zf:
+            assert f"{RECORD_CLASS}.csv" in zf.namelist()
+
+
+def test_nested_rows_name_their_field(tmp_path):
+    export.export({"formats": ["sqlite"], "tabular_layout": "per_class"}, [EXAMPLE], tmp_path)
+    con = sqlite3.connect(tmp_path / f"{SLUG}-records.sqlite")
+    tables = [t for (t,) in con.execute("SELECT name FROM sqlite_master WHERE type='table'")]
+    cols = {t: [r[1] for r in con.execute(f'PRAGMA table_info("{t}")')] for t in tables}
+    nested = [t for t, c in cols.items() if f"{RECORD_CLASS}_id" in c and "parent_slot" in c]
+    assert nested, "no table points back at the record"
+    for t in nested:
+        orphans = f'SELECT count(*) FROM "{t}" WHERE parent_slot IS NULL AND "{RECORD_CLASS}_id" IS NOT NULL'
+        assert con.execute(orphans).fetchone()[0] == 0
+
+
+def test_flat_rows_keep_nested_values_as_json(tmp_path):
+    export.export({"formats": ["tsv"], "tabular_layout": "flat"}, [EXAMPLE], tmp_path)
+    text = (tmp_path / f"{SLUG}-records.tsv").read_text()
+    rows = list(csv.DictReader(io.StringIO(text), delimiter="\t"))
+    assert len(rows) == 1
+    assert rows[0]["curation_history"].startswith("[{")
+
+
+def test_undeclared_prefix_is_reported(tmp_path):
+    sv = export.schemaview()
+    import rdflib
+
+    g = rdflib.Graph()
+    g.add((rdflib.URIRef("NOPE:1"), rdflib.RDF.type, rdflib.URIRef(sv.get_uri(RECORD_CLASS, expand=True))))
+    path = tmp_path / "x.ttl"
+    g.serialize(path, format="turtle")
+    problems = export.check_rdf(path, "turtle", sv, 1)
+    assert any("NOPE" in p for p in problems)
+
+
+def test_settings_are_checked(tmp_path, monkeypatch):
+    bad = tmp_path / "export.yaml"
+    bad.write_text("formats: [parquet]\n")
+    monkeypatch.setattr(export, "SETTINGS", bad)
+    with pytest.raises(SystemExit):
+        export.settings()

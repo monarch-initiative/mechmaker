@@ -55,6 +55,7 @@ just fill-titles     # fill in source titles from the cache, where they are miss
 just convert ...     # run a conversion script: DRAFT records from an existing knowledge base
 just report          # count what is in the knowledge base
 just compliance      # completeness per record, lowest first
+just export          # the records in every chosen format, each read back
 just docs-serve      # the documentation site, locally
 ```
 

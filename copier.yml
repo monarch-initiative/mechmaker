@@ -386,6 +386,37 @@ deep_research:
     needs its own access; claude_code needs only Claude Code
   default: false
 
+output_formats:
+  type: str
+  help: >-
+    Formats `just export` writes and checks, and releases attach. All come
+    from LinkML. JSON-LD and Turtle are RDF: they are only as good as the
+    schema's prefixes and URIs, which the design step must declare. Change
+    later in conf/export.yaml
+  multiselect: true
+  choices:
+    "YAML, the curated files (zip)": yaml
+    "JSON and JSON Lines": json
+    "JSON-LD (RDF)": jsonld
+    "Turtle (RDF)": ttl
+    "SQLite database": sqlite
+    "SQL: schema DDL, and the data as SQL": sql
+    "CSV": csv
+    "TSV": tsv
+  default: [yaml, json, jsonld, ttl, sqlite, sql, csv]
+  validator: "{% if not output_formats %}Pick at least one format.{% endif %}"
+
+tabular_layout:
+  type: str
+  help: >-
+    How CSV and TSV hold nested data. One table per class, linked by ids, as
+    in the SQL export; or one row per record, with nested values as JSON
+  choices:
+    "One table per class (normalized)": per_class
+    "One row per record (flattened)": flat
+  default: per_class
+  when: "{{ 'csv' in output_formats or 'tsv' in output_formats }}"
+
 python_min:
   type: str
   help: Minimum Python version

@@ -130,6 +130,35 @@ filled. Delete the mock report; it is fake text. A real run on one record,
 to judge whether the prompt yields useful reports, costs money: ask the
 person first.
 
+## Identifiers and URIs
+
+Required whenever `conf/export.yaml` has `jsonld` or `ttl`, and good
+practice always. RDF turns every CURIE in a record into an IRI through the
+schema's `prefixes`, and every class and slot into an IRI through the
+schema's own URIs. A prefix with no URI becomes a broken IRI, and
+`just export` fails on it, naming the prefix.
+
+- **Every prefix a record can carry is in `prefixes`, with its full URI.**
+  Ontology prefixes (the template adds those it knows), citation prefixes
+  (`PMID`, `DOI`, plus any custom source such as `WIKIPEDIA`), the Mech's own
+  prefix, and any CURIE scheme the records use (`infores`, `biolink`).
+  Look each URI up, from the ontology's OBO PURL or from bioregistry
+  (https://bioregistry.io/<prefix>); never compose one from memory.
+- **The schema `id` and the Mech prefix resolve, or will.** The template
+  uses `https://w3id.org/<org>/<slug>/`. Keep it unless the person has a
+  better permanent address.
+- **Map to shared vocabularies where they fit.** `slot_uri` for slots that
+  mean what a standard property means (`name` to `schema:name` or
+  `rdfs:label`, `description` to `dcterms:description`, `synonyms` to
+  `skos:altLabel`), and `class_uri` for a class that is a known type. A
+  consumer of the RDF can then join this Mech's data to others. Do not map a
+  slot to a property whose meaning differs.
+- **Enum values that stand for ontology terms get a `meaning`**, the term's
+  CURIE, so RDF carries the term and not just a string.
+
+Check with `just export`: it reads the Turtle and JSON-LD back and lists
+any IRI that did not expand.
+
 ## The paper test
 
 Take two real entities, one typical and one awkward. Write their records in
@@ -155,6 +184,8 @@ drop or make optional.
 ## When done
 
 `docs/DOMAIN.md` has no TODOs. The example record exercises every section.
+Every prefix the records use is declared, and `just export` reads every
+format back.
 If deep research is on, the research prompt follows the same sections and
 `just research-check` gives no warning. `just qc` passes. Run `just docs-serve` and read the schema pages as a
 newcomer would: every class, slot and enum should have a description that

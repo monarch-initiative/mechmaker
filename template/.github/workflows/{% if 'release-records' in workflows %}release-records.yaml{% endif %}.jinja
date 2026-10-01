@@ -26,16 +26,12 @@ jobs:
       - run: just install
       - name: Check the records before shipping them
         run: just validate-all
-      - name: Export
+      - name: Export, in the formats conf/export.yaml names, and read each file back
         run: just export
-      - name: Verify the bundle is not empty
+      - name: Verify the export is not empty
         run: |
-          for f in "build/${MECH_SLUG}-records.jsonl" "build/${MECH_SLUG}-records.zip"; do
-            if [ ! -s "$f" ]; then echo "::error::$f is missing or empty"; exit 1; fi
-          done
+          if [ -z "$(ls -A build/export 2>/dev/null)" ]; then echo "::error::build/export is empty"; exit 1; fi
       - uses: softprops/action-gh-release@v3
         with:
-          files: |
-            build/${{ env.MECH_SLUG }}-records.jsonl
-            build/${{ env.MECH_SLUG }}-records.zip
+          files: build/export/*
 {% endraw %}

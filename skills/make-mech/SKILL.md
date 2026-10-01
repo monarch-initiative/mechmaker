@@ -106,6 +106,8 @@ site_accent: amber
 site_theme: auto          # auto, light or dark
 workflows: [sweep, docs, comment-guard]   # step 4b revisits this
 deep_research: true      # literature-heavy domain; see the deep research page
+output_formats: [yaml, json, jsonld, ttl, sqlite, sql, csv]   # what just export writes
+tabular_layout: per_class   # or flat: one row per record in CSV/TSV
 python_min: "3.11"
 ```
 
@@ -142,6 +144,10 @@ BioPortal needs `BIOPORTAL_API_KEY`, here and as a repository secret for CI;
 the person sets it. Never print the key, and mask `apikey=` in any output you
 show: a failed BioPortal request prints its URL with the key in it. Tell them a local file must be copied into
 `ontologies/` and committed after generation.
+
+If `output_formats` includes `jsonld` or `ttl`, the schema's prefixes and
+URIs are part of the design: `design-mech-schema` says what to declare, and
+`just export` fails until they are right.
 
 **Check the identity root before generating.** Take three to five entities
 you expect to be records, find their CURIEs, and check they sit under the

@@ -104,7 +104,9 @@ SCENARIOS["extras"] = {
     "workflows": ["sweep"],
 }
 SCENARIOS["minimal"]["workflows"] = []
-SCENARIOS["disease"].update({"site_palette": "brown", "site_theme": "light", "deep_research": True})
+ALL_FORMATS = ["yaml", "json", "jsonld", "ttl", "sqlite", "sql", "csv", "tsv"]
+SCENARIOS["disease"].update({"site_palette": "brown", "site_theme": "light", "deep_research": True,
+                             "output_formats": ALL_FORMATS, "tabular_layout": "flat"})
 SCENARIOS["all-workflows"].update({"site_palette": "yellow", "site_accent": "amber", "site_theme": "dark"})
 
 VENDORED_MD5 = {
@@ -271,6 +273,20 @@ def test_no_bioportal_secret_without_bioportal(generated):
 ])
 def test_bad_extra_ontologies_rejected(tmp_path, extras):
     data = {**BASE, "mech_name": "BadExtraMech", "record_class": "Thing", "extra_ontologies": extras}
+    with pytest.raises(Exception):  # noqa: B017
+        render(tmp_path / "out", data)
+
+
+def test_export_settings_follow_answers(generated):
+    _, answers, dest = generated
+    cfg = yaml.safe_load((dest / "conf" / "export.yaml").read_text())
+    assert cfg["formats"] == answers["output_formats"]
+    want = answers.get("tabular_layout") or "per_class"
+    assert cfg["tabular_layout"] == want
+
+
+def test_no_output_format_is_rejected(tmp_path):
+    data = {**BASE, "mech_name": "NoFormatMech", "record_class": "Thing", "output_formats": []}
     with pytest.raises(Exception):  # noqa: B017
         render(tmp_path / "out", data)
 
