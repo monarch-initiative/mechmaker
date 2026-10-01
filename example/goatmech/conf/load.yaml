@@ -1,0 +1,18 @@
+# Running databases `just load TARGET` can fill with the records, through
+# linkml-store. See src/goatmech/load.py for what each target holds.
+#
+# ${NAME} is read from the environment when loading, so passwords never sit
+# in this file. A load refuses to overwrite data unless given --replace.
+# Use passwords without @ or :, which linkml-store cannot read in an address.
+#
+#   mongodb  mongodb://[user:${PASSWORD}@]host:port/database
+#            one collection, named for the records folder; --replace drops
+#            that collection only.
+#   neo4j    neo4j://user:${PASSWORD}@host:port/database
+#            every node is labelled MechNode with this Mech's slug in `mech`;
+#            --replace deletes those nodes only, and other data is left alone.
+#
+# Adding a target later also needs its package:
+#   uv add 'linkml-store[mongodb,neo4j]>=0.3.2' && just install
+
+targets: {}

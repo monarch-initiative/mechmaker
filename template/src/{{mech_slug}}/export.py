@@ -10,6 +10,8 @@ Every format comes from LinkML or the libraries it brings:
   jsonld   <slug>-records.jsonld       RDF as JSON-LD, the same graph as ttl
   ttl      <slug>-records.ttl          RDF as Turtle, through the schema's URIs
   sqlite   <slug>-records.sqlite       a SQLite database
+  duckdb   <slug>-records.duckdb       a DuckDB database, through linkml-store: one
+                                       table of records, nested values as DuckDB JSON
   sql      <slug>-schema.sql           the schema as SQL DDL (gen-sqltables)
            <slug>-records.sql          the database as SQL: DDL and INSERTs
   csv/tsv  tabular_layout per_class:   <slug>-tables-csv.zip, one file per class
@@ -46,7 +48,12 @@ from .validate import iter_records, load
 
 EXPORT_DIR = BUILD_DIR / "export"
 SETTINGS = REPO_ROOT / "conf" / "export.yaml"
-FORMATS = ("yaml", "json", "jsonld", "ttl", "sqlite", "sql", "csv", "tsv")
+FORMATS = ("yaml", "json", "jsonld", "ttl", "sqlite", "duckdb", "sql", "csv", "tsv")
+# Only the duckdb format needs a package a Mech does not always install.
+DUCKDB_MISSING = (
+    "duckdb: needs linkml-store, which this Mech does not install. Run `uv add 'linkml-store>=0.3.2'` "
+    "and `just install`, or take duckdb out of conf/export.yaml."
+)
 LAYOUTS = ("per_class", "flat")
 DEFAULTS = {"formats": ["yaml", "json"], "tabular_layout": "per_class"}
 
@@ -181,8 +188,12 @@ def build_sqlite(sv, records: list[tuple[Path, dict]], db: Path) -> None:
             if value is None:
                 continue
             rng = slot.range if slot.range in classes else None
+            if rng:
+                check_reference(cls, slot.name, rng, value)
             if slot.multivalued:
                 later.append((slot, rng, value))
+            elif rng and not isinstance(value, dict):
+                row[slot.name] = str(value)  # a reference by id: gen-sqltables names the column for the slot
             elif rng:
                 child_ident = sv.get_identifier_slot(rng)
                 row[f"{slot.name}_id"] = upsert(rng, value) if child_ident else insert(rng, value)
@@ -202,12 +213,19 @@ def build_sqlite(sv, records: list[tuple[Path, dict]], db: Path) -> None:
                     insert(rng, v, (cls, pk, slot.name))
                 else:
                     joined = f"{cls}_{slot.name}"
-                    item = upsert(rng, v) if rng else v
+                    item = upsert(rng, v) if rng and isinstance(v, dict) else v
                     col = f"{slot.name}_id" if rng else slot.name
                     table_cols(joined)
                     sql = f'INSERT OR IGNORE INTO "{joined}" ("{cls}_id", "{col}") VALUES (?, ?)'
                     con.execute(sql, (pk, item))
         return pk
+
+    def check_reference(cls: str, slot: str, rng: str, value) -> None:
+        """A field holding a class is a nested object, or an id when the class has one."""
+        for v in value if isinstance(value, list) else [value]:
+            if not isinstance(v, dict) and not sv.get_identifier_slot(rng):
+                raise SystemExit(f"export: {cls}.{slot} holds {v!r}, but {rng} has no identifier, "
+                                 "so it must be a nested object")
 
     def upsert(cls: str, obj: dict):
         ident = sv.get_identifier_slot(cls)
@@ -249,6 +267,45 @@ def write_table(path: Path, header: list[str], rows, delimiter: str) -> None:
         w.writerows(rows)
 
 
+# ---------------------------------------------------------------- DuckDB
+
+
+def write_duckdb(sv, records: list[tuple[Path, dict]], out: Path) -> Path:
+    """The records in DuckDB, through linkml-store, one row per record.
+
+    Nested values become DuckDB JSON columns, queryable in SQL, e.g.
+    SELECT name, p->>'$.term.label' FROM <table>, unnest(<section>) AS t(p).
+    Raises ModuleNotFoundError (name linkml_store) when linkml-store is not installed.
+    """
+    from linkml_store import Client
+
+    out.unlink(missing_ok=True)
+    db = Client().attach_database(f"duckdb:///{out}", alias=SLUG)
+    db.set_schema_view(sv)
+    collection = db.create_collection(RECORD_CLASS, alias=RECORDS_DIR.name)
+    if records:
+        collection.insert([d for _, d in records])
+    db.commit()
+    db.close()
+    return out
+
+
+def check_duckdb(out: Path, ids: list) -> list[str]:
+    import duckdb
+
+    con = duckdb.connect(str(out), read_only=True)
+    try:
+        if not ids:
+            return []
+        got = sorted(str(r[0]) for r in con.execute(f'SELECT id FROM "{RECORDS_DIR.name}"').fetchall())
+    finally:
+        con.close()
+    want = sorted(str(i) for i in ids)
+    if got == want:
+        return []
+    return [f"{out.name}: holds {len(got)} record(s) with other ids than the {len(want)} exported"]
+
+
 # ---------------------------------------------------------------- export
 
 
@@ -262,6 +319,13 @@ def export(
             old.unlink()
     records = [(p, load(p) or {}) for p in (iter_records() if paths is None else paths)]
     n = len(records)
+    seen: dict[str, Path] = {}
+    for p, d in records:
+        rid = str(d.get("id"))
+        if rid in seen:
+            # Every format keys records by id: a second one would overwrite or collide.
+            raise SystemExit(f"export: {p.name} and {seen[rid].name} have the same id {rid!r}")
+        seen[rid] = p
     fmts = set(cfg["formats"])
     written: list[Path] = []
     problems: list[str] = []
@@ -299,6 +363,17 @@ def export(
             graph.serialize(out, format="json-ld", context=context, indent=1)
             written.append(out)
             problems += check_rdf(out, "json-ld", sv, n)
+
+    if "duckdb" in fmts:
+        try:
+            out = write_duckdb(sv, records, out_dir / f"{SLUG}-records.duckdb")
+        except ModuleNotFoundError as exc:
+            if exc.name != "linkml_store":  # installed, but something it needs is not: show that
+                raise
+            problems.append(DUCKDB_MISSING)
+        else:
+            written.append(out)
+            problems += check_duckdb(out, [d.get("id") for _, d in records])
 
     tables = fmts & {"csv", "tsv"}
     per_class = cfg["tabular_layout"] == "per_class"

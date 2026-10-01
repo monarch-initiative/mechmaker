@@ -32,3 +32,16 @@ site_theme: auto
 workflows: [sweep, docs, comment-guard]
 deep_research: false
 python_min: "3.11"
+output_formats:
+- yaml
+- json
+- jsonld
+- ttl
+- sqlite
+- duckdb
+- sql
+- csv
+tabular_layout: per_class
+load_targets:
+- mongodb
+- neo4j

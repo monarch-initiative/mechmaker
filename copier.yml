@@ -400,11 +400,25 @@ output_formats:
     "JSON-LD (RDF)": jsonld
     "Turtle (RDF)": ttl
     "SQLite database": sqlite
+    "DuckDB database (adds linkml-store and its dependencies)": duckdb
     "SQL: schema DDL, and the data as SQL": sql
     "CSV": csv
     "TSV": tsv
   default: [yaml, json, jsonld, ttl, sqlite, sql, csv]
   validator: "{% if not output_formats %}Pick at least one format.{% endif %}"
+
+load_targets:
+  type: str
+  help: >-
+    Running databases `just load` can fill with the records, through
+    linkml-store: MongoDB (one collection) and Neo4j (a graph of every
+    object). Each adds linkml-store to the Mech. Addresses go in
+    conf/load.yaml, with passwords read from the environment
+  multiselect: true
+  choices:
+    "MongoDB": mongodb
+    "Neo4j (a graph of every object)": neo4j
+  default: []
 
 tabular_layout:
   type: str

@@ -23,6 +23,9 @@ dependencies = [
     # Edits records in place with their layout kept (just add-evidence).
     "ruamel.yaml>=0.18",
     "jinja2>=3.1",
+    # linkml-store, for the DuckDB export and `just load` (mongodb, neo4j).
+    # Only here because this Mech chose them: it brings many packages of its own.
+    "linkml-store[mongodb,neo4j]>=0.3.2",
 ]
 
 [project.optional-dependencies]

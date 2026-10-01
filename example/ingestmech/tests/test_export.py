@@ -17,11 +17,19 @@ from ingestmech import export
 from ingestmech.paths import RECORD_CLASS, SLUG
 
 EXAMPLE = Path(__file__).parent / "data" / "example_record.yaml"
+try:
+    import linkml_store  # noqa: F401  only installed when this Mech exports DuckDB
+
+    HAS_DUCKDB = True
+except ImportError:
+    HAS_DUCKDB = False
+# Every format this Mech can write as installed.
+INSTALLED = [f for f in export.FORMATS if f != "duckdb" or HAS_DUCKDB]
 
 
 @pytest.mark.parametrize("layout", ["per_class", "flat"])
 def test_every_format_reads_back(tmp_path, layout):
-    cfg = {"formats": list(export.FORMATS), "tabular_layout": layout}
+    cfg = {"formats": INSTALLED, "tabular_layout": layout}
     written, problems = export.export(cfg, [EXAMPLE], tmp_path)
     assert problems == []
     names = {p.name for p in written}
@@ -86,3 +94,67 @@ def test_one_key_list_items_load():
     padded = export.pad_single_keys(sv, RECORD_CLASS, {slot.name: [{first: "x"}]})
     item = padded[slot.name][0]
     assert item[first] == "x" and len(item) == 2 and None in item.values()
+
+
+@pytest.mark.skipif(HAS_DUCKDB, reason="linkml-store is installed")
+def test_duckdb_without_linkml_store_says_what_to_install(tmp_path):
+    cfg = {"formats": ["duckdb"], "tabular_layout": "per_class"}
+    _, problems = export.export(cfg, [EXAMPLE], tmp_path)
+    assert problems == [export.DUCKDB_MISSING]
+
+
+@pytest.mark.skipif(not HAS_DUCKDB, reason="linkml-store is not installed")
+def test_duckdb_holds_the_records(tmp_path):
+    import duckdb
+
+    cfg = {"formats": ["duckdb"], "tabular_layout": "per_class"}
+    written, problems = export.export(cfg, [EXAMPLE], tmp_path)
+    assert problems == []
+    con = duckdb.connect(str(written[0]), read_only=True)
+    assert con.execute(f'SELECT count(*) FROM "{export.RECORDS_DIR.name}"').fetchone()[0] == 1
+
+
+def test_a_broken_linkml_store_is_not_called_missing(tmp_path, monkeypatch):
+    def broken(*args, **kwargs):
+        raise ModuleNotFoundError("No module named 'pymongo'", name="pymongo")
+
+    monkeypatch.setattr(export, "write_duckdb", broken)
+    with pytest.raises(ModuleNotFoundError):
+        export.export({"formats": ["duckdb"], "tabular_layout": "per_class"}, [EXAMPLE], tmp_path)
+
+
+def reference_schema(tmp_path):
+    """A record class whose `parent` and `kin` refer to other records by id."""
+    import yaml as _yaml
+    from linkml_runtime.utils.schemaview import SchemaView
+
+    schema = {
+        "id": "https://example.org/refs", "name": "refs", "default_prefix": "ex", "default_range": "string",
+        "prefixes": {"linkml": "https://w3id.org/linkml/", "ex": "https://example.org/refs/"},
+        "imports": ["linkml:types"],
+        "classes": {RECORD_CLASS: {"tree_root": True, "attributes": {
+            "id": {"identifier": True}, "name": {},
+            "parent": {"range": RECORD_CLASS}, "kin": {"range": RECORD_CLASS, "multivalued": True}}}},
+    }
+    path = tmp_path / "refs.yaml"
+    path.write_text(_yaml.safe_dump(schema))
+    return SchemaView(str(path))
+
+
+# B comes first, so its references are stubs before A itself is read.
+REF_RECORDS = [{"id": "ex:b", "name": "B", "parent": "ex:a", "kin": ["ex:a"]}, {"id": "ex:a", "name": "A"}]
+
+
+def test_references_by_id_go_in_their_columns(tmp_path):
+    db = tmp_path / "refs.sqlite"
+    export.build_sqlite(reference_schema(tmp_path), [(None, r) for r in REF_RECORDS], db)
+    con = sqlite3.connect(db)
+    assert con.execute(f'SELECT parent FROM "{RECORD_CLASS}" WHERE id = ?', ("ex:b",)).fetchone() == ("ex:a",)
+    assert con.execute(f'SELECT kin_id FROM "{RECORD_CLASS}_kin"').fetchall() == [("ex:a",)]
+
+
+def test_two_records_with_one_id_are_refused(tmp_path):
+    twin = tmp_path / "twin.yaml"
+    twin.write_text(EXAMPLE.read_text())
+    with pytest.raises(SystemExit, match="have the same id"):
+        export.export({"formats": ["json"], "tabular_layout": "per_class"}, [EXAMPLE, twin], tmp_path / "out")

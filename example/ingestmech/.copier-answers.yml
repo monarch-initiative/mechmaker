@@ -16,16 +16,29 @@ description: 'IngestMech records the data ingests of the Monarch Initiative know
 domains:
 - biomedical
 - genomics
+extra_ontologies: []
 full_title: Monarch Ingest Knowledge Base
 github_org: monarch-initiative
 github_user: caufieldjh
 identity_prefix: ''
 include_claude_hook: true
 include_site: true
+load_targets:
+- mongodb
+- neo4j
 mech_name: IngestMech
 mech_slug: ingestmech
 ontologies:
 - NCBITaxon
+output_formats:
+- yaml
+- json
+- jsonld
+- ttl
+- sqlite
+- duckdb
+- sql
+- csv
 python_min: '3.11'
 record_class: Ingest
 record_noun: ingest
@@ -34,7 +47,9 @@ repo_name: ingestmech
 site_accent: light-blue
 site_palette: indigo
 site_theme: auto
+tabular_layout: per_class
 taxon_scope: ''
+term_backend: ols
 workflows:
 - sweep
 - docs
