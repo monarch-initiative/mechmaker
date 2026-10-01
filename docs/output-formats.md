@@ -15,13 +15,14 @@ Every format comes from LinkML or the libraries it brings.
 | `jsonld` | `<slug>-records.jsonld` | Linked data, as JSON |
 | `ttl` | `<slug>-records.ttl` | Linked data, as Turtle, for triple stores |
 | `sqlite` | `<slug>-records.sqlite` | A database to query directly |
+| `duckdb` | `<slug>-records.duckdb` | Analytics in DuckDB: one table of records, nested values as JSON. Optional, see below |
 | `sql` | `<slug>-schema.sql`, `<slug>-records.sql` | The schema as SQL DDL, and the data as SQL to load anywhere |
 | `csv`, `tsv` | see below | Spreadsheets and data frames |
 
 ## Choosing
 
 Copier asks `output_formats` when the Mech is made. The default is every
-format but TSV. Change the choice any time in `conf/export.yaml`:
+format but TSV and DuckDB. Change the choice any time in `conf/export.yaml`:
 
 ```yaml
 formats:
@@ -30,6 +31,30 @@ formats:
   - ttl
 tabular_layout: per_class
 ```
+
+## DuckDB, an optional extra
+
+The DuckDB export goes through [linkml-store](https://github.com/linkml/linkml-store),
+which brings about seventy packages of its own (DuckDB, and clients for
+other databases such as MongoDB). So a Mech installs it only when
+`output_formats` includes `duckdb`: the template adds `linkml-store` to the
+Mech's dependencies then, and not otherwise.
+
+The database has one table, named after the records folder (for GoatMech,
+`goat_breeds`), with one row per record. Nested sections are DuckDB `JSON`
+columns, so SQL can reach inside them:
+
+```sql
+SELECT name, f->>'preferred_term', f->'term'->>'label'
+FROM goat_breeds, unnest(distinguishing_features) AS t(f);
+```
+
+For one table per class in DuckDB, attach the SQLite export instead:
+`ATTACH '<slug>-records.sqlite' AS s (TYPE sqlite);`, then query `s.<Class>`.
+
+To add DuckDB to an existing Mech, put `duckdb` in `conf/export.yaml`, then
+`uv add 'linkml-store>=0.3.2'` and `just install`. Without the package,
+`just export` fails and says exactly that.
 
 ## Nested data in tables
 
@@ -71,5 +96,5 @@ thing.
   item a second, empty field before loading it; the data is unchanged.
 - Classes and slots from the shared `mech_shared` module take its URIs,
   under `https://w3id.org/kg-microbe/mech-shared/`.
-- Parquet, DuckDB and Croissant are not LinkML-native and not yet offered
+- Parquet and Croissant are not LinkML-native and not yet offered
   ([#21](https://github.com/monarch-initiative/mechmaker/issues/21)).

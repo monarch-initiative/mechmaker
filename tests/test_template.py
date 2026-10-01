@@ -7,6 +7,7 @@ import os
 import re
 import shutil
 import subprocess
+import tomllib
 from pathlib import Path
 
 import copier
@@ -104,7 +105,7 @@ SCENARIOS["extras"] = {
     "workflows": ["sweep"],
 }
 SCENARIOS["minimal"]["workflows"] = []
-ALL_FORMATS = ["yaml", "json", "jsonld", "ttl", "sqlite", "sql", "csv", "tsv"]
+ALL_FORMATS = ["yaml", "json", "jsonld", "ttl", "sqlite", "duckdb", "sql", "csv", "tsv"]
 SCENARIOS["disease"].update({"site_palette": "brown", "site_theme": "light", "deep_research": True,
                              "output_formats": ALL_FORMATS, "tabular_layout": "flat"})
 SCENARIOS["all-workflows"].update({"site_palette": "yellow", "site_accent": "amber", "site_theme": "dark"})
@@ -283,6 +284,13 @@ def test_export_settings_follow_answers(generated):
     assert cfg["formats"] == answers["output_formats"]
     want = answers.get("tabular_layout") or "per_class"
     assert cfg["tabular_layout"] == want
+
+
+def test_linkml_store_only_for_duckdb(generated):
+    _, answers, dest = generated
+    deps = tomllib.loads((dest / "pyproject.toml").read_text())["project"]["dependencies"]
+    has = any(d.startswith("linkml-store") for d in deps)
+    assert has == ("duckdb" in answers["output_formats"])
 
 
 def test_no_output_format_is_rejected(tmp_path):

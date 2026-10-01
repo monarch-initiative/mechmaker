@@ -400,6 +400,7 @@ output_formats:
     "JSON-LD (RDF)": jsonld
     "Turtle (RDF)": ttl
     "SQLite database": sqlite
+    "DuckDB database (adds linkml-store and its dependencies)": duckdb
     "SQL: schema DDL, and the data as SQL": sql
     "CSV": csv
     "TSV": tsv

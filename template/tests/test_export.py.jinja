@@ -17,11 +17,19 @@ from {{ mech_slug }} import export
 from {{ mech_slug }}.paths import RECORD_CLASS, SLUG
 
 EXAMPLE = Path(__file__).parent / "data" / "example_record.yaml"
+try:
+    import linkml_store  # noqa: F401  only installed when this Mech exports DuckDB
+
+    HAS_DUCKDB = True
+except ImportError:
+    HAS_DUCKDB = False
+# Every format this Mech can write as installed.
+INSTALLED = [f for f in export.FORMATS if f != "duckdb" or HAS_DUCKDB]
 
 
 @pytest.mark.parametrize("layout", ["per_class", "flat"])
 def test_every_format_reads_back(tmp_path, layout):
-    cfg = {"formats": list(export.FORMATS), "tabular_layout": layout}
+    cfg = {"formats": INSTALLED, "tabular_layout": layout}
     written, problems = export.export(cfg, [EXAMPLE], tmp_path)
     assert problems == []
     names = {p.name for p in written}
@@ -86,3 +94,21 @@ def test_one_key_list_items_load():
     padded = export.pad_single_keys(sv, RECORD_CLASS, {slot.name: [{first: "x"}]})
     item = padded[slot.name][0]
     assert item[first] == "x" and len(item) == 2 and None in item.values()
+
+
+@pytest.mark.skipif(HAS_DUCKDB, reason="linkml-store is installed")
+def test_duckdb_without_linkml_store_says_what_to_install(tmp_path):
+    cfg = {"formats": ["duckdb"], "tabular_layout": "per_class"}
+    _, problems = export.export(cfg, [EXAMPLE], tmp_path)
+    assert problems == [export.DUCKDB_MISSING]
+
+
+@pytest.mark.skipif(not HAS_DUCKDB, reason="linkml-store is not installed")
+def test_duckdb_holds_the_records(tmp_path):
+    import duckdb
+
+    cfg = {"formats": ["duckdb"], "tabular_layout": "per_class"}
+    written, problems = export.export(cfg, [EXAMPLE], tmp_path)
+    assert problems == []
+    con = duckdb.connect(str(written[0]), read_only=True)
+    assert con.execute(f'SELECT count(*) FROM "{export.RECORDS_DIR.name}"').fetchone()[0] == 1
