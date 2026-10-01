@@ -10,6 +10,8 @@ Every format comes from LinkML or the libraries it brings:
   jsonld   <slug>-records.jsonld       RDF as JSON-LD, the same graph as ttl
   ttl      <slug>-records.ttl          RDF as Turtle, through the schema's URIs
   sqlite   <slug>-records.sqlite       a SQLite database
+  duckdb   <slug>-records.duckdb       a DuckDB database, through linkml-store: one
+                                       table of records, nested values as DuckDB JSON
   sql      <slug>-schema.sql           the schema as SQL DDL (gen-sqltables)
            <slug>-records.sql          the database as SQL: DDL and INSERTs
   csv/tsv  tabular_layout per_class:   <slug>-tables-csv.zip, one file per class
@@ -46,7 +48,12 @@ from .validate import iter_records, load
 
 EXPORT_DIR = BUILD_DIR / "export"
 SETTINGS = REPO_ROOT / "conf" / "export.yaml"
-FORMATS = ("yaml", "json", "jsonld", "ttl", "sqlite", "sql", "csv", "tsv")
+FORMATS = ("yaml", "json", "jsonld", "ttl", "sqlite", "duckdb", "sql", "csv", "tsv")
+# Only the duckdb format needs a package a Mech does not always install.
+DUCKDB_MISSING = (
+    "duckdb: needs linkml-store, which this Mech does not install. Run `uv add 'linkml-store>=0.3.2'` "
+    "and `just install`, or take duckdb out of conf/export.yaml."
+)
 LAYOUTS = ("per_class", "flat")
 DEFAULTS = {"formats": ["yaml", "json"], "tabular_layout": "per_class"}
 
@@ -249,6 +256,45 @@ def write_table(path: Path, header: list[str], rows, delimiter: str) -> None:
         w.writerows(rows)
 
 
+# ---------------------------------------------------------------- DuckDB
+
+
+def write_duckdb(sv, records: list[tuple[Path, dict]], out: Path) -> Path:
+    """The records in DuckDB, through linkml-store, one row per record.
+
+    Nested values become DuckDB JSON columns, queryable in SQL, e.g.
+    SELECT name, p->>'$.term.label' FROM <table>, unnest(<section>) AS t(p).
+    Raises ImportError when linkml-store is not installed.
+    """
+    from linkml_store import Client
+
+    out.unlink(missing_ok=True)
+    db = Client().attach_database(f"duckdb:///{out}", alias=SLUG)
+    db.set_schema_view(sv)
+    collection = db.create_collection(RECORD_CLASS, alias=RECORDS_DIR.name)
+    if records:
+        collection.insert([d for _, d in records])
+    db.commit()
+    db.close()
+    return out
+
+
+def check_duckdb(out: Path, ids: list) -> list[str]:
+    import duckdb
+
+    con = duckdb.connect(str(out), read_only=True)
+    try:
+        if not ids:
+            return []
+        got = sorted(str(r[0]) for r in con.execute(f'SELECT id FROM "{RECORDS_DIR.name}"').fetchall())
+    finally:
+        con.close()
+    want = sorted(str(i) for i in ids)
+    if got == want:
+        return []
+    return [f"{out.name}: holds {len(got)} record(s) with other ids than the {len(want)} exported"]
+
+
 # ---------------------------------------------------------------- export
 
 
@@ -299,6 +345,15 @@ def export(
             graph.serialize(out, format="json-ld", context=context, indent=1)
             written.append(out)
             problems += check_rdf(out, "json-ld", sv, n)
+
+    if "duckdb" in fmts:
+        try:
+            out = write_duckdb(sv, records, out_dir / f"{SLUG}-records.duckdb")
+        except ImportError:
+            problems.append(DUCKDB_MISSING)
+        else:
+            written.append(out)
+            problems += check_duckdb(out, [d.get("id") for _, d in records])
 
     tables = fmts & {"csv", "tsv"}
     per_class = cfg["tabular_layout"] == "per_class"

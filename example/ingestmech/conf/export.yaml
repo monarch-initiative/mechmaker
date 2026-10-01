@@ -15,6 +15,7 @@ formats:
   - jsonld
   - ttl
   - sqlite
+  - duckdb
   - sql
   - csv
 tabular_layout: per_class

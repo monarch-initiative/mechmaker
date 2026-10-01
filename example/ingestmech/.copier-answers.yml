@@ -39,3 +39,13 @@ workflows:
 - sweep
 - docs
 - comment-guard
+output_formats:
+- yaml
+- json
+- jsonld
+- ttl
+- sqlite
+- duckdb
+- sql
+- csv
+tabular_layout: per_class
