@@ -39,6 +39,7 @@ just search-term PREFIX "text"  # search an ontology through its configured adap
 just term-ancestors CURIE       # where a term sits; use when an enum root rejects it
 just report            # corpus statistics
 just compliance        # completeness per record, lowest first
+just export            # every format in conf/export.yaml, into build/export/, each read back
 just labels            # create the GitHub labels the workflows use
 just docs-serve        # the documentation site at http://127.0.0.1:8000
 just site-check        # check conf/site.yaml: colors, theme, contrast
@@ -68,6 +69,9 @@ Quote counts from `just report` or a live command, never from prose.
 - **A deep-research report is a lead, never a source.** Never cite one in a
   record. Fetch the primary source it points to and quote that.
 {%- endif %}
+- **Declare every prefix.** Each CURIE prefix a record uses has its full
+  URI in the schema's `prefixes`. The RDF exports depend on it, and
+  `just export` fails on a prefix with no URI.
 - **Closed schema.** An unknown field is an error. If the schema lacks a
   place for something real, use the `extend-schema` skill. Do not stuff it
   into `notes`.

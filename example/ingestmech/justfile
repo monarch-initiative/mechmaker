@@ -147,9 +147,10 @@ report *args:
 compliance *files:
     uv run python -m {{slug}}.compliance "$@"
 
-# Bundle the records into build/ for a release.
-export:
-    uv run python -m {{slug}}.export
+# Export the records in the formats conf/export.yaml names, into build/export/,
+# and read each file back. `just export --list` shows the formats.
+export *args:
+    uv run python -m {{slug}}.export "$@"
 
 # Create or update the GitHub labels listed in .github/labels.yaml.
 labels *args:

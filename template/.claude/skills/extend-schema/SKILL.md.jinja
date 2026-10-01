@@ -34,8 +34,13 @@ hashes. Changes go upstream to the fleet canon and come back by re-vendoring.
    the `ontology-terms` skill.
 3. For evidence, reuse `EvidenceItem`. It carries the `implements` markers
    the reference validator looks for.
-4. Update `tests/data/example_record.yaml` to exercise the change.
-5. Run `just lint` and `just test`.
+4. A new prefix goes in the schema's `prefixes` with its full URI, looked
+   up, not composed. RDF exports turn CURIEs into IRIs through it, and
+   `just export` fails on one that does not expand. A slot that means what a
+   standard property means gets that `slot_uri` (`dcterms:description`,
+   `skos:altLabel`).
+5. Update `tests/data/example_record.yaml` to exercise the change.
+6. Run `just lint`, `just test` and `just export`.
 
 ## Migrating records
 

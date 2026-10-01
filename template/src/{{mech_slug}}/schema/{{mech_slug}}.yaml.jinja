@@ -21,6 +21,7 @@ prefixes:
   dcterms: http://purl.org/dc/terms/
   skos: http://www.w3.org/2004/02/skos/core#
   rdfs: http://www.w3.org/2000/01/rdf-schema#
+  schema: http://schema.org/
   {{ mech_slug }}: https://w3id.org/{{ github_org }}/{{ mech_slug }}/
   PMID: http://www.ncbi.nlm.nih.gov/pubmed/
   DOI: https://doi.org/
@@ -183,15 +184,19 @@ slots:
     range: uriorcurie
     description: A CURIE.
   name:
+    slot_uri: schema:name
     description: Preferred human-readable name.
   label:
+    slot_uri: rdfs:label
     description: >-
       The ontology's own label for the term. Checked by linkml-term-validator.
   description:
+    slot_uri: dcterms:description
     description: Free-text description.
   notes:
     description: Curator notes. Paraphrase belongs here, never in a snippet.
   synonyms:
+    slot_uri: skos:altLabel
     multivalued: true
     description: Other names in use.
   status:

@@ -23,7 +23,7 @@ its secrets, and adapting its prompt.
 | `docs` | **on** | `docs.yaml` | Builds the documentation site (LinkML schema pages, guides, corpus counts, and the record browser at `/records/`) and publishes it to GitHub Pages on every push to main. | Settings > Pages > Source: GitHub Actions |
 | `comment-guard` | **on** | `comment-guard.yaml` | Hides comments from people without write access that carry attachments, installers or agent triggers. | nothing |
 | `close-fork-prs` | off | `close-fork-prs.yaml` | Closes PRs from forks with a note pointing to CONTRIBUTING.md. Turn it on once agents act on PRs. | nothing |
-| `release-records` | off | `release-records.yaml` | Attaches `<slug>-records.jsonl` and a zip of the records to each release. | nothing |
+| `release-records` | off | `release-records.yaml` | Attaches the exports `just export` writes, in the formats `conf/export.yaml` names, to each release. | nothing |
 | `warm-reference-cache` | off | `warm-reference-cache.yaml` | Weekly: fetches open-access full text for cached references and opens one rolling PR. Worth it once the cache is large. | optional agent App, so CI runs on its PR |
 | `pypi-publish` | off | `pypi-publish.yaml` | Publishes the package with trusted publishing. Most Mechs do not need this; the data is the product. | PyPI trusted publisher, `pypi-release` environment |
 

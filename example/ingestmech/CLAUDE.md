@@ -39,6 +39,7 @@ just search-term ADAPTER "text" # search an ontology, e.g. ols:go
 just term-ancestors CURIE       # where a term sits; use when an enum root rejects it
 just report            # corpus statistics
 just compliance        # completeness per record, lowest first
+just export            # every format in conf/export.yaml, into build/export/, each read back
 just labels            # create the GitHub labels the workflows use
 just docs-serve        # the documentation site at http://127.0.0.1:8000
 just site-check        # check conf/site.yaml: colors, theme, contrast
@@ -60,6 +61,9 @@ Quote counts from `just report` or a live command, never from prose.
   `just validate-references` fails a paraphrase, and it should.
 - **Bind the most specific accurate term.** If only a broad term fits, bind
   it and say so in `notes`. Do not bind a narrow term because it exists.
+- **Declare every prefix.** Each CURIE prefix a record uses has its full
+  URI in the schema's `prefixes`. The RDF exports depend on it, and
+  `just export` fails on a prefix with no URI.
 - **Closed schema.** An unknown field is an error. If the schema lacks a
   place for something real, use the `extend-schema` skill. Do not stuff it
   into `notes`.
