@@ -35,11 +35,11 @@ validate-schema file:
 
 # Every bound CURIE exists, sits under its enum root, and carries its real label.
 validate-terms *files:
-    uv run linkml-term-validator validate-data "$@" -s {{schema}} -t {{record_class}} --labels -c {{oak_config}}
+    uv run python -m {{slug}}.termcheck validate-data "$@" -s {{schema}} -t {{record_class}} --labels -c {{oak_config}}
 
 # Same, from the term cache only. Never touches the network.
 validate-terms-offline *files:
-    uv run linkml-term-validator validate-data "$@" -s {{schema}} -t {{record_class}} --labels -c {{oak_config}} --offline
+    uv run python -m {{slug}}.termcheck validate-data "$@" -s {{schema}} -t {{record_class}} --labels -c {{oak_config}} --offline
 
 # Every snippet appears verbatim in its cited source.
 validate-references *files:
@@ -56,7 +56,7 @@ validate-terms-all:
     shopt -s nullglob globstar
     files=({{records}}/**/*.yaml)
     if [ ${#files[@]} -eq 0 ]; then echo "No records under {{records}}."; exit 0; fi
-    uv run linkml-term-validator validate-data "${files[@]}" -s {{schema}} -t {{record_class}} --labels -c {{oak_config}}
+    uv run python -m {{slug}}.termcheck validate-data "${files[@]}" -s {{schema}} -t {{record_class}} --labels -c {{oak_config}}
 
 # Reference validation of every record (network on first run).
 validate-references-all:
@@ -73,11 +73,11 @@ validate-references-all:
 validate-changed *files:
     #!/usr/bin/env bash
     set -uo pipefail
-    uv run linkml-term-validator validate-data "$@" -s {{schema}} -t {{record_class}} --labels -c {{oak_config}}
+    uv run python -m {{slug}}.termcheck validate-data "$@" -s {{schema}} -t {{record_class}} --labels -c {{oak_config}}
     rc=$?
     if [ "$rc" -eq 2 ]; then
         echo "::warning title=Ontology service unreachable::Checking terms against the committed cache only."
-        uv run linkml-term-validator validate-data "$@" -s {{schema}} -t {{record_class}} --labels -c {{oak_config}} --offline
+        uv run python -m {{slug}}.termcheck validate-data "$@" -s {{schema}} -t {{record_class}} --labels -c {{oak_config}} --offline
         rc=$?
         if [ "$rc" -ne 0 ]; then
             echo "::error title=Terms not checked::The ontology service is down and some terms are not in cache/. Run 'just validate FILE' locally and commit cache/, or re-run this job later."
@@ -90,21 +90,30 @@ validate-changed *files:
 fetch-reference ref:
     uv run linkml-reference-validator lookup "$1" --config {{ref_config}}
 
-# Search an ontology: `just search-term ols:go "cell wall organization"`
+# Search an ontology. Give an OAK adapter, or a prefix to use the one
+# conf/oak_config.yaml gives it: `just search-term GO "cell wall organization"`
 search-term adapter query:
-    uv run runoak -i "$1" search "$2"
+    #!/usr/bin/env bash
+    set -euo pipefail
+    a="$1"; [[ "$a" == *:* ]] || a="$(uv run python -m {{slug}}.terms adapter "$a")"
+    # A failed BioPortal request prints its URL, which holds the API key.
+    uv run runoak -i "$a" search "$2" 2>&1 | sed -E 's/(apikey=)[^&[:space:]]+/\1***/g'
 
-# Show one term: `just term-info ols:go GO:0071555`
+# Show one term: `just term-info GO GO:0071555` (a prefix or an OAK adapter)
 term-info adapter curie:
-    uv run runoak -i "$1" info "$2"
+    #!/usr/bin/env bash
+    set -euo pipefail
+    a="$1"; [[ "$a" == *:* ]] || a="$(uv run python -m {{slug}}.terms adapter "$a")"
+    # A failed BioPortal request prints its URL, which holds the API key.
+    uv run runoak -i "$a" info "$2" 2>&1 | sed -E 's/(apikey=)[^&[:space:]]+/\1***/g'
 
-# is-a ancestors of a term, from OLS: `just term-ancestors ENVO:00000051`
+# is-a ancestors of a term, through its prefix's adapter: `just term-ancestors ENVO:00000051`
 term-ancestors curie:
-    uv run python -m {{slug}}.ols ancestors "$1"
+    uv run python -m {{slug}}.terms ancestors "$1"
 
 # Does a term sit under a root? `just term-under GO:0015979 GO:0008150`
 term-under curie root:
-    uv run python -m {{slug}}.ols check "$1" --root "$2"
+    uv run python -m {{slug}}.terms check "$1" --root "$2"
 
 # ---------------------------------------------------------------- curation
 

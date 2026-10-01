@@ -1,0 +1,20 @@
+format-version: 1.2
+ontology: tiny
+
+[Term]
+id: TINY:0000001
+name: tiny thing
+
+[Term]
+id: TINY:0000002
+name: small widget
+is_a: TINY:0000001 ! tiny thing
+
+[Term]
+id: TINY:0000003
+name: very small widget
+is_a: TINY:0000002 ! small widget
+
+[Term]
+id: TINY:0000009
+name: unrelated thing

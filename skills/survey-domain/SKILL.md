@@ -52,7 +52,9 @@ processes, anatomy, phenotypes, environments, assays), name the ontology,
 pick a root, and check that two or three terms you expect to bind sit under
 it with `check_terms.py under`. Checking only the root's `label` is not
 enough: some ontologies, such as GAZ as OLS serves it, keep terms without an
-is-a parent, and a dynamic enum cannot reach them. Note gaps: kinds of thing no
+is-a parent, and a dynamic enum cannot reach them. An ontology need not be on
+OLS: anything OAK reads works (OBO Foundry SQLite, BioPortal, a local file),
+checked with `check_terms.py --adapter`. Note gaps: kinds of thing no
 ontology covers well. Those become `preferred_term` text with open
 `CURATION_TODO` discussions, or a case for a new ontology.
 

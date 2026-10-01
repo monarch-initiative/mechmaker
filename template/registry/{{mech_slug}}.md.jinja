@@ -45,7 +45,7 @@ identifier_prefix: {{ mech_slug }}
 ontologies:
 {%- set seen = [] %}
 {%- if identity_prefix %}{% set _ = seen.append(identity_prefix) %}{% endif %}
-{%- for key in ontologies if key in ontology_catalog and ontology_catalog[key].prefix not in seen %}{% set _ = seen.append(ontology_catalog[key].prefix) %}{% endfor %}
+{%- for o in ontology_selection if o.prefix not in seen %}{% set _ = seen.append(o.prefix) %}{% endfor %}
 {%- for p in seen %}
   - {{ p }}
 {%- endfor %}

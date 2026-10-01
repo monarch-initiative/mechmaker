@@ -1,0 +1,19 @@
+# Ontology files
+
+Ontologies {{ mech_name }} reads from files in this repository rather than
+from a service. `conf/oak_config.yaml` names each one, for example
+`simpleobo:ontologies/my.obo`, and the term checks and `just term-*`
+recipes read it from here.
+
+{% for o in ontology_selection if o.adapter.split(':')[0] in ['simpleobo', 'pronto', 'obograph', 'sqlite'] and not o.adapter.startswith('sqlite:obo:') -%}
+- `{{ o.prefix }}`: `{{ o.adapter }}`, root `{{ o.root }}` ({{ o.root_label }})
+{% endfor -%}
+{% if identity_prefix and identity_adapter.split(':')[0] in ['simpleobo', 'pronto', 'obograph', 'sqlite'] and not identity_adapter.startswith('sqlite:obo:') -%}
+- `{{ identity_prefix }}`, which keys records: `{{ identity_adapter }}`, root `{{ identity_root }}`
+{% endif %}
+Commit the files, so the checks give the same answers on every machine and
+in CI. When a file changes, run `just validate-terms-all`: a term that moved
+or vanished fails there first.
+
+A file too large to commit can be fetched by a `just` recipe instead. Pin it
+to a release, and say here where it comes from.

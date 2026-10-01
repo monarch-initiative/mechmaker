@@ -16,7 +16,13 @@ concurrency:
   group: sweep
   cancel-in-progress: false
 
-jobs:
+{% if uses_bioportal -%}
+# BioPortal terms need a key. Set the repository secret BIOPORTAL_API_KEY.
+env:
+  BIOPORTAL_API_KEY: ${{ '{{' }} secrets.BIOPORTAL_API_KEY {{ '}}' }}
+
+{% endif -%}
+{% raw %}jobs:
   sweep:
     runs-on: ubuntu-latest
     timeout-minutes: 120
@@ -34,3 +40,4 @@ jobs:
       - name: Cache changes the sweep would add
         if: always()
         run: git status --short cache references_cache | tee -a "$GITHUB_STEP_SUMMARY"
+{% endraw %}

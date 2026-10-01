@@ -14,29 +14,35 @@ description: >-
 - Each descriptor class in `src/{{ mech_slug }}/schema/{{ mech_slug }}.yaml`
   binds `term.id` to a dynamic enum. The enum's `reachable_from` root says
   which terms are allowed.
-- `conf/oak_config.yaml` says which service answers for which prefix. A
+- `conf/oak_config.yaml` says which OAK adapter answers for which prefix:
+  OLS, a downloaded SQLite file, BioPortal, or a file in `ontologies/`. A
   prefix that is not listed is never checked. That is a silent hole.
 - `cache/` holds every answer the validator has received. It is committed.
 
 ## Choosing a term
 
 1. Read the slot's range and its enum root in the schema.
-2. Search broadly, with synonyms:
+2. Search broadly, with synonyms. Give the prefix and the recipe uses the
+   adapter `conf/oak_config.yaml` gives it:
 
    ```bash
-   just search-term ols:<ontology> "<text>"
+   just search-term <PREFIX> "<text>"
    ```
+
+   Over a local file (`simpleobo:`, `pronto:`) search matches whole labels
+   only. Put `l~` in front for a partial match: `just search-term TINY "l~widget"`.
 
 3. Inspect each candidate before choosing. Definition, then ancestors:
 
    ```bash
-   just term-info ols:<ontology> <CURIE>
-   just term-ancestors <CURIE>              # is-a ancestors, via the OLS API
+   just term-info <PREFIX> <CURIE>
+   just term-ancestors <CURIE>              # is-a ancestors, through the same adapter
    just term-under <CURIE> <enum-root>      # exit 0 if it sits under the root
    ```
 
-   `runoak ancestors` does not work over `ols:` adapters. Use the recipes
-   above, or a `sqlite:obo:<name>` adapter if you need relationship detail.
+   These go through the adapter the term checks use, so they answer the
+   question the checks ask. `runoak ancestors` does not work over `ols:`
+   adapters; the recipes handle that.
 
 4. Choose the most specific term that is accurate. If only a broad one fits,
    bind the broad one and say in `notes` what you searched for.
@@ -62,8 +68,22 @@ just validate-terms-offline {{ records_dir }}/<stem>.yaml   # cache only
 ## Adding an ontology
 
 1. Add the prefix and its URI to `prefixes:` in the schema.
-2. Add the prefix and adapter to `conf/oak_config.yaml`. Prefer `ols:<name>`.
-   Use `sqlite:obo:<name>` when the ontology is large and heavily used.
+2. Add the prefix and adapter to `conf/oak_config.yaml`. Any adapter OAK
+   accepts works:
+
+   | Adapter | When |
+   |---|---|
+   | `ols:<name>` | The ontology is on OLS. Nothing to download. |
+   | `sqlite:obo:<name>` | An OBO Foundry ontology, large or heavily used. One download, then offline. |
+   | `bioportal:<name>` | Only on BioPortal. Needs `BIOPORTAL_API_KEY` locally and as a repository secret for CI. Is-a only: BioPortal gives no part-of. |
+   | `simpleobo:ontologies/<file>.obo`, `pronto:ontologies/<file>.owl`, `sqlite:ontologies/<file>.db` | Your own or an unpublished ontology. Commit the file under `ontologies/`. |
+
+   Check the adapter answers before going further: `just term-info <PREFIX> <root>`.
+
+   Run term checks through `just`, never `runoak` or `linkml-term-validator`
+   directly. The recipes apply a workaround in `src/{{ mech_slug }}/oak_compat.py`,
+   without which every BioPortal term fails its enum, and they hide the
+   BioPortal key, which a failed request prints inside its URL.
 3. Add a descriptor class and a dynamic enum with a verified root. Check
    the root with `just term-info`, and check that the terms you expect to
    bind sit under it with `just term-under`, before you write it down.

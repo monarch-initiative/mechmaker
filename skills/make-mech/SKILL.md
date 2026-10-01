@@ -111,9 +111,37 @@ python_min: "3.11"
 
 `ontologies` takes these keys: `GO_BP`, `GO_MF`, `GO_CC`, `CL`, `UBERON`,
 `CHEBI`, `HP`, `MONDO`, `NCBITaxon`, `ENVO`, `PATO`, `OBI`, `UO`, `PR`, `SO`,
-`MAXO`, `FOODON`. Each adds one descriptor class, one dynamic enum with a
-verified root, and one record section. Pick what the records will really
-bind. Others can be added later with the `ontology-terms` skill.
+`MAXO`, `FOODON`, `VBO`, `VT`, `NCIT_COUNTRY`. Each adds one descriptor
+class, one dynamic enum with a verified root, and one record section. Pick
+what the records will really bind. `term_backend: sqlite` checks them
+against downloaded copies instead of OLS.
+
+Any other ontology OAK can read goes in `extra_ontologies`, and gets the
+same three things. It can be on OLS, an OBO Foundry ontology read as SQLite,
+on BioPortal, or a file the Mech will keep under `ontologies/`:
+
+```yaml
+extra_ontologies:
+  - {prefix: ZFA, root: "ZFA:0100000", root_label: zebrafish anatomical entity, noun: anatomy, slot: anatomy_terms}
+  - {prefix: <ACRONYM>, root: "<ACRONYM>:<root id>", root_label: <its label>,
+     noun: <one word or two>, adapter: "bioportal:<ACRONYM>", uri: "<its term URI base>"}
+  - {prefix: LAB, root: "LAB:0000001", root_label: lab protocol, noun: protocol,
+     adapter: "simpleobo:ontologies/lab.obo", uri: "https://example.org/lab/LAB_"}
+```
+
+`adapter` defaults to `ols:<prefix>` and `uri` to the OBO PURL; give both for
+anything else. Check each root and two or three expected terms through the
+same adapter before generating:
+
+```bash
+python skills/make-mech/scripts/check_terms.py --adapter bioportal:<ACRONYM> label <ACRONYM>:<root id>
+python skills/make-mech/scripts/check_terms.py --adapter simpleobo:lab.obo under LAB:0000001 LAB:0000042
+```
+
+BioPortal needs `BIOPORTAL_API_KEY`, here and as a repository secret for CI;
+the person sets it. Never print the key, and mask `apikey=` in any output you
+show: a failed BioPortal request prints its URL with the key in it. Tell them a local file must be copied into
+`ontologies/` and committed after generation.
 
 **Check the identity root before generating.** Take three to five entities
 you expect to be records, find their CURIEs, and check they sit under the
@@ -139,7 +167,9 @@ just install
 just qc
 ```
 
-Use a local path instead of `gh:...` when working from a checkout. `just qc`
+Use a local path instead of `gh:...` when working from a checkout. Copier
+then copies the latest release tag; add `--vcs-ref HEAD` to use the
+checkout as it is. `just qc`
 must pass on the fresh copy. If it does not, the template is broken: stop
 and report it, do not patch the output.
 
