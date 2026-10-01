@@ -82,7 +82,8 @@ Copier asks `load_targets` when the Mech is made; each choice adds
 linkml-store, with that target's extra, to the Mech's dependencies.
 Addresses live in `conf/load.yaml`. `${NAME}` in an address is read from
 the environment, so passwords stay out of the repository, and addresses are
-printed with passwords hidden.
+printed with passwords hidden. A password must not contain `@` or `:`:
+linkml-store splits the address on them.
 
 ```yaml
 targets:

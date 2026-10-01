@@ -65,7 +65,8 @@ def expand(handle: str) -> str:
 
 
 def masked(handle: str) -> str:
-    return re.sub(r"(//[^:/@]+:)[^@]+@", r"\1***@", handle)
+    """The address with its password hidden: everything between `user:` and the last `@`."""
+    return re.sub(r"(//[^:/@]+:).*@", r"\1***@", handle)
 
 
 def need(target: str):

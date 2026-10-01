@@ -44,6 +44,8 @@ def test_a_term_sharing_the_record_curie_gets_its_own_node(monkeypatch):
 
 def test_passwords_are_masked_and_variables_required(monkeypatch):
     assert load.masked("neo4j://neo4j:s3cret@host:7687/neo4j") == "neo4j://neo4j:***@host:7687/neo4j"
+    # A password with @ or : in it is hidden whole, not up to its first @.
+    assert load.masked("neo4j://neo4j:p@ss:w@host:7687/neo4j") == "neo4j://neo4j:***@host:7687/neo4j"
     monkeypatch.delenv("NO_SUCH_PASSWORD", raising=False)
     with pytest.raises(SystemExit):
         load.expand("neo4j://neo4j:${NO_SUCH_PASSWORD}@host/neo4j")

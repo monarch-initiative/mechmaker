@@ -3,6 +3,7 @@
 #
 # ${NAME} is read from the environment when loading, so passwords never sit
 # in this file. A load refuses to overwrite data unless given --replace.
+# Use passwords without @ or :, which linkml-store cannot read in an address.
 #
 #   mongodb  mongodb://[user:${PASSWORD}@]host:port/database
 #            one collection, named for the records folder; --replace drops
