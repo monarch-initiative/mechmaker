@@ -73,19 +73,51 @@ def schemaview():
 # ---------------------------------------------------------------- RDF
 
 
+def pad_single_keys(sv, cls: str, obj):
+    """Give each one-key object in a list a second, empty field.
+
+    linkml-runtime (1.11) reads a one-key list item such as {purpose: DAIRY}
+    as a key:value shorthand, and then fails comparing the enum it made with
+    the string it read. A second field set to None takes it down the
+    ordinary path; None fields are dropped, so the data is unchanged.
+    """
+    classes = sv.all_classes()
+    if not isinstance(obj, dict):
+        return obj
+    out = dict(obj)
+    for slot in sv.class_induced_slots(cls):
+        value = out.get(slot.name)
+        if slot.range not in classes or value is None:
+            continue
+        names = [s.name for s in sv.class_induced_slots(slot.range)]
+        if isinstance(value, list):
+            items = []
+            for item in value:
+                item = pad_single_keys(sv, slot.range, item)
+                if isinstance(item, dict) and len(item) == 1:
+                    spare = next((n for n in names if n not in item), None)
+                    if spare:
+                        item = {**item, spare: None}
+                items.append(item)
+            out[slot.name] = items
+        else:
+            out[slot.name] = pad_single_keys(sv, slot.range, value)
+    return out
+
+
 def rdf_graph(sv, records: list[tuple[Path, dict]]):
     """One graph for every record, through the schema's URIs."""
     from linkml.generators.pythongen import PythonGenerator
     from linkml_runtime.dumpers import rdflib_dumper
-    from linkml_runtime.loaders import yaml_loader
 
     module = PythonGenerator(sv.schema).compile_module()
     target = getattr(module, RECORD_CLASS)
     import rdflib
 
     graph = rdflib.Graph()
-    for path, _ in records:
-        graph += rdflib_dumper.as_rdf_graph(yaml_loader.load(str(path), target_class=target), schemaview=sv)
+    for _, data in records:
+        obj = target(**pad_single_keys(sv, RECORD_CLASS, data))
+        graph += rdflib_dumper.as_rdf_graph(obj, schemaview=sv)
     for prefix, p in sv.schema.prefixes.items():
         graph.bind(prefix, p.prefix_reference, override=True)
     return graph
@@ -125,7 +157,9 @@ def build_sqlite(sv, records: list[tuple[Path, dict]], db: Path) -> None:
     columns = {t: [r[1] for r in con.execute(f'PRAGMA table_info("{t}")')]
                for (t,) in con.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     for table, cols in columns.items():
-        if any(c.endswith("_id") and c[:-3] in classes for c in cols):
+        # A class table whose rows can sit under a parent gets parent_slot. A join
+        # table (<Class>_<slot>) does not need one: its name says the slot.
+        if table in classes and any(c.endswith("_id") and c[:-3] in classes for c in cols):
             con.execute(f'ALTER TABLE "{table}" ADD COLUMN parent_slot TEXT')
             cols.append("parent_slot")
 

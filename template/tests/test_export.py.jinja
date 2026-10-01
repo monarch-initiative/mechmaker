@@ -72,3 +72,17 @@ def test_settings_are_checked(tmp_path, monkeypatch):
     monkeypatch.setattr(export, "SETTINGS", bad)
     with pytest.raises(SystemExit):
         export.settings()
+
+
+def test_one_key_list_items_load():
+    # linkml-runtime misreads a one-key list item; the export pads it first.
+    sv = export.schemaview()
+    classes = sv.all_classes()
+    slot = next((s for s in sv.class_induced_slots(RECORD_CLASS)
+                 if s.multivalued and s.range in classes and len(sv.class_induced_slots(s.range)) > 1), None)
+    if slot is None:
+        pytest.skip("no list of objects on the record class")
+    first = sv.class_induced_slots(slot.range)[0].name
+    padded = export.pad_single_keys(sv, RECORD_CLASS, {slot.name: [{first: "x"}]})
+    item = padded[slot.name][0]
+    assert item[first] == "x" and len(item) == 2 and None in item.values()

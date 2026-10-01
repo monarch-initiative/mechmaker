@@ -66,6 +66,9 @@ thing.
 - LinkML's own SQL loader (`SQLStore`) fails on a Mech's schema in linkml
   1.11 (dates, and imports given as a path), so the database is filled by
   the Mech's `export.py`, into the tables `gen-sqltables` defines.
+- linkml-runtime 1.11 misreads a one-key item in a list of objects, such
+  as `{purpose: DAIRY}`, when that key is an enum. The export gives such an
+  item a second, empty field before loading it; the data is unchanged.
 - Classes and slots from the shared `mech_shared` module take its URIs,
   under `https://w3id.org/kg-microbe/mech-shared/`.
 - Parquet, DuckDB and Croissant are not LinkML-native and not yet offered
