@@ -11,7 +11,9 @@
 4. Write. Terms through `just search-term` and `just term-info`. Quotes
    copied from the fetched text and added with `just add-evidence`, which
    checks each quote against its source before writing it.
-5. Validate. `just validate data/goat_breeds/<stem>.yaml` until clean.
+5. Validate. `just fill-titles data/goat_breeds/<stem>.yaml --apply` fills
+   any missing `reference_title` from the cache. Then
+   `just validate data/goat_breeds/<stem>.yaml` until clean.
 6. Record. Append a `curation_history` event to the record. Add a history
    record with `just new-history ... --apply`.
 7. Open a pull request. A person reviews it.

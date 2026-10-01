@@ -34,6 +34,7 @@ just new-history ...   # scaffold a history record (dry-run unless --apply)
 just add-evidence FILE --at PLACE --ref REF --snippet "..."   # checked evidence (dry-run unless --apply)
 just convert scripts/convert_X.py --limit 5   # convert an existing knowledge base (dry-run unless --apply)
 just fetch-reference PMID:NNN   # fetch and cache a source; read it before quoting it
+just fill-titles [FILE...]      # fill missing reference_title from the cache (dry-run unless --apply)
 just search-term ADAPTER "text" # search an ontology, e.g. ols:go
 just term-ancestors CURIE       # where a term sits; use when an enum root rejects it
 just report            # corpus statistics
