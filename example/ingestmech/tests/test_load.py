@@ -98,3 +98,9 @@ def test_references_by_id_become_edges(tmp_path):
     assert {(e["subject"], e["predicate"], e["object"]) for e in edges} == {
         ("ex:b", "parent", "ex:a"), ("ex:b", "kin", "ex:a")}
     assert next(n for n in nodes if n["id"] == "ex:a")["name"] == "A"  # the stub became the record
+
+
+def test_two_records_with_one_id_are_refused():
+    twin = {**EXAMPLE, "name": "twin"}
+    with pytest.raises(SystemExit, match="two records have the id"):
+        load.graph(load.schemaview(), [EXAMPLE, twin])

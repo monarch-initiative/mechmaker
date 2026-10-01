@@ -134,7 +134,13 @@ def graph(sv, records: list[dict]) -> tuple[list[dict], list[dict]]:
         nodes[node_id].update(props)
 
     for r in records:
-        walk(RECORD_CLASS, r, str(r["id"]))
+        rid = str(r["id"])
+        if rid in nodes and nodes[rid].get("_walked"):
+            raise SystemExit(f"load: two records have the id {rid!r}; their nodes would merge")
+        walk(RECORD_CLASS, r, rid)
+        nodes[rid]["_walked"] = True
+    for n in nodes.values():
+        n.pop("_walked", None)
     return list(nodes.values()), edges
 
 

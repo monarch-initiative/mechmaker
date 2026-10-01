@@ -319,6 +319,13 @@ def export(
             old.unlink()
     records = [(p, load(p) or {}) for p in (iter_records() if paths is None else paths)]
     n = len(records)
+    seen: dict[str, Path] = {}
+    for p, d in records:
+        rid = str(d.get("id"))
+        if rid in seen:
+            # Every format keys records by id: a second one would overwrite or collide.
+            raise SystemExit(f"export: {p.name} and {seen[rid].name} have the same id {rid!r}")
+        seen[rid] = p
     fmts = set(cfg["formats"])
     written: list[Path] = []
     problems: list[str] = []

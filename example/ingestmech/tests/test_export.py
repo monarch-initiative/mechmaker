@@ -151,3 +151,10 @@ def test_references_by_id_go_in_their_columns(tmp_path):
     con = sqlite3.connect(db)
     assert con.execute(f'SELECT parent FROM "{RECORD_CLASS}" WHERE id = ?', ("ex:b",)).fetchone() == ("ex:a",)
     assert con.execute(f'SELECT kin_id FROM "{RECORD_CLASS}_kin"').fetchall() == [("ex:a",)]
+
+
+def test_two_records_with_one_id_are_refused(tmp_path):
+    twin = tmp_path / "twin.yaml"
+    twin.write_text(EXAMPLE.read_text())
+    with pytest.raises(SystemExit, match="have the same id"):
+        export.export({"formats": ["json"], "tabular_layout": "per_class"}, [EXAMPLE, twin], tmp_path / "out")
