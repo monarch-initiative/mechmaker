@@ -16,7 +16,8 @@ text from the schema:
     its quotes folded into the last column;
   - any other object is a card, titled by its preferred term or name, with
     its quotes in view; so is every curated mention (a preferred_term);
-  - evidence is a quote card: source, title, support, snippet;
+  - evidence is a quote card: source, title, support, snippet; the
+    description's own evidence folds under the description;
   - discussions are cards with their kind and status;
   - curation history is a table, folded away.
 
@@ -312,7 +313,7 @@ def history(v: list) -> Markup:
         len(v), "" if len(v) == 1 else "s", rows)
 
 
-HEADER_KEYS = ("id", "name", "description", "status", "record_term", "synonyms")
+HEADER_KEYS = ("id", "name", "description", "description_evidence", "status", "record_term", "synonyms")
 
 
 def record_body(data: dict, hidden: list[str]) -> dict:
@@ -336,7 +337,10 @@ def record_body(data: dict, hidden: list[str]) -> dict:
             html = value(v, k)
         sections.append({"key": k, "label": label(k), "help": help_text(k), "html": html,
                          "count": len(v) if isinstance(v, list) else None})
-    return {"overview": overview, "sections": sections}
+    ev = data.get("description_evidence") or []
+    lead = evidence_list(ev) if ev else None
+    return {"overview": overview, "sections": sections,
+            "description_evidence": lead, "description_quotes": len(ev)}
 
 
 def cell(v) -> str:

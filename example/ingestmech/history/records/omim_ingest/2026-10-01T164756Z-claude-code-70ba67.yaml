@@ -1,0 +1,22 @@
+history_version: 1
+target:
+  kind: record
+  slug: omim_ingest
+  path: data/ingests/omim_ingest.yaml
+session:
+  id: 2026-10-01T164756Z-claude-code-70ba67
+  timestamp: '2026-10-01T16:47:56Z'
+  actors:
+  - type: ai_agent
+    name: claude-code
+    model: claude-opus-5-5
+    agent_tool: claude-code
+events:
+- type: EDIT
+  outcome: changed
+  sections:
+  - description_evidence
+  summary: Moved the description's quote to description_evidence.
+  details: The quote of the repository's project_description, which the conversion had put in the record-level
+    evidence list, now sits in description_evidence, the place the template gives evidence for a description.
+    The conversion script writes it there too. No quote changed.

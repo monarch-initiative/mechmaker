@@ -271,8 +271,10 @@ records lacked);
 evidence is written into YAML by hand, where an unquoted colon broke a
 record ([#7](https://github.com/monarch-initiative/mechmaker/issues/7);
 since then, `just add-evidence` does this, checking the quote first); a
-record's description has no evidence of its own
-([#8](https://github.com/monarch-initiative/mechmaker/issues/8)).
+record's description had no evidence of its own
+([#8](https://github.com/monarch-initiative/mechmaker/issues/8); since then,
+`description_evidence` holds it, and each GoatMech description quotes its
+facts there or in a section).
 
 ### The full check
 

@@ -48,6 +48,7 @@ classes:
       - id
       - name
       - description
+      - description_evidence
 {%- if identity_prefix %}
       - record_term
 {%- endif %}
@@ -244,6 +245,14 @@ slots:
     inlined_as_list: true
     recommended: true
     description: Citations that bear on the enclosing claim.
+  description_evidence:
+    range: EvidenceItem
+    multivalued: true
+    inlined_as_list: true
+    recommended: true
+    description: >-
+      Quotes for the facts stated in the record's description. Every fact
+      there needs one, here or in the section that states it with evidence.
   datasets:
     range: Dataset
     multivalued: true

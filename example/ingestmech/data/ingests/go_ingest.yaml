@@ -1,6 +1,12 @@
 id: ingestmech:go-ingest
 name: go-ingest
 description: Modular ingest for Gene Ontology annotations. Creates gene-to-GO term associations for molecular activity, biological process, and cellular component.
+description_evidence:
+  - reference: url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/.copier-answers.yml
+    supports: SUPPORT
+    evidence_source: INGEST_REPOSITORY
+    snippet: 'project_description: Modular ingest for Gene Ontology annotations. Creates gene-to-GO term associations for molecular activity, biological process, and cellular component.'
+    explanation: The record's description is the repository's own.
 repository: https://github.com/monarch-initiative/go-ingest
 source_commit: fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca
 code_license:
@@ -312,12 +318,6 @@ associations:
 koza_transforms:
   - gaf_eco
   - go_annotation
-evidence:
-  - reference: url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/.copier-answers.yml
-    supports: SUPPORT
-    evidence_source: INGEST_REPOSITORY
-    snippet: 'project_description: Modular ingest for Gene Ontology annotations. Creates gene-to-GO term associations for molecular activity, biological process, and cellular component.'
-    explanation: The record's description is the repository's own.
 discussions:
   - discussion_id: go-ingest-data-licenses
     prompt: No ingest records the terms of its upstream data. Curate each source's data_license from the source's own terms.
@@ -378,4 +378,10 @@ curation_history:
     model: claude-opus-5-5
     action: EDIT
     description: Curated the upstream sources' descriptions, homepages and data licenses from the sources, closed the gaps that sources filled, and set status PROPOSED.
-updated_date: '2026-09-30'
+  - timestamp: '2026-10-01T16:42:29+00:00'
+    curator: claude-code
+    llm_assisted: true
+    model: claude-opus-5-5
+    action: EDIT
+    description: Moved the quote of the repository's project_description from evidence to description_evidence, the new place for evidence of the description.
+updated_date: '2026-10-01'

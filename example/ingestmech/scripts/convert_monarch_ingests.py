@@ -207,6 +207,9 @@ def convert(name: str, known: dict[str, dict]) -> Entry | Skip:
     description = " ".join(str(answers.get("project_description", "")).split())
     if description:
         record["description"] = description
+        first = str(answers["project_description"]).split("\n")[0]
+        record["description_evidence"] = [repo.quote(".copier-answers.yml", f"project_description: {first}",
+                                                     "The record's description is the repository's own.")]
     record["repository"] = f"https://github.com/{ORG}/{name}"
     record["source_commit"] = repo.sha
     license_ = answers.get("license")
@@ -228,10 +231,6 @@ def convert(name: str, known: dict[str, dict]) -> Entry | Skip:
             transforms.append(str(t["name"]))
     if transforms:
         record["koza_transforms"] = transforms
-    if description:
-        first = str(answers["project_description"]).split("\n")[0]
-        record["evidence"] = [repo.quote(".copier-answers.yml", f"project_description: {first}",
-                                         "The record's description is the repository's own.")]
     talk.append(todo(name, "data-licenses", "No ingest records the terms of its upstream data. "
                      "Curate each source's data_license from the source's own terms.", "upstream_sources"))
     record["discussions"] = talk
