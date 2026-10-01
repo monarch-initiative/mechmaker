@@ -17,9 +17,10 @@ are printed with passwords hidden. After loading, the data is counted back.
            label, and the node property mech_class. A nested object's
            node id is its path, e.g. `VBO:0000736/origins/0`. A term with the
            same CURIE as a record gets `<CURIE> (Term)`, with the CURIE in
-           its `curie` property. --replace deletes
-           every node in the Neo4j database, not only this Mech's: give the
-           Mech a database of its own.
+           its `curie` property. Every node also has the MechNode label and
+           this Mech's slug in `mech`; --replace deletes those nodes only.
+           Writes are batched Cypher (see load_neo4j), so a large Mech loads
+           in seconds.
 
 The packages come from linkml-store, which a Mech installs only when it
 chose a load target. Other linkml-store backends were tried and left out:
@@ -36,7 +37,7 @@ import sys
 
 import yaml
 
-from .paths import RECORD_CLASS, RECORDS_DIR, REPO_ROOT
+from .paths import RECORD_CLASS, RECORDS_DIR, REPO_ROOT, SLUG
 from .validate import iter_records, load
 
 SETTINGS = REPO_ROOT / "conf" / "load.yaml"
@@ -160,28 +161,60 @@ def load_mongodb(handle: str, records: list[dict], replace: bool) -> str:
     return f"{got} document(s) in collection {name!r}"
 
 
+# Neo4j writes are batched Cypher, not linkml-store's collection inserts: those
+# run three label-less MATCHes per edge, each reading every node, so a load
+# grows with nodes times edges. Every node here carries the MechNode label
+# and this Mech's slug in `mech`, with an index on MechNode.id, so matching an
+# edge's ends uses the index, and --replace can delete this Mech's nodes only.
+NODE_LABEL = "MechNode"
+BATCH = 1000
+
+
+def _quote(name: str) -> str:
+    """A label or relationship type, escaped for Cypher."""
+    return "`" + str(name).replace("`", "``") + "`"
+
+
+def _batches(rows: list, size: int = BATCH):
+    for i in range(0, len(rows), size):
+        yield rows[i:i + size]
+
+
 def load_neo4j(handle: str, records: list[dict], replace: bool) -> str:
     Client = need("neo4j")
     nodes, edges = graph(schemaview(), records)
     db = Client().attach_database(handle, alias="target")
+    ours = "{mech: $mech}"  # a Cypher map: only this Mech's nodes
+    mine = f"MATCH (n:{NODE_LABEL} {ours})"
     with db.session() as session:
-        held = session.run("MATCH (n) RETURN count(n) AS c").single()["c"]
-    if held and not replace:
-        raise SystemExit(f"neo4j: the database holds {held} node(s). Pass --replace to delete every node "
-                         "in it, this Mech's or not, and load again.")
-    # Both collections are made before inserting: making one with
-    # recreate_if_exists empties the whole database.
-    from linkml_store.graphs.graph_map import NodeProjection
-
-    node_coll = db.create_collection("Node", alias="nodes", recreate_if_exists=True)
-    node_coll.metadata.graph_projection = NodeProjection(category_labels_attribute=LABEL)
-    edge_coll = db.create_collection("Edge", alias="edges", recreate_if_exists=True)
-    edge_coll.set_is_edge_collection(force=True)
-    node_coll.insert(nodes)
-    edge_coll.insert(edges)
-    with db.session() as session:
-        n = session.run("MATCH (n) RETURN count(n) AS c").single()["c"]
-        e = session.run("MATCH ()-[r]->() RETURN count(r) AS c").single()["c"]
+        held = session.run(f"{mine} RETURN count(n) AS c", mech=SLUG).single()["c"]
+        if held and not replace:
+            raise SystemExit(f"neo4j: the database holds {held} node(s) from {SLUG}. Pass --replace to "
+                             "delete them and load again; other data in the database is left alone.")
+        session.run(f"CREATE INDEX mech_node_id IF NOT EXISTS FOR (n:{NODE_LABEL}) ON (n.id)").consume()
+        while session.run(f"{mine} WITH n LIMIT 10000 DETACH DELETE n RETURN count(n) AS c",
+                          mech=SLUG).single()["c"]:
+            pass
+        by_class: dict[str, list[dict]] = {}
+        for n in nodes:
+            by_class.setdefault(n[LABEL], []).append({**n, "mech": SLUG})
+        for cls, rows in by_class.items():
+            query = f"UNWIND $rows AS row CREATE (n:{NODE_LABEL}:{_quote(cls)}) SET n = row"
+            for batch in _batches(rows):
+                session.run(query, rows=batch).consume()
+        by_predicate: dict[str, list[dict]] = {}
+        for e in edges:
+            by_predicate.setdefault(e["predicate"], []).append({"s": e["subject"], "o": e["object"]})
+        for pred, rows in by_predicate.items():
+            query = (f"UNWIND $rows AS row "
+                     f"MATCH (s:{NODE_LABEL} " + "{mech: $mech, id: row.s}) "
+                     f"MATCH (o:{NODE_LABEL} " + "{mech: $mech, id: row.o}) "
+                     f"CREATE (s)-[:{_quote(pred)}]->(o)")
+            for batch in _batches(rows):
+                session.run(query, rows=batch, mech=SLUG).consume()
+        n = session.run(f"{mine} RETURN count(n) AS c", mech=SLUG).single()["c"]
+        e = session.run(f"{mine}-[r]->(:{NODE_LABEL} {ours}) RETURN count(r) AS c",
+                        mech=SLUG).single()["c"]
     if (n, e) != (len(nodes), len(edges)):
         raise SystemExit(f"neo4j: {n} node(s) and {e} edge(s) after loading {len(nodes)} and {len(edges)}.")
     return f"{n} node(s) and {e} edge(s)"

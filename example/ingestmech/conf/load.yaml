@@ -9,8 +9,8 @@
 #            one collection, named for the records folder; --replace drops
 #            that collection only.
 #   neo4j    neo4j://user:${PASSWORD}@host:port/database
-#            --replace deletes every node in that Neo4j database. Give the
-#            Mech a database of its own.
+#            every node is labelled MechNode with this Mech's slug in `mech`;
+#            --replace deletes those nodes only, and other data is left alone.
 #
 # Adding a target later also needs its package:
 #   uv add 'linkml-store[mongodb,neo4j]>=0.3.2' && just install

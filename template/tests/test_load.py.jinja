@@ -107,3 +107,9 @@ def test_two_records_with_one_id_are_refused():
     twin = {**EXAMPLE, "name": "twin"}
     with pytest.raises(SystemExit, match="two records have the id"):
         load.graph(load.schemaview(), [EXAMPLE, twin])
+
+
+def test_labels_are_escaped_for_cypher():
+    assert load._quote("Term") == "`Term`"
+    assert load._quote("odd`name") == "`odd``name`"
+    assert [len(b) for b in load._batches(list(range(2500)), 1000)] == [1000, 1000, 500]

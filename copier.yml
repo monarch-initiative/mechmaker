@@ -417,7 +417,7 @@ load_targets:
   multiselect: true
   choices:
     "MongoDB": mongodb
-    "Neo4j (replacing data empties the whole Neo4j database)": neo4j
+    "Neo4j (a graph of every object)": neo4j
   default: []
 
 tabular_layout:

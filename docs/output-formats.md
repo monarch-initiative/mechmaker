@@ -71,7 +71,7 @@ just load neo4j --replace      # replace what is there
 | Target | What it holds | `--replace` deletes |
 |---|---|---|
 | `mongodb` | One collection, named for the records folder, one document per record, nested as in the YAML | That collection only |
-| `neo4j` | A graph. Every object is a node labelled with its class; every field holding objects is an edge named for the field; each ontology term is one shared node per CURIE. Nested objects get path ids such as `VBO:0000736/origins/0` | **Every node in the Neo4j database.** Give the Mech a database of its own |
+| `neo4j` | A graph. Every object is a node labelled with its class and with `MechNode`, with the Mech's slug in `mech`; every field holding objects is an edge named for the field; each ontology term is one shared node per CURIE. Nested objects get path ids such as `VBO:0000736/origins/0` | This Mech's nodes only (those with its `mech`). Several Mechs can share one database |
 
 A Neo4j query, on GoatMech: the features of the Boer and their terms.
 
@@ -79,6 +79,11 @@ A Neo4j query, on GoatMech: the features of the Boer and their terms.
 MATCH (b:GoatBreed {id: 'VBO:0000736'})-[:distinguishing_features]->(f)-[:term]->(t)
 RETURN f.preferred_term, t.label
 ```
+
+Neo4j is written with batched Cypher and an index on `MechNode.id`, not
+with linkml-store's collection inserts, which match each edge's ends by
+reading every node. On GoatMech's records copied 200 times, 22,824 nodes
+and 28,800 edges load in about 4 seconds.
 
 Copier asks `load_targets` when the Mech is made; each choice adds
 linkml-store, with that target's extra, to the Mech's dependencies.
