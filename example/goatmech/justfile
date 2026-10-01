@@ -145,6 +145,11 @@ report *args:
 compliance *files:
     uv run python -m {{slug}}.compliance "$@"
 
+# Load the records into a running database named in conf/load.yaml, through
+# linkml-store, and count them back. `just load mongodb`, `just load neo4j --replace`.
+load *args:
+    uv run python -m {{slug}}.load "$@"
+
 # Export the records in the formats conf/export.yaml names, into build/export/,
 # and read each file back. `just export --list` shows the formats.
 export *args:

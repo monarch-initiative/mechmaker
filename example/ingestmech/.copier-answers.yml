@@ -49,3 +49,6 @@ output_formats:
 - sql
 - csv
 tabular_layout: per_class
+load_targets:
+- mongodb
+- neo4j
