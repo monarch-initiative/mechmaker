@@ -13,6 +13,7 @@ identity_prefix: VBO
 identity_root: "VBO:0400025"
 identity_uri: http://purl.obolibrary.org/obo/VBO_
 identity_adapter: ols:vbo
+identity_direct_only: true
 ontologies: [NCBITaxon, UO]
 causal_graphs: false
 taxon_scope: "NCBITaxon:9925"

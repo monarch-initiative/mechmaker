@@ -20,6 +20,7 @@ full_title: Goat Breed Knowledge Base
 github_org: monarch-initiative
 github_user: caufieldjh
 identity_adapter: ols:vbo
+identity_direct_only: true
 identity_prefix: VBO
 identity_root: VBO:0400025
 identity_uri: http://purl.obolibrary.org/obo/VBO_
