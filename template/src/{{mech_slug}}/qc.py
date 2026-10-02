@@ -23,6 +23,7 @@ OFFLINE = [
 ]
 NETWORK = [
     ("records: ontology terms", ["just", "validate-terms-all"]),
+    ("records: identity", ["just", "check-identity"]),
     ("records: verbatim quotes", ["just", "validate-references-all"]),
 ]
 

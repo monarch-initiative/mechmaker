@@ -4,6 +4,8 @@
     check_terms.py label GO:0008150 ENVO:01000813       # print each term's label
     check_terms.py under ENVO:01000813 ENVO:00000051 ENVO:00000022
         # is the first CURIE an is-a ancestor (or self) of each of the rest?
+    check_terms.py under --direct VBO:0400025 VBO:0000827 VBO:0009093
+        # is the first CURIE a direct is-a parent of each of the rest?
     check_terms.py search envo "hot spring"               # top matches
 
 Every command takes --adapter for an ontology OLS does not serve, with any
@@ -138,6 +140,33 @@ def _oak_ancestors(curie):
     return {line.strip() for line in out.stdout.splitlines() if line.strip()}
 
 
+PARENTS_PY = """
+import sys
+from oaklib import get_adapter
+from oaklib.datamodels.vocabulary import IS_A
+a = get_adapter(sys.argv[1])
+print("\\n".join(o for _, _, o in a.relationships([sys.argv[2]], predicates=[IS_A]) if o != sys.argv[2]))
+"""
+
+
+def parents(curie):
+    """Direct is-a parents."""
+    if _oak_mode():
+        cmd = OAK_PY + ["-c", PARENTS_PY, ADAPTER, curie]
+        try:
+            out = subprocess.run(cmd, capture_output=True, text=True, timeout=3600)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise Unreachable(f"OAK did not run: {exc}") from exc
+        if out.returncode != 0:
+            last = _mask((out.stderr.strip().splitlines()[-1:] or [f"exit {out.returncode}"])[0])
+            if re.search(r"Timeout|ConnectionError|Max retries", last):
+                raise Unreachable(f"{ADAPTER}: {last}")
+            raise OakFailed(f"{ADAPTER} failed: {last}")
+        return {line.strip() for line in out.stdout.splitlines() if line.strip()}
+    data = _get(_term_url(curie, "/parents?size=500"))
+    return {t.get("obo_id") for t in data.get("_embedded", {}).get("terms", [])}
+
+
 def ancestors(curie):
     if _oak_mode():
         return _oak_ancestors(curie)
@@ -165,6 +194,8 @@ def main(argv):
             ok &= lab is not None
             print(f"{c}\t{lab if lab is not None else 'NOT FOUND'}")
     elif cmd == "under":
+        direct = "--direct" in args
+        args = [a for a in args if a != "--direct"]
         root, terms = args[0], args[1:]
         if label(root) is None:
             print(f"{root}\tNOT FOUND")
@@ -174,9 +205,13 @@ def main(argv):
                 print(f"{c}\tNOT FOUND")
                 ok = False
                 continue
-            hit = c == root or root in ancestors(c)
+            if direct:
+                hit = root in parents(c)
+                print(f"{c}\t{'a direct child of' if hit else 'NOT a direct child of'} {root}")
+            else:
+                hit = c == root or root in ancestors(c)
+                print(f"{c}\t{'under' if hit else 'NOT under'} {root}")
             ok &= hit
-            print(f"{c}\t{'under' if hit else 'NOT under'} {root}")
     else:
         onto, query = args[0], " ".join(args[1:])
         if _oak_mode():

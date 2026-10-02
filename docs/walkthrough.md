@@ -74,9 +74,11 @@ What the survey found, in
   DAD-IS, whose terms of use were not yet read.
 - **No other Mech overlaps.** None in MechRegistry records animals.
 
-Two gaps showed here. The identity enum cannot yet say "direct children
+Two gaps showed here. The identity enum could not say "direct children
 only", so a national population would pass as a record
-([#3](https://github.com/monarch-initiative/mechmaker/issues/3)). And VBO,
+([#3](https://github.com/monarch-initiative/mechmaker/issues/3)). The
+template now asks `identity_direct_only`, and `check_terms.py under
+--direct` checks a sample the same way. And VBO,
 VT and the gazetteer were not in the template's ontology choices
 ([#4](https://github.com/monarch-initiative/mechmaker/issues/4)). VBO, VT and
 NCIT countries are now; GAZ is not, for the reason the design step found
@@ -111,6 +113,7 @@ record_noun: goat breed
 records_dir: data/goat_breeds
 identity_prefix: VBO
 identity_root: "VBO:0400025"
+identity_direct_only: true   # added after #3; GoatMech first checked this by hand
 ontologies: [NCBITaxon, UO]
 causal_graphs: false
 workflows: [sweep, docs, comment-guard]
@@ -167,8 +170,10 @@ Each term is checked against the ontology, and the checks earned their keep:
   works. The survey skill now asks for sample terms to be checked with
   `under`, not only the root.
 - **`is_direct: true` is ignored** by the term validator, so "direct
-  children only" is enforced by a network check, `just check-identity`,
-  which GoatMech adds to `just qc-full` ([#3](https://github.com/monarch-initiative/mechmaker/issues/3)).
+  children only" needs a network check. GoatMech first wrote its own. The
+  template now generates it, `just check-identity`, which reads the rule
+  from the schema and runs in `just qc-full` and `just validate`
+  ([#3](https://github.com/monarch-initiative/mechmaker/issues/3)).
 - `check_terms.py` printed tracebacks when OLS was slow. It now retries and
   prints one line ([#5](https://github.com/monarch-initiative/mechmaker/issues/5)).
 
@@ -279,14 +284,14 @@ facts there or in a section).
 ### The full check
 
 ```console
-$ just qc-full         # 31 s
-=== records: identity is a breed: just check-identity
-Identity check: 0 record(s) are not breeds.
+$ just qc-full         # 46 s
 === records: ontology terms: just validate-terms-all
 ✅ All 3 files passed validation
+=== records: identity: just check-identity
+Identity: 3 record id(s) checked, 0 not a direct child of VBO:0400025.
 === records: verbatim quotes: just validate-references-all
   All validations passed!
-QC passed: 9 gate(s).
+QC passed: 12 gate(s).
 ```
 
 ## 6. Register

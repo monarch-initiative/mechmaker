@@ -33,6 +33,7 @@ description: >-
    just term-info ols:<ontology> <CURIE>
    just term-ancestors <CURIE>              # is-a ancestors, via the OLS API
    just term-under <CURIE> <enum-root>      # exit 0 if it sits under the root
+   just term-parents <CURIE>                # direct is-a parents only
    ```
 
    `runoak ancestors` does not work over `ols:` adapters. Use the recipes

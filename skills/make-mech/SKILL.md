@@ -95,6 +95,7 @@ record_noun: habitat
 records_dir: data/habitats
 identity_prefix: ENVO
 identity_root: ENVO:01000813        # verified below, never guessed
+identity_direct_only: false         # true when only the root's children are records
 ontologies: [ENVO, NCBITaxon, CHEBI, GO_BP]
 causal_graphs: true
 taxon_scope: ""
@@ -169,7 +170,8 @@ python3 <scripts>/check_terms.py under ENVO:01000813 ENVO:00000051 ENVO:00000022
 
 The script exits 1 if any term is missing or outside the root. A root that
 rejects expected records is wrong. Choose the most specific root that
-accepts them all.
+accepts them all. If the brief says only direct children are records, add
+`--direct`: then each must be a child of the root itself.
 
 ## 3. Generate
 

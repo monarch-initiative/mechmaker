@@ -29,6 +29,16 @@ just search-term ols:vbo "<name>"
 just term-info ols:vbo <CURIE>
 ```
 
+A record's term is a direct child of `VBO:0400025`: not the root,
+and not a term below a child. Check it before scaffolding:
+
+```bash
+just term-parents <CURIE>     # VBO:0400025 must be among them
+```
+
+A term one level too deep is a variant of a record, not a record. Find its
+parent and curate that, or add the variant to the parent's record.
+
 If no term fits, mint `goatmech:<slug>` and open a `CURATION_TODO`
 discussion that says a term is missing.
 
