@@ -106,7 +106,7 @@ site_accent: amber
 site_theme: auto          # auto, light or dark
 workflows: [sweep, docs, comment-guard]   # step 4b revisits this
 deep_research: true      # literature-heavy domain; see the deep research page
-output_formats: [yaml, json, jsonld, ttl, sqlite, sql, csv]   # what just export writes
+output_formats: [yaml, json, jsonld, ttl, sqlite, sql, csv]   # what just export writes; add kgx for a knowledge graph
 tabular_layout: per_class   # or flat: one row per record in CSV/TSV
 python_min: "3.11"
 ```
