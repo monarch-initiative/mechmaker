@@ -553,3 +553,34 @@ def test_load_into_real_servers(tmp_path):
         result = subprocess.run(cmd, cwd=dest, env=env, capture_output=True, text=True)
         assert result.returncode == 0, result.stdout + result.stderr
         assert "1 document(s)" in result.stdout if t == "mongodb" else "node(s)" in result.stdout
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(shutil.which("just") is None or shutil.which("uv") is None, reason="needs just and uv")
+def test_import_a_json_schema(tmp_path):
+    """--from json-schema, through schema-automator: the record class gains the source's fields and enum."""
+    data = {**BASE, "mech_name": "PantryMech", "record_class": "Item", "ontologies": [], "workflows": []}
+    dest = render(tmp_path / "pantry", data)
+    env = {k: v for k, v in os.environ.items() if k != "VIRTUAL_ENV"}
+    subprocess.run(["just", "install"], cwd=dest, check=True, env=env)
+    source = ROOT / "tests" / "data" / "ingredient.schema.json"
+    cmd = ["just", "import-schema", str(source), "--from", "json-schema", "--record-class", "Ingredient",
+           "--apply"]
+    result = subprocess.run(cmd, cwd=dest, env=env, capture_output=True, text=True)
+    assert result.returncode == 0, result.stdout + result.stderr
+    schema = yaml.safe_load((dest / "src" / "pantrymech" / "schema" / "pantrymech.yaml").read_text())
+    assert {"cas_number", "form", "source"} <= set(schema["classes"]["Item"]["slots"])
+    assert "class_uri" not in schema["classes"]["Item"]  # a converted schema's namespace is not kept
+    records = dest / "data" / "items"
+    records.mkdir(parents=True, exist_ok=True)
+    (records / "salt.yaml").write_text(
+        "id: pantrymech:salt\nname: salt\nstatus: DRAFT\nform: powder\nsource:\n  supplier: Acme\n"
+        "creation_date: '2026-01-01'\ncuration_history:\n  - timestamp: '2026-01-01T00:00:00Z'\n"
+        "    curator: t\n    llm_assisted: false\n    action: CREATE\n    description: Test.\n")
+    ok = subprocess.run(["just", "validate-schema", "data/items/salt.yaml"], cwd=dest, env=env,
+                        capture_output=True, text=True)
+    assert ok.returncode == 0, ok.stdout + ok.stderr
+    (records / "salt.yaml").write_text((records / "salt.yaml").read_text().replace("powder", "plasma"))
+    bad = subprocess.run(["just", "validate-schema", "data/items/salt.yaml"], cwd=dest, env=env,
+                         capture_output=True, text=True)
+    assert bad.returncode != 0 and "plasma" in bad.stdout + bad.stderr
