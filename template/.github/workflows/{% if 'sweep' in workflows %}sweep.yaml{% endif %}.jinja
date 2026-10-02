@@ -40,4 +40,4 @@ env:
       - name: Cache changes the sweep would add
         if: always()
         run: git status --short cache references_cache | tee -a "$GITHUB_STEP_SUMMARY"
-{% endraw %}
+{%- endraw %}

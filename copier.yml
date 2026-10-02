@@ -21,7 +21,7 @@ _message_after_copy: |
 
   Next:
     cd {{ _copier_conf.dst_path }}
-    git init && just install && just qc
+    git init -b main && just install && just qc
 
   Then design the domain model. Ask your agent to run the
   `design-mech-schema` skill from mechmaker, or read docs/DOMAIN.md.
@@ -158,7 +158,7 @@ identity_direct_only:
     the kind of thing a record describes, answer no. Check a few expected
     records with `check_terms.py under --direct`. With yes, the root itself
     cannot key a record either. `just check-identity` enforces the rule, in
-    `just qc-full`
+    `just qc-full`.
   default: false
   when: "{{ identity_prefix != '' }}"
 

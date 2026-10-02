@@ -175,7 +175,8 @@ history record. Say in each pull request what was skipped and why.
 ## 8. Record the source
 
 - `curation/source_queue.tsv`: the knowledge base, its license, and its
-  status (`converting`, then `converted`).
+  status (`EVALUATING` during the trial, then `ADOPTED`, the values
+  `curation/README.md` defines).
 - `registry/<slug>.md`: the knowledge base in `data_sources` with
   `relation_type: prov:wasDerivedFrom`. Registries and ontologies used to
   check it are `prov:used`.

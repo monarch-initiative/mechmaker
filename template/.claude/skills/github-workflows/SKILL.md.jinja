@@ -58,7 +58,8 @@ repository. Ask the person before doing any of them.
   there: what counts as a record, what a good source is, what reviewers
   should look for. Keep the "untrusted content" paragraph.
 - **Models and turn budgets** are `.github/agent-config.yaml`.
-- **Literature scan** terms are `conf/literature_scan.yaml`. Run
+- **Literature scan** terms are `conf/literature_scan.yaml`, once the
+  `literature-scan` workflow is on (the file and the recipe come with it). Run
   `just literature-scan --days 30` and read `build/literature/packet.md`:
   most hits should be about the domain. Tighten `context_terms` until they
   are.

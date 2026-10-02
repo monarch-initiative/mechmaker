@@ -37,7 +37,7 @@ just fetch-reference PMID:NNN   # fetch and cache a source; read it before quoti
 just fill-titles [FILE...]      # fill missing reference_title from the cache (dry-run unless --apply)
 just search-term ADAPTER "text" # search an ontology, e.g. ols:go
 just term-ancestors CURIE       # where a term sits; use when an enum root rejects it
-just term-parents CURIE         # direct is-a parents; a record id's must include VBO:0400025
+just term-parents CURIE         # direct is-a parents; a record id's parents must include VBO:0400025
 just check-identity [FILE...]   # record ids follow the identity enum's rule (network, in qc-full)
 just report            # corpus statistics
 just compliance        # completeness per record, lowest first

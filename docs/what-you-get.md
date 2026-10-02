@@ -47,7 +47,7 @@ real. They do not prove the science is right. That is what review is for.
 just                 # list every command
 just qc              # every offline check; what CI requires
 just qc-full         # also check every term and quote against the live services
-just validate FILE   # all three checks on one record
+just validate FILE   # schema, terms, identity and quotes on one record
 just new-record ...  # start a record
 just new-history ... # log a curation session
 just add-evidence ... # add a quote to a record, checked against its source first

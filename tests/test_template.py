@@ -236,7 +236,7 @@ def test_identity_rule_follows_answers(generated):
     assert (query["is_direct"], query["include_self"]) == (direct, not direct)
     assert ("check-identity" in (dest / "src" / slug / "qc.py").read_text())
     claude = (dest / "CLAUDE.md").read_text()
-    assert (f"a record id's must include {answers['identity_root']}" in claude) == direct
+    assert (f"a record id's parents must include {answers['identity_root']}" in claude) == direct
 
 
 def test_optional_parts(generated):
