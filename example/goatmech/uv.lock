@@ -205,6 +205,19 @@ wheels = [
 ]
 
 [[package]]
+name = "biolink-model"
+version = "4.4.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "linkml-runtime" },
+    { name = "pydantic" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/cc/95/b63c5b6bb70863585314a6ff14df32b91eaba5f38450a1e94228eef971ed/biolink_model-4.4.5.tar.gz", hash = "sha256:68534bbfa19c6ba979088bcb30e32fac081db36418ea574e7fbd4b03ab4febe4", size = 4115710, upload-time = "2026-09-18T15:06:06.971Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/19/aa/1a95a68693332df121e143ad84ff1f640cbe5717e5c7ec5dfe521d97d001/biolink_model-4.4.5-py3-none-any.whl", hash = "sha256:62fbd39eb81a41fbf7fa150b550115fe5d1b5b076dc908c32486e37bd7ca7251", size = 370799, upload-time = "2026-09-18T15:06:05.22Z" },
+]
+
+[[package]]
 name = "biopython"
 version = "1.88"
 source = { registry = "https://pypi.org/simple" }
@@ -687,6 +700,7 @@ name = "goatmech"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "biolink-model" },
     { name = "jinja2" },
     { name = "linkml" },
     { name = "linkml-reference-validator" },
@@ -708,6 +722,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "biolink-model", specifier = ">=4.4.5" },
     { name = "jinja2", specifier = ">=3.1" },
     { name = "linkml", specifier = ">=1.11.1" },
     { name = "linkml-reference-validator", specifier = ">=0.2.1" },

@@ -12,6 +12,8 @@ Every format comes from LinkML or the libraries it brings:
   sqlite   <slug>-records.sqlite       a SQLite database
   duckdb   <slug>-records.duckdb       a DuckDB database, through linkml-store: one
                                        table of records, nested values as DuckDB JSON
+  kgx      <slug>-kgx_nodes/_edges     KGX: Biolink associations, record to term (see kgx.py)
+  kgx_maximal  ..._maximal_nodes/_edges  KGX: the whole record graph (see kgx.py)
   sql      <slug>-schema.sql           the schema as SQL DDL (gen-sqltables)
            <slug>-records.sql          the database as SQL: DDL and INSERTs
   csv/tsv  tabular_layout per_class:   <slug>-tables-csv.zip, one file per class
@@ -48,7 +50,7 @@ from .validate import iter_records, load
 
 EXPORT_DIR = BUILD_DIR / "export"
 SETTINGS = REPO_ROOT / "conf" / "export.yaml"
-FORMATS = ("yaml", "json", "jsonld", "ttl", "sqlite", "duckdb", "sql", "csv", "tsv")
+FORMATS = ("yaml", "json", "jsonld", "ttl", "sqlite", "duckdb", "sql", "csv", "tsv", "kgx", "kgx_maximal")
 # Only the duckdb format needs a package a Mech does not always install.
 DUCKDB_MISSING = (
     "duckdb: needs linkml-store, which this Mech does not install. Run `uv add 'linkml-store>=0.3.2'` "
@@ -374,6 +376,23 @@ def export(
         else:
             written.append(out)
             problems += check_duckdb(out, [d.get("id") for _, d in records])
+
+    for fmt in ("kgx", "kgx_maximal"):
+        if fmt not in fmts:
+            continue
+        from . import kgx
+
+        try:
+            files, kgx_problems, warnings = kgx.export(fmt, sv, [d for _, d in records], out_dir)
+        except ModuleNotFoundError as exc:
+            if exc.name != "biolink_model":  # installed, but something it needs is not: show that
+                raise
+            problems.append(kgx.BIOLINK_MISSING)
+            continue
+        written += files
+        problems += kgx_problems
+        for w in warnings:
+            print(f"WARNING {w}")
 
     tables = fmts & {"csv", "tsv"}
     per_class = cfg["tabular_layout"] == "per_class"
