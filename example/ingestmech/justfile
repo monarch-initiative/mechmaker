@@ -130,6 +130,13 @@ convert script *args:
 fill-titles *args:
     uv run python -m {{slug}}.titles "$@"
 
+# Start the schema from an existing one: a LinkML schema, or another format
+# through schema-automator (--from json-schema, owl, xsd, ...). Copy mode by
+# default; --mode reference imports it unchanged. Dry run unless --apply.
+# `just import-schema https://.../schema.yaml --record-class Sample`
+import-schema *args:
+    uv run python -m {{slug}}.schema_import "$@"
+
 # Scaffold a repository-level history record under history/. Dry-run unless --apply.
 # `just new-history --kind record --slug example --event CREATE --outcome changed --summary "..." --details "..."`
 new-history *args:

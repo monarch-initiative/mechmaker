@@ -1,0 +1,42 @@
+# A small external schema for the import-schema tests. It is not this Mech's.
+id: https://example.org/fieldwork
+name: fieldwork
+prefixes:
+  linkml: https://w3id.org/linkml/
+  fieldwork: https://example.org/fieldwork/
+default_prefix: fieldwork
+default_range: string
+imports:
+  - linkml:types
+classes:
+  Sample:
+    tree_root: true
+    slots:
+      - sample_code
+      - name
+      - status
+      - sample_weight
+      - collection_site
+  CollectionSite:
+    attributes:
+      site_name:
+        required: true
+      latitude:
+        range: float
+slots:
+  sample_code:
+    identifier: true
+  name: {}
+  status:
+    range: SampleStatus
+  sample_weight:
+    range: float
+    minimum_value: 0
+  collection_site:
+    range: CollectionSite
+    inlined: true
+enums:
+  SampleStatus:
+    permissible_values:
+      FRESH: {}
+      FROZEN: {}

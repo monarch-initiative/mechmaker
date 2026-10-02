@@ -30,6 +30,7 @@ just qc                # the offline gate CI blocks on
 just qc-full           # qc plus terms and quotes for every record (network)
 just validate FILE     # closed schema, ontology terms, verbatim quotes
 just new-record ...    # scaffold a record (dry-run unless --apply)
+just import-schema SRC --record-class C   # start the schema from an existing one (dry-run unless --apply)
 just new-history ...   # scaffold a history record (dry-run unless --apply)
 just add-evidence FILE --at PLACE --ref REF --snippet "..."   # checked evidence (dry-run unless --apply)
 just fetch-reference PMID:NNN   # fetch and cache a source; read it before quoting it
