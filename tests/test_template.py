@@ -376,6 +376,19 @@ def test_agent_workflows_share_pin_and_credentials(generated):
         assert len(pins) == 1 and len(creds) == 1, (pins, creds)
 
 
+def test_review_refuses_forks_before_it_checks_anything_out(tmp_path):
+    # /review and the manual start run the PR's code with the agent's
+    # credentials, so a fork's PR must stop before the first checkout.
+    dest = render(tmp_path / "review", SCENARIOS["all-workflows"])
+    job = yaml.safe_load((dest / ".github" / "workflows" / "review.yaml").read_text())["jobs"]["review"]
+    names = [s.get("name") or s.get("uses", "") for s in job["steps"]]
+    guard = names.index("Refuse pull requests from forks")
+    first_checkout = next(i for i, s in enumerate(job["steps"])
+                          if "checkout" in s.get("uses", "") or "gh pr checkout" in s.get("run", ""))
+    assert guard < first_checkout
+    assert "isCrossRepository" in job["steps"][guard]["run"]
+
+
 @pytest.mark.skipif(shutil.which("actionlint") is None, reason="actionlint not installed")
 def test_actionlint(tmp_path):
     dest = render(tmp_path / "lint", SCENARIOS["all-workflows"])

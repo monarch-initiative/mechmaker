@@ -1,6 +1,7 @@
 # Review every same-repository pull request with the review-record skill and
 # post a formal review: approve, or request changes. Comment `/review` on a
-# PR to run it again, or start it by hand with a PR number.
+# PR to run it again, or start it by hand with a PR number. A PR from a fork
+# is never reviewed here, however it is started: review it by hand.
 #
 # Needs ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN. To have its approvals
 # count toward branch protection, either set MECH_REVIEWER_APP_ID and
@@ -45,6 +46,20 @@ jobs:
     env:
       PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number || inputs.pr_number }}
     steps:
+      # The job checks out the PR and runs its code with the agent's
+      # credentials. A same-repo PR comes from someone with write access; a
+      # fork's does not. The pull_request trigger already skips forks; this
+      # stops the /review comment and the manual start too.
+      - name: Refuse pull requests from forks
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          fork=$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json isCrossRepository -q .isCrossRepository)
+          if [ "$fork" != "false" ]; then
+            echo "::error title=Review refused::PR #$PR_NUMBER comes from a fork. Review it by hand."
+            exit 1
+          fi
       # The prompt and helper scripts come from the default branch, so a PR
       # cannot change the instructions it is reviewed under.
       - uses: actions/checkout@v7
