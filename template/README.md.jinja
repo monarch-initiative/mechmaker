@@ -50,10 +50,10 @@ https://{{ github_org | lower }}.github.io/{{ repo_name }}/.
 
 ## Validation
 
-Validation checks three things. The record matches the schema, with unknown
-fields rejected. Every ontology term exists, sits under the right root and
-carries its real label. Every quoted snippet appears verbatim in its cited
-source.
+Validation checks that the record matches the schema, with unknown fields
+rejected. Every ontology term exists, sits under the right root and carries
+its real label.{% if identity_prefix %} The record's id sits under {{ identity_root }}{% if identity_direct_only %}, as a direct child{% endif %}.{% endif %} Every quoted snippet
+appears verbatim in its cited source.
 
 Validation does not check that the science is right. {{ mech_name }} is
 AI-curated. Treat it as a curated draft reviewed by people, not as an

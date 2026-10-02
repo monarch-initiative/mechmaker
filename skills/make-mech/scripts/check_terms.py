@@ -21,7 +21,8 @@ ontology argument of search is ignored; pass -.
 
 Exit status is 1 if any term is missing or any check fails, so the result can
 gate a script. It exits 2 if OLS or the adapter does not answer: that is an
-outage, not a missing term. It exits 3 if OAK itself fails. Ontology ids
+outage, not a missing term. It exits 3 if OAK itself fails, and 64 on a
+usage error, such as a missing argument. Ontology ids
 default to the lowercased prefix.
 """
 
@@ -89,13 +90,13 @@ def _oak(*args):
         if re.search(r"Timeout|ConnectionError|Max retries", last):
             raise Unreachable(f"runoak -i {ADAPTER}: {last}")
         raise OakFailed(f"runoak -i {ADAPTER} failed: {last}")
-    # `info` and `search` print "CURIE ! label"; `ancestors` prints a table
-    # with an "id label" header. A term OAK does not know has the label None.
+    # `info` and `search` print "CURIE ! label". A term OAK does not know has
+    # the label None.
     pairs = []
     for line in out.stdout.splitlines():
         curie, _, lab = line.partition("\t") if "\t" in line else line.partition(" ! ")
         curie, lab = curie.strip(), lab.strip()
-        if curie and curie != "id":
+        if curie:
             pairs.append((curie, None if lab in ("", "None") else lab))
     return pairs
 
@@ -126,8 +127,9 @@ print("\\n".join(found))
 """
 
 
-def _oak_ancestors(curie):
-    cmd = OAK_PY + ["-c", ANCESTORS_PY, ADAPTER, curie]
+def _oak_py(program, curie):
+    """CURIEs, one per line, from an OAK Python program run with (adapter, curie)."""
+    cmd = OAK_PY + ["-c", program, ADAPTER, curie]
     try:
         out = subprocess.run(cmd, capture_output=True, text=True, timeout=3600)
     except (OSError, subprocess.TimeoutExpired) as exc:
@@ -138,6 +140,10 @@ def _oak_ancestors(curie):
             raise Unreachable(f"{ADAPTER}: {last}")
         raise OakFailed(f"{ADAPTER} failed: {last}")
     return {line.strip() for line in out.stdout.splitlines() if line.strip()}
+
+
+def _oak_ancestors(curie):
+    return _oak_py(ANCESTORS_PY, curie)
 
 
 PARENTS_PY = """
@@ -152,17 +158,7 @@ print("\\n".join(o for _, _, o in a.relationships([sys.argv[2]], predicates=[IS_
 def parents(curie):
     """Direct is-a parents."""
     if _oak_mode():
-        cmd = OAK_PY + ["-c", PARENTS_PY, ADAPTER, curie]
-        try:
-            out = subprocess.run(cmd, capture_output=True, text=True, timeout=3600)
-        except (OSError, subprocess.TimeoutExpired) as exc:
-            raise Unreachable(f"OAK did not run: {exc}") from exc
-        if out.returncode != 0:
-            last = _mask((out.stderr.strip().splitlines()[-1:] or [f"exit {out.returncode}"])[0])
-            if re.search(r"Timeout|ConnectionError|Max retries", last):
-                raise Unreachable(f"{ADAPTER}: {last}")
-            raise OakFailed(f"{ADAPTER} failed: {last}")
-        return {line.strip() for line in out.stdout.splitlines() if line.strip()}
+        return _oak_py(PARENTS_PY, curie)
     data = _get(_term_url(curie, "/parents?size=500"))
     return {t.get("obo_id") for t in data.get("_embedded", {}).get("terms", [])}
 
@@ -182,10 +178,13 @@ def main(argv):
     global ADAPTER
     if "--adapter" in argv:
         i = argv.index("--adapter")
+        if i + 1 == len(argv):
+            print("--adapter needs a value, e.g. --adapter sqlite:obo:vt", file=sys.stderr)
+            return 64
         ADAPTER, argv = argv[i + 1], argv[:i] + argv[i + 2:]
     if len(argv) < 2 or argv[0] not in ("label", "under", "search"):
         print(__doc__)
-        return 2
+        return 64
     cmd, args = argv[0], argv[1:]
     ok = True
     if cmd == "label":
@@ -196,6 +195,9 @@ def main(argv):
     elif cmd == "under":
         direct = "--direct" in args
         args = [a for a in args if a != "--direct"]
+        if not args:
+            print(__doc__)
+            return 64
         root, terms = args[0], args[1:]
         if label(root) is None:
             print(f"{root}\tNOT FOUND")

@@ -415,10 +415,12 @@ def export(
             written += [ddl, dump]
             probe = sqlite3.connect(":memory:")
             probe.executescript(ddl.read_text())
+            probe.close()
             probe = sqlite3.connect(":memory:")
             probe.executescript(dump.read_text())
             if probe.execute(f'SELECT count(*) FROM "{RECORD_CLASS}"').fetchone()[0] != n:
                 problems.append(f"{dump.name}: does not load back to {n} records")
+            probe.close()
         for fmt in sorted(tables) if per_class else []:
             sep = "," if fmt == "csv" else "\t"
             out = out_dir / f"{SLUG}-tables-{fmt}.zip"

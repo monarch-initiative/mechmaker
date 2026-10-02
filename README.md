@@ -52,8 +52,9 @@ The agent works in steps and checks with you along the way:
    repository. It asks you for the things only you know, like your name,
    your GitHub organization, and the license you want.
 3. **Design.** It shapes the data model to your field.
-4. **Seed.** It writes the first three to five records, with real sources.
-5. **Register.** It drafts your entry for MechRegistry.
+4. **Choose workflows.** It asks which GitHub automation to turn on.
+5. **Seed.** It writes the first three to five records, with real sources.
+6. **Register.** It drafts your entry for MechRegistry.
 
 It asks before it creates anything on GitHub.
 
@@ -219,7 +220,7 @@ The rest of this README is about working on mechmaker itself.
 |---|---|
 | `copier.yml` | The questions Copier asks, and a table of supported ontologies with their root terms |
 | `template/` | The files that become a new Mech. Files ending `.jinja` are filled in from the answers; the rest are copied as they are |
-| `skills/` | Skills for the agent that makes a Mech: `make-mech`, `survey-domain`, `design-mech-schema`, `register-mech` |
+| `skills/` | Skills for the agent that makes a Mech: `make-mech`, `survey-domain`, `design-mech-schema`, `convert-knowledge-base`, `register-mech` |
 | `.claude-plugin/` | Makes this repository installable as a Claude Code plugin |
 | `AGENTS.md` | Where an agent pointed at this repository starts |
 | `tests/` | Tests that generate sample Mechs and check them |
@@ -235,7 +236,10 @@ root terms before a Mech exists. It needs only Python.
 2. **Terms.** [linkml-term-validator](https://github.com/linkml/linkml-term-validator)
    checks that each ontology term exists, carries its real label, and falls
    under the right part of the ontology.
-3. **Quotes.** [linkml-reference-validator](https://github.com/linkml/linkml-reference-validator)
+3. **Identity.** When records are keyed by an ontology, each record's id
+   must sit under the identity root, or be its direct child when the Mech
+   asks for that (`just check-identity`, in `just qc-full`).
+4. **Quotes.** [linkml-reference-validator](https://github.com/linkml/linkml-reference-validator)
    fetches each cited source and checks the quote appears in it.
 
 ### Shared files
@@ -258,8 +262,8 @@ just update-template
 
 ```bash
 just install
-just test              # generate four sample Mechs and check the output
-just test-generated    # generate three Mechs, install them, run their checks
+just test              # render six sample Mechs and check the output
+just test-generated    # generate five Mechs, install them, run their checks
 just sample /tmp/x     # generate one sample to look at
 ```
 

@@ -390,6 +390,9 @@ def main(argv: list[str] | None = None) -> int:
                         help="copy mode: give a source element a new name")
     parser.add_argument("--apply", action="store_true", help="write the schema")
     args, extra = parser.parse_known_args(argv)
+    bad = [r for r in args.rename if "=" not in r]
+    if bad:
+        parser.error(f"--rename takes OLD=NEW, not {', '.join(bad)}")
     renames = dict(r.split("=", 1) for r in args.rename)
 
     report: list[str] = []

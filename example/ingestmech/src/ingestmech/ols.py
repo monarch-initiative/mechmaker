@@ -1,6 +1,6 @@
 """Ontology lookups over the EBI OLS4 API, for the things `runoak -i ols:` cannot do.
 
-    python -m <slug>.ols ancestors GO:0015979     # is-a and part-of ancestors
+    python -m <slug>.ols ancestors GO:0015979     # is-a ancestors (--part-of adds part-of)
     python -m <slug>.ols ancestors ENVO:00000051 --ontology envo
     python -m <slug>.ols check GO:0015979 --root GO:0008150
 

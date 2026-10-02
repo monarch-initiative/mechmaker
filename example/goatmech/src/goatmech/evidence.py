@@ -149,8 +149,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--apply", action="store_true", help="write the file")
     args = parser.parse_args(argv)
 
+    path = args.file.resolve()  # before the chdir, so a relative path means what the user meant
     os.chdir(REPO_ROOT)  # the validator finds its config and custom sources here
-    path = args.file.resolve()
     item = {"reference": args.ref, "supports": args.supports}
     if args.source:
         item["evidence_source"] = args.source

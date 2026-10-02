@@ -1,4 +1,4 @@
 rank	source	url	kind	license	status	notes
-1	Monarch ingest repositories	https://github.com/monarch-initiative	existing knowledge base	BSD-3-Clause or MIT, per repository	converting	scripts/convert_monarch_ingests.py reads download.yaml, src/versions.py, .copier-answers.yml, README.md and src/*.yaml at a pinned commit. 3 of 25 converted as a trial
-2	Biolink information resource catalog	https://github.com/biolink/information-resource-registry	registry	Apache-2.0	in use	Checks infores ids; names and homepages of sources
-3	Upstream sources' own terms pages	varies	source documentation	varies	in use	Data licenses and access terms. omim.org answers 403 to scripted requests
+1	Monarch ingest repositories	https://github.com/monarch-initiative	existing knowledge base	BSD-3-Clause or MIT, per repository	EVALUATING	scripts/convert_monarch_ingests.py reads download.yaml, src/versions.py, .copier-answers.yml, README.md and src/*.yaml at a pinned commit. 3 of 25 converted as a trial
+2	Biolink information resource catalog	https://github.com/biolink/information-resource-registry	registry	Apache-2.0	ADOPTED	Checks infores ids; names and homepages of sources
+3	Upstream sources' own terms pages	varies	source documentation	varies	ADOPTED	Data licenses and access terms. omim.org answers 403 to scripted requests

@@ -13,7 +13,8 @@ https://raw.githubusercontent.com/monarch-initiative/mechmaker/main/skills/make-
     python3 check_env.py                      # or: uv run --no-project check_env.py
 
 Exit 0 when every required tool is present (and, with --network, GitHub and
-PyPI answer); exit 1 otherwise. OLS and PubMed are checked but optional: a
+PyPI answer, and with --research, at least one provider is ready); exit 1
+otherwise. OLS and PubMed are checked but optional: a
 Mech may use other ontology services and other sources. Each problem comes with the command that
 fixes it on this operating system.
 """
@@ -119,7 +120,7 @@ def check_tools() -> tuple[list[tuple[str, str, str]], list[str]]:
                 rows[-1] = (name, status, f"{why}; {fix}")
             continue
         status = version
-        if name == "copier" and as_tuple(version) < MIN_COPIER:
+        if name == "copier" and version != "unknown version" and as_tuple(version) < MIN_COPIER:
             status = f"{version} (too old)"
             problems.append(f"copier: {version} is older than {'.'.join(map(str, MIN_COPIER))}; "
                             "run `uv tool upgrade copier`")

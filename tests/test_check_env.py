@@ -73,13 +73,9 @@ def test_old_copier_fails(tools):
 
 
 def test_copier_minimum_matches_the_template():
-    import importlib.util
-
     import yaml
 
-    spec = importlib.util.spec_from_file_location("check_env", SCRIPT)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
+    mod = _load()
     declared = yaml.safe_load((SCRIPT.parents[3] / "copier.yml").read_text())["_min_copier_version"]
     assert tuple(int(p) for p in declared.split(".")) == mod.MIN_COPIER
 

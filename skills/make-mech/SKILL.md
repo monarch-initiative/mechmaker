@@ -211,7 +211,7 @@ and safe. Agent workflows cost money per run and need secrets and, for some,
 a GitHub App.
 
 A sound first set for a Mech a person will curate with agents:
-`sweep`, `comment-guard`, `claude`, `review`, `triage`, `dedupe`, and
+`sweep`, `docs`, `comment-guard`, `claude`, `review`, `triage`, `dedupe`, and
 `literature-scan` if the domain is fed by literature. Add `curation-scanner`
 and `compliance` only once the person has created an agent GitHub App and
 wants unattended curation. Leave `agent_schedules` off at first; run each
@@ -237,8 +237,8 @@ shown on record pages are in `conf/site.yaml`. Once the schema is settled,
 choose `index_columns` that help someone scan the corpus (for example
 `name`, `record_term`, `status`), and hide sections that are noise to a
 reader (`curation_history` is hidden by default). The Mech's `site-design`
-skill covers each setting; run `just site-check`, `just render`, and look
-with `just docs-serve`.
+skill covers each setting; run `just site-check`, then `just render` if the
+Mech has a record browser, and look with `just docs-serve`.
 
 ## 5. Seed
 

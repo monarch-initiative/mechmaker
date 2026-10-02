@@ -2,7 +2,7 @@
 # attach. `just qc` runs the export, so a format that stops working fails QC.
 # The formats and their files are listed in src/{{ mech_slug }}/export.py.
 #
-# formats: yaml, json, jsonld, ttl, sqlite, sql, csv, tsv
+# formats: yaml, json, jsonld, ttl, sqlite, duckdb, sql, csv, tsv
 #   jsonld and ttl are RDF. Every CURIE in the records becomes an IRI through
 #   the schema's `prefixes`, so declare each prefix with its full URI. The
 #   export fails on an IRI that does not expand.

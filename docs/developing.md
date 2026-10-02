@@ -15,8 +15,8 @@
 
 ```bash
 just install          # dev tools
-just test             # render under five answer sets and check the output
-just test-generated   # generate four Mechs, install them, run their `just qc`
+just test             # render under six answer sets and check the output
+just test-generated   # generate five Mechs, install them, run their `just qc`
 just lint             # ruff
 just sample /tmp/x    # render one sample Mech to look at
 just docs-serve       # this site, locally
