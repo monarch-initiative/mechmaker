@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from {{ mech_slug }} import export
+from {{ mech_slug }} import export, kgx
 from {{ mech_slug }}.paths import RECORD_CLASS, SLUG
 
 EXAMPLE = Path(__file__).parent / "data" / "example_record.yaml"
@@ -23,8 +23,15 @@ try:
     HAS_DUCKDB = True
 except ImportError:
     HAS_DUCKDB = False
+try:
+    import biolink_model  # noqa: F401  only installed when this Mech exports KGX
+
+    HAS_BIOLINK = True
+except ImportError:
+    HAS_BIOLINK = False
 # Every format this Mech can write as installed.
-INSTALLED = [f for f in export.FORMATS if f != "duckdb" or HAS_DUCKDB]
+INSTALLED = [f for f in export.FORMATS
+             if (f != "duckdb" or HAS_DUCKDB) and (not f.startswith("kgx") or HAS_BIOLINK)]
 
 
 @pytest.mark.parametrize("layout", ["per_class", "flat"])
@@ -158,3 +165,11 @@ def test_two_records_with_one_id_are_refused(tmp_path):
     twin.write_text(EXAMPLE.read_text())
     with pytest.raises(SystemExit, match="have the same id"):
         export.export({"formats": ["json"], "tabular_layout": "per_class"}, [EXAMPLE, twin], tmp_path / "out")
+
+
+def test_kgx_without_biolink_model_says_what_to_install(tmp_path, monkeypatch):
+    import sys
+
+    monkeypatch.setitem(sys.modules, "biolink_model", None)  # as if not installed
+    _, problems = export.export({"formats": ["kgx"], "tabular_layout": "per_class"}, [EXAMPLE], tmp_path)
+    assert problems == [kgx.BIOLINK_MISSING]

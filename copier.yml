@@ -181,7 +181,8 @@ extra_ontologies:
     (simpleobo:ontologies/my.obo, pronto:ontologies/my.owl,
     sqlite:ontologies/my.db). Each item needs prefix, root, root_label and
     noun. adapter (default ols:<prefix>), uri (default the OBO PURL), slot,
-    descriptor and enum are optional. Check the root before using it.
+    descriptor, enum and category (the Biolink class of its terms in KGX
+    exports, default biolink:NamedThing) are optional. Check the root before using it.
     Example: [{prefix: VT, root: "VT:0000001", root_label: vertebrate trait, noun: trait}]
   default: []
   validator: >-
@@ -401,6 +402,8 @@ output_formats:
     "Turtle (RDF)": ttl
     "SQLite database": sqlite
     "DuckDB database (adds linkml-store and its dependencies)": duckdb
+    "KGX, Biolink associations from each record to its terms (adds biolink-model)": kgx
+    "KGX, the whole record graph as nodes and edges (adds biolink-model)": kgx_maximal
     "SQL: schema DDL, and the data as SQL": sql
     "CSV": csv
     "TSV": tsv
@@ -459,6 +462,7 @@ ontology_catalog:
       root: GO:0008150
       root_label: biological_process
       noun: biological process
+      category: biolink:BiologicalProcess
     GO_MF:
       prefix: GO
       uri: http://purl.obolibrary.org/obo/GO_
@@ -469,6 +473,7 @@ ontology_catalog:
       root: GO:0003674
       root_label: molecular_function
       noun: molecular function
+      category: biolink:MolecularActivity
     GO_CC:
       prefix: GO
       uri: http://purl.obolibrary.org/obo/GO_
@@ -479,6 +484,7 @@ ontology_catalog:
       root: GO:0005575
       root_label: cellular_component
       noun: cellular component
+      category: biolink:CellularComponent
     CL:
       prefix: CL
       uri: http://purl.obolibrary.org/obo/CL_
@@ -489,6 +495,7 @@ ontology_catalog:
       root: CL:0000000
       root_label: cell
       noun: cell type
+      category: biolink:Cell
     UBERON:
       prefix: UBERON
       uri: http://purl.obolibrary.org/obo/UBERON_
@@ -499,6 +506,7 @@ ontology_catalog:
       root: UBERON:0001062
       root_label: anatomical entity
       noun: anatomical entity
+      category: biolink:AnatomicalEntity
     CHEBI:
       prefix: CHEBI
       uri: http://purl.obolibrary.org/obo/CHEBI_
@@ -509,6 +517,7 @@ ontology_catalog:
       root: CHEBI:24431
       root_label: chemical entity
       noun: chemical entity
+      category: biolink:ChemicalEntity
     HP:
       prefix: HP
       uri: http://purl.obolibrary.org/obo/HP_
@@ -519,6 +528,7 @@ ontology_catalog:
       root: HP:0000118
       root_label: Phenotypic abnormality
       noun: phenotype
+      category: biolink:PhenotypicFeature
     MONDO:
       prefix: MONDO
       uri: http://purl.obolibrary.org/obo/MONDO_
@@ -529,6 +539,7 @@ ontology_catalog:
       root: MONDO:0000001
       root_label: disease
       noun: disease
+      category: biolink:Disease
     NCBITaxon:
       prefix: NCBITaxon
       uri: http://purl.obolibrary.org/obo/NCBITaxon_
@@ -539,6 +550,7 @@ ontology_catalog:
       root: NCBITaxon:1
       root_label: root
       noun: organism
+      category: biolink:OrganismTaxon
     ENVO:
       prefix: ENVO
       uri: http://purl.obolibrary.org/obo/ENVO_
@@ -549,6 +561,7 @@ ontology_catalog:
       root: ENVO:01000254
       root_label: environmental system
       noun: environment
+      category: biolink:EnvironmentalFeature
     PATO:
       prefix: PATO
       uri: http://purl.obolibrary.org/obo/PATO_
@@ -559,6 +572,7 @@ ontology_catalog:
       root: PATO:0000001
       root_label: quality
       noun: quality
+      category: biolink:PhenotypicQuality
     OBI:
       prefix: OBI
       uri: http://purl.obolibrary.org/obo/OBI_
@@ -569,6 +583,7 @@ ontology_catalog:
       root: OBI:0000070
       root_label: assay
       noun: assay
+      category: biolink:NamedThing
     UO:
       prefix: UO
       uri: http://purl.obolibrary.org/obo/UO_
@@ -580,6 +595,7 @@ ontology_catalog:
       root_label: unit
       noun: unit
       article: A
+      category: biolink:NamedThing
     PR:
       prefix: PR
       uri: http://purl.obolibrary.org/obo/PR_
@@ -590,6 +606,7 @@ ontology_catalog:
       root: PR:000000001
       root_label: protein
       noun: protein
+      category: biolink:Protein
     SO:
       prefix: SO
       uri: http://purl.obolibrary.org/obo/SO_
@@ -600,6 +617,7 @@ ontology_catalog:
       root: SO:0000110
       root_label: sequence_feature
       noun: sequence feature
+      category: biolink:NamedThing
     MAXO:
       prefix: MAXO
       uri: http://purl.obolibrary.org/obo/MAXO_
@@ -610,6 +628,7 @@ ontology_catalog:
       root: MAXO:0000001
       root_label: medical action
       noun: medical action
+      category: biolink:Procedure
     FOODON:
       prefix: FOODON
       uri: http://purl.obolibrary.org/obo/FOODON_
@@ -620,6 +639,7 @@ ontology_catalog:
       root: FOODON:00001002
       root_label: food product
       noun: food
+      category: biolink:Food
     VBO:
       prefix: VBO
       uri: http://purl.obolibrary.org/obo/VBO_
@@ -630,6 +650,7 @@ ontology_catalog:
       root: VBO:0400000
       root_label: Vertebrate breed
       noun: breed
+      category: biolink:NamedThing
     VT:
       prefix: VT
       uri: http://purl.obolibrary.org/obo/VT_
@@ -640,6 +661,7 @@ ontology_catalog:
       root: VT:0000001
       root_label: vertebrate trait
       noun: trait
+      category: biolink:NamedThing
     NCIT_COUNTRY:
       prefix: NCIT
       uri: http://purl.obolibrary.org/obo/NCIT_
@@ -650,6 +672,7 @@ ontology_catalog:
       root: NCIT:C25464
       root_label: Country
       noun: country
+      category: biolink:GeographicLocation
 
 # Every ontology a Mech binds: the catalog picks, then extra_ontologies, with
 # names filled in. The templates read this, never the catalog directly.
@@ -664,7 +687,7 @@ ontology_selection:
       "key": key, "prefix": o.prefix, "uri": o.uri,
       "adapter": o.adapter if term_backend == 'ols' else o.adapter | replace('ols:', 'sqlite:obo:'),
       "descriptor": o.descriptor, "enum": o.enum, "slot": o.slot, "root": o.root,
-      "root_label": o.root_label, "noun": o.noun,
+      "root_label": o.root_label, "noun": o.noun, "category": o.category,
       "article": o.article | default('An' if o.noun[0] in 'aeiou' else 'A')}) -%}
     {%- endfor -%}
     {%- for x in extra_ontologies if x is mapping -%}
@@ -679,6 +702,7 @@ ontology_selection:
       "enum": x.enum | default(camel ~ 'Term'),
       "slot": x.slot | default(plural | replace(' ', '_') | lower),
       "root": x.root | string, "root_label": x.root_label | string, "noun": noun,
+      "category": x.category | default('biolink:NamedThing'),
       "article": 'An' if noun[0] | lower in 'aeiou' else 'A'}) -%}
     {%- endfor -%}
     {{ sel | tojson }}

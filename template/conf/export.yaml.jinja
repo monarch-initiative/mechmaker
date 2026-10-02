@@ -8,6 +8,8 @@
 #   export fails on an IRI that does not expand.
 # tabular_layout: per_class (one table per class, as in the SQL export) or
 #   flat (one row per record, nested values as JSON). Used by csv and tsv.
+# kgx, kgx_maximal: a knowledge graph as KGX nodes and edges, mapped onto
+#   Biolink in conf/kgx.yaml. They need the biolink-model package.
 
 formats:
 {%- for f in output_formats %}

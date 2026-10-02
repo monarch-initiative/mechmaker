@@ -39,8 +39,10 @@ hashes. Changes go upstream to the fleet canon and come back by re-vendoring.
    `just export` fails on one that does not expand. A slot that means what a
    standard property means gets that `slot_uri` (`dcterms:description`,
    `skos:altLabel`).
-5. Update `tests/data/example_record.yaml` to exercise the change.
-6. Run `just lint`, `just test` and `just export`.
+5. A new section whose items bind terms gets an entry in `conf/kgx.yaml`
+   (predicate and category), or the KGX export leaves it out.
+6. Update `tests/data/example_record.yaml` to exercise the change.
+7. Run `just lint`, `just test` and `just export`.
 
 ## Migrating records
 
