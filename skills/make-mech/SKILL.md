@@ -37,8 +37,16 @@ of those is expensive to change once records exist.
 
 ## 0. Check the machine
 
+Two scripts come with this skill, in the `scripts/` folder beside this
+file. Below, `<scripts>` stands for that folder's path. It depends on how
+the skill was installed: `.agents/skills/make-mech/scripts` after
+`npx skills add`, a folder under `~/.claude/plugins/` for the Claude Code
+plugin, and `skills/make-mech/scripts` in a mechmaker checkout. Both
+scripts need only Python 3. Run them where they are; do not copy them
+into the Mech.
+
 ```bash
-python3 skills/make-mech/scripts/check_env.py --network
+python3 <scripts>/check_env.py --network
 ```
 
 If the Mech will use deep research (see step 2), add `--research`: at
@@ -49,7 +57,7 @@ optional), and that GitHub and PyPI answer. OLS and PubMed are checked too,
 as optional: warn the person if one is down and the Mech will depend on it. Exit 0 means ready.
 Otherwise it prints the command that fixes each problem on this operating
 system. Show those to the person; installing software on their machine is
-their call. A service that does not answer is usually a passing outage:
+their call. Run them only when they say so. A service that does not answer is usually a passing outage:
 wait and run it again rather than working around it.
 
 ## 1. Survey
@@ -137,8 +145,8 @@ anything else. Check each root and two or three expected terms through the
 same adapter before generating:
 
 ```bash
-python skills/make-mech/scripts/check_terms.py --adapter bioportal:<ACRONYM> label <ACRONYM>:<root id>
-python skills/make-mech/scripts/check_terms.py --adapter simpleobo:lab.obo under LAB:0000001 LAB:0000042
+python3 <scripts>/check_terms.py --adapter bioportal:<ACRONYM> label <ACRONYM>:<root id>
+python3 <scripts>/check_terms.py --adapter simpleobo:lab.obo under LAB:0000001 LAB:0000042
 ```
 
 BioPortal needs `BIOPORTAL_API_KEY`, here and as a repository secret for CI;
@@ -155,8 +163,8 @@ you expect to be records, find their CURIEs, and check they sit under the
 root:
 
 ```bash
-python skills/make-mech/scripts/check_terms.py search envo "hot spring"
-python skills/make-mech/scripts/check_terms.py under ENVO:01000813 ENVO:00000051 ENVO:00000022
+python3 <scripts>/check_terms.py search envo "hot spring"
+python3 <scripts>/check_terms.py under ENVO:01000813 ENVO:00000051 ENVO:00000022
 ```
 
 The script exits 1 if any term is missing or outside the root. A root that

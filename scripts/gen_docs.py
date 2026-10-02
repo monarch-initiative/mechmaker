@@ -8,6 +8,7 @@ Writes, and does not commit:
   docs/skills/*.md               one page per mechmaker skill, from skills/
   docs/reference/mech-skills.md  the skills a generated Mech carries
   docs/workflows.md              the workflow catalog a Mech gets, defaults marked
+  docs/llms.txt                  the index an agent reads first, from the nav and the pages
 
 These pages are generated so they cannot drift from the template.
 """
@@ -25,6 +26,8 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 DOCS = ROOT / "docs"
 REPO = "https://github.com/monarch-initiative/mechmaker/blob/main/"
+RAW = "https://raw.githubusercontent.com/monarch-initiative/mechmaker/main/"
+SITE = "https://monarch-initiative.github.io/mechmaker/"
 
 # Skill descriptions are templates. Show them filled in for an example Mech.
 PLACEHOLDERS = {
@@ -190,9 +193,10 @@ def mechmaker_skills() -> list[tuple[str, str]]:
     index = [
         "# mechmaker skills",
         "",
-        "These skills guide the agent that makes a Mech. Install them as a",
-        "Claude Code plugin (see [Getting started](../getting-started.md)), or",
-        "work inside a mechmaker checkout, where `.claude/skills` points at them.",
+        "These skills guide the agent that makes a Mech. Install them with",
+        "`npx skills add monarch-initiative/mechmaker`, or as a Claude Code plugin",
+        "(see [Getting started](../getting-started.md)), or work inside a mechmaker",
+        "checkout, where `.claude/skills` points at them.",
         "",
         "| Skill | Use it to |",
         "|---|---|",
@@ -257,6 +261,102 @@ def workflows() -> str:
     return intro + sep + rest
 
 
+def first_sentence(text: str) -> str:
+    """The first sentence of a page's first paragraph, for an index line."""
+    for para in re.split(r"\n\s*\n", text):
+        para = para.strip()
+        if para and not para.startswith(("#", "!!!", "<", "|", "```", "-", ">")):
+            flat = " ".join(para.split())
+            flat = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", flat).replace("**", "")
+            return re.split(r"(?<=[.!?])\s", flat)[0]
+    return ""
+
+
+def start_prompt() -> str:
+    """The prompt people paste into their agent, from the getting-started page."""
+    m = re.search(r"```text\n(.*?)```", (DOCS / "getting-started.md").read_text(), re.S)
+    if not m:
+        raise SystemExit("docs/getting-started.md has no ```text block: the start prompt is missing")
+    return m.group(1)
+
+
+def nav_pages() -> list[tuple[str, str]]:
+    """(title, path) for every page in mkdocs.yml's nav, in order."""
+    nav = yaml.safe_load((ROOT / "mkdocs.yml").read_text())["nav"]
+    out: list[tuple[str, str]] = []
+
+    def walk(items, parent=""):
+        for item in items:
+            if isinstance(item, str):
+                out.append((parent, item))
+                continue
+            for title, value in item.items():
+                if isinstance(value, list):
+                    walk(value, title)
+                else:
+                    out.append((title, value))
+
+    walk(nav)
+    return out
+
+
+# Index lines for pages whose first paragraph does not say what they are.
+LLMS_DESCRIPTIONS = {
+    "developing.md": "How mechmaker is laid out and tested, for changing it.",
+    "glossary.md": "The words these pages use: Mech, record, CURIE, evidence and the rest.",
+}
+
+
+def llms() -> str:
+    """docs/llms.txt (https://llmstxt.org): what an agent reads first."""
+    tracked = {p.relative_to(DOCS).as_posix() for p in DOCS.glob("*.md")} - {"workflows.md"}
+    groups: dict[str, list[str]] = {"Docs": [], "Skills": [], "Reference": [], "Optional": []}
+    for title, path in nav_pages():
+        if path.startswith("skills/") and path != "skills/index.md":
+            name = Path(path).stem
+            meta, _ = frontmatter((ROOT / "skills" / name / "SKILL.md").read_text())
+            desc = re.split(r"(?<=[.!?])\s", " ".join(str(meta.get("description", "")).split()))[0]
+            groups["Skills"].append(f"- [{name}]({RAW}skills/{name}/SKILL.md): {desc}")
+            continue
+        if path == "skills/index.md":
+            continue
+        # A page in git links its Markdown; a generated one, the site.
+        url = RAW + "docs/" + path if path in tracked else SITE + path.removesuffix(".md") + "/"
+        desc = LLMS_DESCRIPTIONS.get(path) or first_sentence((DOCS / path).read_text())
+        group = ("Optional" if path in ("developing.md", "glossary.md")
+                 else "Reference" if path.startswith("reference/") or path == "workflows.md" else "Docs")
+        groups[group].append(f"- [{title or path}]({url}){': ' + desc if desc else ''}")
+    lines = [
+        "# mechmaker",
+        "",
+        "> mechmaker makes Mechs: knowledge bases where AI agents do most of the curation and people",
+        "> review it. Each record is one YAML file, its terms come from ontologies, and every claim",
+        "> quotes its source. mechmaker is a Copier template plus skills for the agent that makes a Mech.",
+        "",
+        "If a person asked you to make a Mech, install the skills and follow `make-mech`:",
+        "",
+        "```bash",
+        "npx skills add monarch-initiative/mechmaker -y",
+        "```",
+        "",
+        "No npx? Read the skills from the links below. Run `make-mech` from its step 0, which checks the",
+        "machine. Ask the person before you install a tool or create anything on GitHub. For a",
+        "knowledge base that already exists, follow `convert-knowledge-base` instead.",
+        "",
+        "People start you with this prompt:",
+        "",
+        "```text",
+        start_prompt().rstrip(),
+        "```",
+        "",
+        "To change mechmaker itself, read AGENTS.md and CLAUDE.md in the repository.",
+    ]
+    for group, items in groups.items():
+        if items:
+            lines += ["", f"## {group}", "", *items]
+    return "\n".join(lines) + "\n"
+
+
 def main() -> int:
     ref = DOCS / "reference"
     ref.mkdir(parents=True, exist_ok=True)
@@ -265,7 +365,9 @@ def main() -> int:
     (ref / "mech-skills.md").write_text(mech_skills())
     (DOCS / "workflows.md").write_text(workflows())
     pages = mechmaker_skills()
-    print(f"Generated docs/reference/, docs/workflows.md and docs/skills/ ({len(pages)} skills).")
+    (DOCS / "llms.txt").write_text(llms())
+    print(f"Generated docs/reference/, docs/workflows.md, docs/llms.txt and docs/skills/ "
+          f"({len(pages)} skills).")
     return 0
 
 
