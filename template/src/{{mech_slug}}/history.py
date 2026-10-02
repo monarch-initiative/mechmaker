@@ -110,9 +110,14 @@ def validate_history(target: Path) -> dict[Path, list[str]]:
     files = sorted(target.rglob("*.yaml")) if target.is_dir() else [target]
     failures: dict[Path, list[str]] = {}
     for f in files:
-        data = load(f)
+        try:
+            data = load(f)
+        except yaml.YAMLError as exc:
+            failures[f] = [f"YAML parse error: {exc}"]
+            continue
         errors = schema_errors(data, "HistoryRecord", HISTORY_SCHEMA_PATH)
-        sid = (data or {}).get("session", {}).get("id")
+        session = data.get("session") if isinstance(data, dict) else None
+        sid = session.get("id") if isinstance(session, dict) else None
         if sid and sid != f.stem:
             errors.append(f"session.id {sid!r} does not match filename stem {f.stem!r}")
         if errors:

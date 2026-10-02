@@ -64,15 +64,18 @@ def rule_errors(data: dict, path: Path | None = None) -> list[str]:
         if count > 1:
             errors.append(f"mechanism node name {dup!r} is used {count} times")
     known = set(names)
-    for node in nodes:
-        for edge in (node or {}).get("downstream") or []:
-            target = (edge or {}).get("target")
+    for node in (n for n in nodes if isinstance(n, dict)):  # the schema check reports the rest
+        for edge in node.get("downstream") or []:
+            if not isinstance(edge, dict):
+                continue
+            target = edge.get("target")
             if target not in known:
                 errors.append(f"edge {node.get('name')!r} -> {target!r}: no node has that name")
 
     if data.get("status") == "REVIEWED":
         events = data.get("curation_history") or []
-        if not any(e.get("action") == "REVIEW" and not e.get("llm_assisted") for e in events):
+        if not any(isinstance(e, dict) and e.get("action") == "REVIEW" and not e.get("llm_assisted")
+                   for e in events):
             errors.append("status is REVIEWED but no human REVIEW event is in curation_history")
     return errors
 

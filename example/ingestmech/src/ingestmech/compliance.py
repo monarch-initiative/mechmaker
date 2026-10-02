@@ -85,7 +85,9 @@ def main(argv: list[str] | None = None) -> int:
     rows = []
     for p in args.paths or iter_records():
         s, missing = score(load(p) or {})
-        rows.append({"path": str(p.resolve().relative_to(REPO_ROOT)), "score": s, "missing": missing})
+        full = Path(p).resolve()
+        shown = full.relative_to(REPO_ROOT) if full.is_relative_to(REPO_ROOT) else full
+        rows.append({"path": str(shown), "score": s, "missing": missing})
     rows.sort(key=lambda r: (r["score"], r["path"]))
     if args.json:
         print(json.dumps(rows, indent=2))

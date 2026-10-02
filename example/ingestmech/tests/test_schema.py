@@ -59,6 +59,24 @@ def test_reviewed_needs_a_human_review_event(example):
     assert any("REVIEWED" in e for e in rule_errors(bad))
 
 
+def test_malformed_items_are_reported_not_crashed_on(example):
+    bad = copy.deepcopy(example)
+    bad["status"] = "REVIEWED"
+    bad["mechanisms"] = ["a string, not a node", {"name": "n", "downstream": ["not an edge"]}]
+    bad["curation_history"] = ["not an event"]
+    assert any("REVIEWED" in e for e in rule_errors(bad))  # and no AttributeError
+
+
+def test_a_broken_history_file_is_reported(tmp_path):
+    from ingestmech.history import validate_history
+
+    (tmp_path / "dup.yaml").write_text("session: {}\nsession: {}\n")
+    (tmp_path / "null.yaml").write_text("session:\n")
+    failures = validate_history(tmp_path)
+    assert "YAML parse error" in failures[tmp_path / "dup.yaml"][0]
+    assert tmp_path / "null.yaml" in failures  # schema errors, not a crash
+
+
 def test_history_schema_loads():
     sv = SchemaView(str(HISTORY_SCHEMA_PATH))
     assert "HistoryRecord" in sv.all_classes()
