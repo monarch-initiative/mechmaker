@@ -376,17 +376,29 @@ def test_agent_workflows_share_pin_and_credentials(generated):
         assert len(pins) == 1 and len(creds) == 1, (pins, creds)
 
 
-def test_review_refuses_forks_before_it_checks_anything_out(tmp_path):
-    # /review and the manual start run the PR's code with the agent's
-    # credentials, so a fork's PR must stop before the first checkout.
+def test_review_reads_the_pr_as_data_and_posts_without_a_model(tmp_path):
     dest = render(tmp_path / "review", SCENARIOS["all-workflows"])
-    job = yaml.safe_load((dest / ".github" / "workflows" / "review.yaml").read_text())["jobs"]["review"]
-    names = [s.get("name") or s.get("uses", "") for s in job["steps"]]
-    guard = names.index("Refuse pull requests from forks")
-    first_checkout = next(i for i, s in enumerate(job["steps"])
-                          if "checkout" in s.get("uses", "") or "gh pr checkout" in s.get("run", ""))
-    assert guard < first_checkout
-    assert "isCrossRepository" in job["steps"][guard]["run"]
+    jobs = yaml.safe_load((dest / ".github" / "workflows" / "review.yaml").read_text())["jobs"]
+    review, publish = jobs["review"]["steps"], jobs["publish"]["steps"]
+
+    # Forks stop before anything is checked out.
+    assert review[0]["name"].startswith("Refuse pull requests from forks")
+    assert "isCrossRepository" in review[0]["run"]
+    # The agent's job can write nothing, and nothing in it runs the PR's code:
+    # the tools are the default branch's, the PR's files are data in pr/.
+    assert all(v in ("read", "none") for v in jobs["review"]["permissions"].values())
+    assert not any("gh pr checkout" in s.get("run", "") for s in review)
+    checkouts = [s for s in review if "actions/checkout" in s.get("uses", "")]
+    assert checkouts[0]["with"]["ref"] == "${{ github.event.repository.default_branch }}"
+    assert checkouts[1]["with"]["path"] == "pr" and checkouts[1]["with"]["persist-credentials"] is False
+    agent = next(s for s in review if "claude-code-action" in s.get("uses", ""))
+    assert "--json-schema" in agent["with"]["claude_args"]
+    assert "gh pr review" not in agent["with"]["claude_args"]
+    # Posting has no model; only it holds the reviewer App's key.
+    assert not any("claude-code-action" in s.get("uses", "") for s in publish)
+    assert jobs["publish"]["permissions"]["pull-requests"] == "write"
+    assert not any("MECH_REVIEWER" in str(s) for s in review)
+    assert (dest / ".github" / "scripts" / "review-publish.js").exists()
 
 
 @pytest.mark.skipif(shutil.which("actionlint") is None, reason="actionlint not installed")
