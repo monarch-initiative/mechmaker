@@ -1,26 +1,29 @@
-"""KGX exports of the records: Biolink associations, and the whole record graph.
+"""KGX exports of the records: record-to-term associations, and the whole record graph.
 
 The export calls this for the formats kgx and kgx_maximal in conf/export.yaml;
-conf/kgx.yaml says how records map onto Biolink. Files, in build/export/:
+conf/kgx.yaml says how records map onto a graph. Files, in build/export/:
 
   kgx          <slug>-kgx_nodes.jsonl / _edges.jsonl, and .tsv of each
                One association per term a record's section binds, from the
-               record to the term, with the section's Biolink predicate.
+               record to the term, with the section's predicate.
                Evidence goes on the edge: references in `publications`,
                quotes in `supporting_text` ("[ref] [SUPPORT] quote --- Explanation: ...").
   kgx_maximal  <slug>-kgx_maximal_nodes.jsonl / _edges.jsonl, and .tsv
                Every object in a record is a node (category <slug>:<Class>,
-               and the record's own Biolink category for records); every
-               field holding objects is an edge, predicate <slug>:<field>.
-               Ontology terms are shared nodes with Biolink categories, taken
-               from the sections whose terms share their prefix.
+               and record_category for records); every field holding
+               objects is an edge, predicate <slug>:<field>. Ontology terms
+               are shared nodes, with the category of the section whose
+               terms share their prefix.
 
 Every edge carries primary_knowledge_source, knowledge_level and agent_type
 from conf/kgx.yaml, and an id hashed from subject, predicate and object, so
 ids are stable from one export to the next. In TSV, a list is joined with |.
 
-Each biolink: category and predicate is checked against the Biolink model
-(the biolink-model package, installed when a KGX format is chosen). A
+With `biolink: true` (the default), each biolink: category and predicate is
+checked against the Biolink model (the biolink-model package), and every
+category and predicate must be Biolink's or, in kgx_maximal, the Mech's
+own. With `biolink: false`, Biolink is not loaded: categories and
+predicates are the Mech's own CURIEs, unchecked but for having a prefix. A
 category must be a class that is neither a mixin nor abstract; a predicate,
 a slot under `related to`. A predicate whose Biolink domain or range does
 not fit the subject's or object's category is a warning, not an error.
@@ -39,7 +42,7 @@ from .paths import RECORD_CLASS, REPO_ROOT, SLUG
 
 SETTINGS = REPO_ROOT / "conf" / "kgx.yaml"
 DEFAULTS = {
-    "record_category": "biolink:NamedThing",
+    "biolink": True,
     "knowledge_source": f"infores:{SLUG}",
     "knowledge_level": "knowledge_assertion",
     "agent_type": "manual_validation_of_automated_agent",
@@ -47,16 +50,23 @@ DEFAULTS = {
 }
 BIOLINK_MISSING = (
     "kgx: needs biolink-model, which this Mech does not install. Run `uv add 'biolink-model>=4.4.5'` "
-    "and `just install`, or take kgx out of conf/export.yaml."
+    "and `just install`, or set `biolink: false` in conf/kgx.yaml, or take kgx out of conf/export.yaml."
 )
 EDGE_FIELDS = ["id", "subject", "predicate", "object", "primary_knowledge_source", "knowledge_level",
                "agent_type", "publications", "supporting_text"]
 
 
 def settings() -> dict:
-    data = (yaml.safe_load(SETTINGS.read_text()) if SETTINGS.exists() else {}) or {}
+    return resolve((yaml.safe_load(SETTINGS.read_text()) if SETTINGS.exists() else {}) or {})
+
+
+def resolve(data: dict) -> dict:
+    """conf/kgx.yaml's settings, with the defaults filled in."""
     cfg = {**DEFAULTS, **data}
     cfg["sections"] = cfg.get("sections") or {}
+    # The category of a node nothing else gives one.
+    cfg["default_category"] = "biolink:NamedThing" if cfg["biolink"] else f"{SLUG}:Term"
+    cfg.setdefault("record_category", "biolink:NamedThing" if cfg["biolink"] else f"{SLUG}:{RECORD_CLASS}")
     for slot, sec in cfg["sections"].items():
         if not isinstance(sec, dict) or not sec.get("predicate"):
             raise SystemExit(f"conf/kgx.yaml: section {slot!r} needs a predicate")
@@ -161,7 +171,7 @@ def _provenance(cfg: dict) -> dict:
 
 
 def association_graph(records: list[dict], cfg: dict) -> tuple[list[dict], list[dict]]:
-    """Record-to-term Biolink associations."""
+    """Record-to-term associations."""
     nodes: dict[str, dict] = {}
     edges: dict[str, dict] = {}
     for r in records:
@@ -175,7 +185,7 @@ def association_graph(records: list[dict], cfg: dict) -> tuple[list[dict], list[
                 if term is None:
                     continue
                 tid, label = term
-                nodes.setdefault(tid, {"id": tid, "category": [sec.get("category", "biolink:NamedThing")],
+                nodes.setdefault(tid, {"id": tid, "category": [sec.get("category", cfg["default_category"])],
                                        "name": label, "provided_by": [cfg["knowledge_source"]]})
                 pred = sec["predicate"]
                 eid = edge_id(rid, pred, tid)
@@ -199,15 +209,16 @@ def maximal_graph(sv, records: list[dict], cfg: dict) -> tuple[list[dict], list[
             for item in value if isinstance(value, list) else [value] if value else []:
                 term = term_of(item, sec.get("term_field", "term"))
                 if term:
-                    by_prefix.setdefault(term[0].split(":", 1)[0], sec.get("category", "biolink:NamedThing"))
+                    prefix = term[0].split(":", 1)[0]
+                    by_prefix.setdefault(prefix, sec.get("category", cfg["default_category"]))
     shared = {c for c in sv.all_classes() if c != RECORD_CLASS and sv.get_identifier_slot(c)}
     nodes = []
     for n in gnodes:
         cls = n[LABEL]
         if cls == RECORD_CLASS:
-            cats = [cfg["record_category"], f"{SLUG}:{cls}"]
+            cats = list(dict.fromkeys([cfg["record_category"], f"{SLUG}:{cls}"]))
         elif cls in shared:
-            cats = [by_prefix.get(n["id"].split(":", 1)[0], "biolink:NamedThing")]
+            cats = [by_prefix.get(n["id"].split(":", 1)[0], cfg["default_category"])]
         else:
             cats = [f"{SLUG}:{cls}"]
         props = {k: v for k, v in n.items() if k not in ("id", LABEL)}
@@ -249,9 +260,9 @@ def write(nodes: list[dict], edges: list[dict], out_dir: Path, stem: str) -> lis
     return files
 
 
-def check(nodes: list[dict], edges: list[dict], biolink: Biolink,
+def check(nodes: list[dict], edges: list[dict], biolink: Biolink | None,
           maximal: bool) -> tuple[list[str], list[str]]:
-    """(problems, warnings) for one graph."""
+    """(problems, warnings) for one graph. With no Biolink, categories and predicates need only a prefix."""
     problems, warnings = [], []
     ids = [n["id"] for n in nodes]
     if len(ids) != len(set(ids)):
@@ -260,6 +271,11 @@ def check(nodes: list[dict], edges: list[dict], biolink: Biolink,
     dangling = [e["id"] for e in edges if e["subject"] not in known or e["object"] not in known]
     if dangling:
         problems.append(f"{len(dangling)} edge(s) point at a node that is not exported")
+    if biolink is None:
+        unprefixed = sorted({c for n in nodes for c in n["category"] if ":" not in c}
+                            | {e["predicate"] for e in edges if ":" not in e["predicate"]})
+        problems += [f"{c} is not a CURIE: give it a prefix" for c in unprefixed]
+        return problems, warnings
     local = f"{SLUG}:"
     cats: dict[str, str] = {}
     for n in nodes:
@@ -294,7 +310,7 @@ def check(nodes: list[dict], edges: list[dict], biolink: Biolink,
 def export(fmt: str, sv, records: list[dict], out_dir: Path) -> tuple[list[Path], list[str], list[str]]:
     """Write one KGX format and read it back. (files, problems, warnings)."""
     cfg = settings()
-    biolink = Biolink()
+    biolink = Biolink() if cfg["biolink"] else None
     if fmt == "kgx":
         nodes, edges = association_graph(records, cfg)
     else:
@@ -305,4 +321,4 @@ def export(fmt: str, sv, records: list[dict], out_dir: Path) -> tuple[list[Path]
     for f, want in ((files[0], len(nodes)), (files[2], len(edges))):
         if len(f.read_text().splitlines()) != want:
             problems.append(f"{f.name}: does not hold {want} line(s)")
-    return files, problems, [f"{fmt} (Biolink {biolink.version}): {w}" for w in warnings]
+    return files, problems, [f"{fmt} (Biolink {biolink.version}): {w}" for w in warnings] if biolink else []

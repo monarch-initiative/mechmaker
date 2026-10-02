@@ -1,23 +1,29 @@
 # How `just export` writes KGX (formats kgx and kgx_maximal in
 # conf/export.yaml). See src/goatmech/kgx.py.
 #
-# kgx: one Biolink association per term a record's section binds, from the
-#   record to the term, with the section's predicate. Evidence goes on the
-#   edge: references in `publications`, quotes in `supporting_text`.
-# kgx_maximal: every object in a record is a node, every field holding
-#   objects an edge (goatmech:<field>); term nodes take the
-#   categories below.
+# kgx: one edge per term a record's section binds, from the record to the
+#   term, with the section's predicate. Evidence goes on the edge:
+#   references in `publications`, quotes in `supporting_text`.
+# kgx_maximal: every object in a record is a node (goatmech:<Class>),
+#   every field holding objects an edge (goatmech:<field>); records
+#   and term nodes also take the categories below.
 #
-# Every category and predicate is checked against the Biolink model. A
-# predicate whose Biolink domain or range does not fit the categories is
-# reported as a warning. Start from biolink:related_to, and choose a more
+# biolink: true maps the graph onto the Biolink model. Every biolink:
+# category and predicate is checked against it (the biolink-model package),
+# and a predicate whose Biolink domain or range does not fit the categories
+# is reported as a warning. Start from biolink:related_to, and choose a more
 # specific predicate only where its meaning holds for every record: the
 # design-mech-schema skill says how.
+# biolink: false is for a domain Biolink does not cover. Categories and
+# predicates are then the Mech's own CURIEs, and nothing checks them
+# against a model.
+biolink: true
 
-# The Biolink category of a record. VBO places breeds under NCBITaxon.
+# The category of a record. VBO places breeds under NCBITaxon.
 record_category: biolink:OrganismTaxon
 
-# Provenance on every edge.
+# Provenance on every edge. knowledge_level and agent_type take Biolink's
+# values, which KGX uses with or without the rest of Biolink.
 knowledge_source: infores:goatmech
 knowledge_level: knowledge_assertion
 agent_type: manual_validation_of_automated_agent

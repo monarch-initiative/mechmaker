@@ -17,8 +17,8 @@ Every format comes from LinkML or the libraries it brings.
 | `sqlite` | `<slug>-records.sqlite` | A database to query directly |
 | `duckdb` | `<slug>-records.duckdb` | Analytics in DuckDB: one table of records, nested values as JSON. Optional, see below |
 | `sql` | `<slug>-schema.sql`, `<slug>-records.sql` | The schema as SQL DDL, and the data as SQL to load anywhere |
-| `kgx` | `<slug>-kgx_nodes`, `_edges` (`.jsonl`, `.tsv`) | A knowledge graph in KGX: Biolink associations from each record to its terms. Optional, see below |
-| `kgx_maximal` | `<slug>-kgx_maximal_nodes`, `_edges` | The whole record graph in KGX: every object a node. Optional, see below |
+| `kgx` | `<slug>-kgx_nodes`, `_edges` (`.jsonl`, `.tsv`) | A knowledge graph in KGX: an edge from each record to each term it binds. See below |
+| `kgx_maximal` | `<slug>-kgx_maximal_nodes`, `_edges` | The whole record graph in KGX: every object a node. See below |
 | `csv`, `tsv` | see below | Spreadsheets and data frames |
 
 ## Choosing
@@ -40,29 +40,45 @@ tabular_layout: per_class
 Monarch knowledge graph and other Biolink graphs. A Mech can write it two
 ways, after [DisMech's two KGX exports](https://github.com/monarch-initiative/dismech/tree/main/src/dismech/export):
 
-- **`kgx`**: one Biolink association per term a record's section binds,
+- **`kgx`**: one association per term a record's section binds,
   from the record to the term. A record that binds the same term twice gives
   one edge. Evidence goes on the edge: references in `publications`, and
   each quote in `supporting_text` as
   `[PMID:1] [SUPPORT] the quote --- Explanation: why`.
 - **`kgx_maximal`**: every object in a record is a node, labelled
   `<slug>:<Class>`, and every field holding objects is an edge,
-  `<slug>:<field>`. Records also carry their Biolink category; ontology
-  terms are shared nodes with Biolink categories. Nothing is left out, and
-  most of it is local to the Mech.
+  `<slug>:<field>`. Records also carry their record category; ontology
+  terms are shared nodes with their section's category. Nothing is left
+  out, and most of it is local to the Mech.
 
 Every edge carries `primary_knowledge_source` (`infores:<slug>`),
 `knowledge_level` (`knowledge_assertion`) and `agent_type`
 (`manual_validation_of_automated_agent`: agents curate, people review), and
 an id hashed from subject, predicate and object, stable between exports.
 
-`conf/kgx.yaml` maps the Mech onto Biolink: the record's category, and for
+`conf/kgx.yaml` maps the Mech onto a graph: the record's category, and for
 each record section, the predicate from the record to its terms and the
-terms' category. The template starts every section at `biolink:related_to`,
-which is never wrong, with categories from the ontology catalog. The
-`design-mech-schema` skill chooses sharper ones.
+terms' category.
+
+### With Biolink, or without
+
+By default the graph uses the [Biolink model](https://biolink.github.io/biolink-model/),
+as the Monarch graph does. The template starts every section at
+`biolink:related_to`, which is never wrong, with categories from the
+ontology catalog. The `design-mech-schema` skill chooses sharper ones.
+
+Biolink is biomedical. A Mech about goat breeds fits it; a Mech about
+software ingests or soil horizons may not. Answer no to `kgx_biolink` when
+generating, or set `biolink: false` in `conf/kgx.yaml` later. The graph
+then uses the Mech's own terms: records are `<slug>:<RecordClass>`, terms
+`<slug>:<Noun>`, and each section's predicate `<slug>:<section>`. Nothing
+checks them against a model, and `biolink-model` is not installed. Every
+category and predicate must still be a CURIE. The provenance fields keep
+Biolink's values for `knowledge_level` and `agent_type`, since KGX uses
+them either way.
 
 ```yaml
+biolink: true
 record_category: biolink:OrganismTaxon
 sections:
   origins:
@@ -74,13 +90,14 @@ sections:
     term_field: trait        # the item's field that holds the term
 ```
 
-The export checks every category and predicate against the Biolink model:
+With Biolink, the export checks every category and predicate against the model:
 a category must be a concrete class (not a mixin, not abstract), and a
 predicate must descend from `related_to`. Either fails the export. A
 predicate whose Biolink domain or range does not fit the categories is a
 warning. For example, `biolink:has_phenotype` expects a biological entity,
 so it warns from an `OrganismTaxon`. The check uses the `biolink-model`
-package, which the template adds only when a KGX format is chosen.
+package, which the template adds only when a KGX format is chosen with
+Biolink.
 
 ## DuckDB, an optional extra
 

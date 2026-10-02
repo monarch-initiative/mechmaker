@@ -103,6 +103,9 @@ SCENARIOS["extras"] = {
          "noun": "anatomy", "slot": "anatomy_terms"},
     ],
     "workflows": ["sweep"],
+    # KGX in the Mech's own terms, with no Biolink.
+    "output_formats": ["yaml", "json", "sqlite", "kgx", "kgx_maximal"],
+    "kgx_biolink": False,
 }
 SCENARIOS["minimal"]["workflows"] = []
 ALL_FORMATS = ["yaml", "json", "jsonld", "ttl", "sqlite", "duckdb", "sql", "csv", "tsv", "kgx", "kgx_maximal"]
@@ -303,13 +306,18 @@ def test_kgx_settings_follow_answers(generated):
     _, answers, dest = generated
     deps = tomllib.loads((dest / "pyproject.toml").read_text())["project"]["dependencies"]
     kgx = {"kgx", "kgx_maximal"} & set(answers["output_formats"])
-    assert any(d.startswith("biolink-model") for d in deps) == bool(kgx)
+    biolink = answers.get("kgx_biolink", True)
+    assert any(d.startswith("biolink-model") for d in deps) == bool(kgx and biolink)
     cfg = yaml.safe_load((dest / "conf" / "kgx.yaml").read_text())
+    assert cfg["biolink"] is biolink
     slug = answers["mech_slug"]
     schema = yaml.safe_load((dest / "src" / slug / "schema" / f"{slug}.yaml").read_text())
     record_slots = set(schema["classes"][answers["record_class"]]["slots"])
     assert set(cfg["sections"]) <= record_slots
-    assert all(s["category"].startswith("biolink:") for s in cfg["sections"].values())
+    prefix = "biolink:" if biolink else f"{slug}:"
+    assert cfg["record_category"].startswith(prefix)
+    assert all(s["category"].startswith(prefix) and s["predicate"].startswith(prefix)
+               for s in cfg["sections"].values())
 
 
 def test_no_output_format_is_rejected(tmp_path):

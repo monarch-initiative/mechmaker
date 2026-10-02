@@ -402,13 +402,24 @@ output_formats:
     "Turtle (RDF)": ttl
     "SQLite database": sqlite
     "DuckDB database (adds linkml-store and its dependencies)": duckdb
-    "KGX, Biolink associations from each record to its terms (adds biolink-model)": kgx
-    "KGX, the whole record graph as nodes and edges (adds biolink-model)": kgx_maximal
+    "KGX, an edge from each record to each term it binds": kgx
+    "KGX, the whole record graph as nodes and edges": kgx_maximal
     "SQL: schema DDL, and the data as SQL": sql
     "CSV": csv
     "TSV": tsv
   default: [yaml, json, jsonld, ttl, sqlite, sql, csv]
   validator: "{% if not output_formats %}Pick at least one format.{% endif %}"
+
+kgx_biolink:
+  type: bool
+  help: >-
+    Map the KGX export onto the Biolink model, and check it against
+    Biolink (adds biolink-model). Biolink is biomedical; say no when its
+    classes and predicates do not fit the domain, and the graph uses the
+    Mech's own categories and predicates instead. Change later in
+    conf/kgx.yaml
+  default: true
+  when: "{{ 'kgx' in output_formats or 'kgx_maximal' in output_formats }}"
 
 load_targets:
   type: str

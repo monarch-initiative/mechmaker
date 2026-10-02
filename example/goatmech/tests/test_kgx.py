@@ -1,6 +1,7 @@
-"""KGX exports: the edges, the evidence on them, and the Biolink checks."""
+"""KGX exports: the edges, the evidence on them, and the Biolink checks, when Biolink is used."""
 
 import json
+import sys
 from pathlib import Path
 
 import pytest
@@ -9,11 +10,17 @@ from goatmech import export, kgx
 from goatmech.validate import load
 
 EXAMPLE = load(Path(__file__).parent / "data" / "example_record.yaml")
-biolink_model = pytest.importorskip("biolink_model", reason="biolink-model is installed only for KGX exports")
+try:
+    import biolink_model  # noqa: F401
+
+    HAS_BIOLINK = True
+except ImportError:
+    HAS_BIOLINK = False
+needs_biolink = pytest.mark.skipif(not HAS_BIOLINK, reason="biolink-model is installed only for Biolink KGX")
 
 
-def cfg(**sections):
-    return {**kgx.DEFAULTS, "sections": sections}
+def cfg(biolink=True, **sections):
+    return kgx.resolve({"biolink": biolink, "sections": sections})
 
 
 def test_one_edge_per_bound_term_with_its_evidence():
@@ -36,6 +43,7 @@ def test_one_edge_per_bound_term_with_its_evidence():
     assert e["id"] == kgx.edge_id("x:1", "biolink:related_to", "T:1")  # stable
 
 
+@needs_biolink
 def test_biolink_checks():
     b = kgx.Biolink()
     nodes = [{"id": "x:1", "category": ["biolink:OrganismalEntity"]},
@@ -48,6 +56,7 @@ def test_biolink_checks():
     assert "not exported" in text  # T:9
 
 
+@needs_biolink
 def test_a_predicate_that_does_not_fit_warns():
     b = kgx.Biolink()
     nodes = [{"id": "x:1", "category": ["biolink:NamedThing"]},
@@ -57,6 +66,21 @@ def test_a_predicate_that_does_not_fit_warns():
     assert problems == [] and "domain" in warnings[0]
 
 
+def test_without_biolink_the_mech_uses_its_own_terms(monkeypatch):
+    monkeypatch.setitem(sys.modules, "biolink_model", None)  # never loaded
+    record = {"id": "x:1", "name": "one",
+              "places": [{"preferred_term": "a", "term": {"id": "T:1", "label": "a"}}]}
+    c = cfg(biolink=False, places={"predicate": f"{kgx.SLUG}:places"})
+    nodes, edges = kgx.association_graph([record], c)
+    assert {n["id"]: n["category"] for n in nodes} == {"x:1": [f"{kgx.SLUG}:{kgx.RECORD_CLASS}"],
+                                                        "T:1": [f"{kgx.SLUG}:Term"]}
+    assert kgx.check(nodes, edges, None, maximal=False) == ([], [])
+    edges[0]["predicate"] = "places"
+    problems, _ = kgx.check(nodes, edges, None, maximal=False)
+    assert problems == ["places is not a CURIE: give it a prefix"]
+
+
+@pytest.mark.skipif(kgx.settings()["biolink"] and not HAS_BIOLINK, reason="conf/kgx.yaml uses Biolink")
 def test_both_formats_from_the_example_record(tmp_path):
     written, problems = export.export({"formats": ["kgx", "kgx_maximal"], "tabular_layout": "per_class"},
                                       [Path(__file__).parent / "data" / "example_record.yaml"], tmp_path)
@@ -65,4 +89,4 @@ def test_both_formats_from_the_example_record(tmp_path):
     assert len(names) == 8
     maximal = [json.loads(line) for line in (tmp_path / f"{kgx.SLUG}-kgx_maximal_nodes.jsonl").open()]
     record = next(n for n in maximal if n["id"] == EXAMPLE["id"])
-    assert record["category"][1] == f"{kgx.SLUG}:{kgx.RECORD_CLASS}"
+    assert f"{kgx.SLUG}:{kgx.RECORD_CLASS}" in record["category"]

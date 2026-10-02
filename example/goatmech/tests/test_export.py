@@ -30,8 +30,9 @@ try:
 except ImportError:
     HAS_BIOLINK = False
 # Every format this Mech can write as installed.
+KGX_READY = HAS_BIOLINK or not kgx.settings()["biolink"]
 INSTALLED = [f for f in export.FORMATS
-             if (f != "duckdb" or HAS_DUCKDB) and (not f.startswith("kgx") or HAS_BIOLINK)]
+             if (f != "duckdb" or HAS_DUCKDB) and (not f.startswith("kgx") or KGX_READY)]
 
 
 @pytest.mark.parametrize("layout", ["per_class", "flat"])
@@ -171,5 +172,6 @@ def test_kgx_without_biolink_model_says_what_to_install(tmp_path, monkeypatch):
     import sys
 
     monkeypatch.setitem(sys.modules, "biolink_model", None)  # as if not installed
+    monkeypatch.setattr(kgx, "settings", lambda: kgx.resolve({"biolink": True}))
     _, problems = export.export({"formats": ["kgx"], "tabular_layout": "per_class"}, [EXAMPLE], tmp_path)
     assert problems == [kgx.BIOLINK_MISSING]

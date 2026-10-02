@@ -28,7 +28,7 @@ dependencies = [
     # Only here because this Mech chose them: it brings many packages of its own.
     "linkml-store{% if load_targets %}[{{ load_targets | join(',') }}]{% endif %}>=0.3.2",
 {%- endif %}
-{%- if 'kgx' in output_formats or 'kgx_maximal' in output_formats %}
+{%- if kgx_biolink and ('kgx' in output_formats or 'kgx_maximal' in output_formats) %}
     # The Biolink model, for the KGX exports: they check every category and
     # predicate against it. Only here because this Mech exports KGX.
     "biolink-model>=4.4.5",

@@ -179,8 +179,12 @@ any IRI that did not expand.
 
 ## The knowledge graph mapping
 
-If `conf/export.yaml` has `kgx` or `kgx_maximal`, map the domain onto
-Biolink in `conf/kgx.yaml` once the sections are settled:
+If `conf/export.yaml` has `kgx` or `kgx_maximal`, map the domain in
+`conf/kgx.yaml` once the sections are settled. First decide whether Biolink
+fits. It covers biomedicine: genes, chemicals, diseases, phenotypes,
+organisms, anatomy, and places. If most records and terms would be
+`biolink:NamedThing`, set `biolink: false` and name the Mech's own
+categories and predicates as `<slug>:` CURIEs instead. Otherwise:
 
 1. `record_category`: the most specific concrete Biolink class every record
    is. A breed under NCBITaxon is a `biolink:OrganismTaxon`; a disorder a
