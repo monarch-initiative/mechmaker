@@ -44,6 +44,12 @@ everything else rests on.
   python3 <scripts>/check_terms.py under <ROOT> <CURIE> <CURIE> ...
   ```
 
+- Look one level down. Do terms under a record's term mean something else,
+  such as national populations under a breed? Then only the root's direct
+  children are records: say so in the brief, set
+  `identity_direct_only: true`, and check the sample with
+  `check_terms.py under --direct <ROOT> <CURIE> ...`. Without it, any term
+  under the root keys a record, and so does the root itself.
 - What fraction of expected records have a term? Measure it on the sample.
 
 ## 3. Grounding
