@@ -1,6 +1,70 @@
 # Getting started
 
-## What you need first
+## Point your agent at mechmaker
+
+Most people make a Mech by asking an AI agent to. Open your agent (Claude
+Code, Codex, Cursor, or another that reads skills) in the folder where the
+Mech should live. Copy this, change the first line to your topic, and paste
+it in:
+
+```text
+I want a Mech about: bacterial biofilm matrix components.
+
+1. Install the mechmaker skills: npx skills add monarch-initiative/mechmaker -y
+   (No npx? Read them from https://github.com/monarch-initiative/mechmaker/tree/main/skills instead.)
+2. Read the make-mech skill and follow it, from its step 0.
+3. Ask me before you install a tool, and before you create anything on GitHub.
+```
+
+That is all you need to start. The agent checks your machine, and asks you
+what only you know: your name, your GitHub organization, the licenses.
+
+### Installing the skills yourself
+
+For any agent, with [Node.js](https://nodejs.org/):
+
+```bash
+npx skills add monarch-initiative/mechmaker
+```
+
+It asks which agents to install for. The skills land in the folder you run
+it in, as `make-mech`, `survey-domain` and so on.
+
+In Claude Code, the plugin installs the same skills under the `mechmaker:`
+namespace (`mechmaker:make-mech`), so they stay apart from other skills:
+
+```
+/plugin marketplace add monarch-initiative/mechmaker
+/plugin install mechmaker@mechmaker
+```
+
+Then ask in plain words:
+
+> Make a Mech for bacterial biofilm matrix components.
+
+### What the agent does
+
+The [`make-mech`](skills/make-mech.md) skill works in steps and checks with
+you along the way:
+
+1. **Survey.** It works out what one record should be, which ontologies fit,
+   which sources can feed the knowledge base, and whether an existing Mech
+   already covers your topic.
+2. **Set up.** It fills in the template's questions and creates the
+   repository. It asks you for what only you know: your name, your GitHub
+   organization, the licenses.
+3. **Design.** It shapes the data model to your field.
+4. **Choose workflows.** It asks which GitHub automation to turn on.
+5. **Seed.** It writes the first three to five records, with real sources.
+6. **Register.** It drafts your entry for MechRegistry.
+
+It asks before it creates anything on GitHub.
+
+## What your machine needs
+
+The agent's first step checks for these. It lists what is missing and the
+command that installs each one, and asks before it runs any. To set up by
+yourself instead, this is the list.
 
 | Tool | What it is for | How to get it |
 |---|---|---|
@@ -8,7 +72,7 @@
 | **A GitHub account** | Hosts your Mech so others can see and review it | [github.com](https://github.com) |
 | **uv** | Installs Python and the Python tools a Mech uses | See below |
 | **just** | Runs the Mech's commands, like `just qc` | See below |
-| **Claude Code** (recommended) | The AI agent that does the setup and curation | [Claude Code setup](https://docs.claude.com/en/docs/claude-code/setup) |
+| **An AI agent** | Does the setup and curation. Claude Code is the one mechmaker is tested with | [Claude Code setup](https://docs.claude.com/en/docs/claude-code/setup) |
 
 You do not need to install Python yourself. uv does that.
 
@@ -69,39 +133,6 @@ are ready. See [Deep research](deep-research.md).
 No Python on your machine? uv brings its own: run
 `uv run --no-project check_env.py --network` instead. (On Windows, the
 command may be `python` rather than `python3`.)
-
-## With an AI agent (recommended)
-
-The agent asks you a few questions, looks up the ontologies and sources for
-your field, and builds the Mech with you.
-
-1. Open Claude Code in the folder where you want your Mech to live.
-2. Add the mechmaker skills:
-
-    ```
-    /plugin marketplace add monarch-initiative/mechmaker
-    /plugin install mechmaker@mechmaker
-    ```
-
-3. Describe what you want, in plain words:
-
-    > Make a Mech for bacterial biofilm matrix components.
-
-The [`make-mech`](skills/make-mech.md) skill works in steps and checks with
-you along the way:
-
-1. **Survey.** It works out what one record should be, which ontologies fit,
-   which sources can feed the knowledge base, and whether an existing Mech
-   already covers your topic.
-2. **Set up.** It fills in the template's questions and creates the
-   repository. It asks you for what only you know: your name, your GitHub
-   organization, the licenses.
-3. **Design.** It shapes the data model to your field.
-4. **Choose workflows.** It asks which GitHub automation to turn on.
-5. **Seed.** It writes the first three to five records, with real sources.
-6. **Register.** It drafts your entry for MechRegistry.
-
-It asks before it creates anything on GitHub.
 
 ## By hand
 

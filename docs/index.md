@@ -8,6 +8,25 @@ with a data model, checks that catch bad citations and made-up identifiers,
 a documentation site, and instructions that teach an AI agent how to curate
 in your field.
 
+## Start here
+
+Paste this into your AI agent, in the folder where the Mech should live.
+Change the first line to your topic. The copy button is at the top right
+of the box.
+
+```text
+I want a Mech about: bacterial biofilm matrix components.
+
+1. Install the mechmaker skills: npx skills add monarch-initiative/mechmaker -y
+   (No npx? Read them from https://github.com/monarch-initiative/mechmaker/tree/main/skills instead.)
+2. Read the make-mech skill and follow it, from its step 0.
+3. Ask me before you install a tool, and before you create anything on GitHub.
+```
+
+[Getting started](getting-started.md) says what happens next, how to
+install the skills yourself, and what your machine needs. An agent reading
+this site can start from [llms.txt](llms.txt).
+
 <div class="grid cards" markdown>
 
 - **[Getting started](getting-started.md)**

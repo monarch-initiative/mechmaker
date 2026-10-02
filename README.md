@@ -10,6 +10,53 @@ repository with a data model, checks that catch bad citations and made-up
 identifiers, and instructions that teach an AI agent how to curate in your
 field.
 
+## Start here: point your agent at mechmaker
+
+Most people make a Mech by asking an AI agent to. Open your agent (Claude
+Code, Codex, Cursor, or another that reads skills) in the folder where the
+Mech should live. Copy this, change the first line to your topic, and paste
+it in:
+
+```text
+I want a Mech about: bacterial biofilm matrix components.
+
+1. Install the mechmaker skills: npx skills add monarch-initiative/mechmaker -y
+   (No npx? Read them from https://github.com/monarch-initiative/mechmaker/tree/main/skills instead.)
+2. Read the make-mech skill and follow it, from its step 0.
+3. Ask me before you install a tool, and before you create anything on GitHub.
+```
+
+That is all you need to start. The agent checks your machine, and asks you
+what only you know: your name, your GitHub organization, the licenses.
+
+**Installing the skills yourself.** For any agent, with
+[Node.js](https://nodejs.org/), run `npx skills add monarch-initiative/mechmaker`.
+In Claude Code, the plugin installs the same skills under the `mechmaker:`
+namespace (`mechmaker:make-mech`):
+
+```
+/plugin marketplace add monarch-initiative/mechmaker
+/plugin install mechmaker@mechmaker
+```
+
+Then ask in plain words:
+
+> Make a Mech for bacterial biofilm matrix components.
+
+The agent works in steps and checks with you along the way:
+
+1. **Survey.** It works out what one record should be, which ontologies fit,
+   and which sources can feed the knowledge base. It also checks whether an
+   existing Mech already covers your topic.
+2. **Set up.** It fills in the template's questions and creates the
+   repository. It asks you for the things only you know, like your name,
+   your GitHub organization, and the license you want.
+3. **Design.** It shapes the data model to your field.
+4. **Seed.** It writes the first three to five records, with real sources.
+5. **Register.** It drafts your entry for MechRegistry.
+
+It asks before it creates anything on GitHub.
+
 ## What is a Mech?
 
 A Mech is a knowledge base built on a pattern first used by
@@ -29,7 +76,11 @@ diseases work. Every Mech follows the same few rules:
 Other Mechs are listed in
 [MechRegistry](https://monarch-initiative.github.io/mechregistry/).
 
-## What you need first
+## What your machine needs
+
+The agent's first step checks for these. It lists what is missing and the
+command that installs each one, and asks before it runs any. To set up by
+yourself instead, this is the list.
 
 | Tool | What it is for | How to get it |
 |---|---|---|
@@ -37,7 +88,7 @@ Other Mechs are listed in
 | **A GitHub account** | Hosts your Mech so others can see and review it | [github.com](https://github.com) |
 | **uv** | Installs Python and the Python tools a Mech uses | See below |
 | **just** | Runs the Mech's commands, like `just qc` | See below |
-| **Claude Code** (recommended) | The AI agent that does the setup and curation | [Claude Code setup](https://docs.claude.com/en/docs/claude-code/setup) |
+| **An AI agent** | Does the setup and curation. Claude Code is the one mechmaker is tested with | [Claude Code setup](https://docs.claude.com/en/docs/claude-code/setup) |
 
 You do not need to install Python yourself. uv does that.
 
@@ -73,37 +124,6 @@ answer, and gives the command that fixes anything missing.
 No Python on your machine? uv brings its own: run
 `uv run --no-project check_env.py --network` instead. (On Windows, the
 command may be `python` rather than `python3`.)
-
-## Start a new Mech with an AI agent (recommended)
-
-This is the easiest way. The agent asks you a few questions, looks up the
-ontologies and sources for your field, and builds the Mech with you.
-
-1. Open Claude Code in the folder where you want your Mech to live.
-2. Add the mechmaker skills:
-
-   ```
-   /plugin marketplace add monarch-initiative/mechmaker
-   /plugin install mechmaker@mechmaker
-   ```
-
-3. Describe what you want, in plain words. For example:
-
-   > Make a Mech for bacterial biofilm matrix components.
-
-The agent works in steps and checks with you along the way:
-
-1. **Survey.** It works out what one record should be, which ontologies fit,
-   and which sources can feed the knowledge base. It also checks whether an
-   existing Mech already covers your topic.
-2. **Set up.** It fills in the template's questions and creates the
-   repository. It asks you for the things only you know, like your name,
-   your GitHub organization, and the license you want.
-3. **Design.** It shapes the data model to your field.
-4. **Seed.** It writes the first three to five records, with real sources.
-5. **Register.** It drafts your entry for MechRegistry.
-
-It asks before it creates anything on GitHub.
 
 ## Start a new Mech by hand
 
@@ -201,6 +221,7 @@ The rest of this README is about working on mechmaker itself.
 | `template/` | The files that become a new Mech. Files ending `.jinja` are filled in from the answers; the rest are copied as they are |
 | `skills/` | Skills for the agent that makes a Mech: `make-mech`, `survey-domain`, `design-mech-schema`, `register-mech` |
 | `.claude-plugin/` | Makes this repository installable as a Claude Code plugin |
+| `AGENTS.md` | Where an agent pointed at this repository starts |
 | `tests/` | Tests that generate sample Mechs and check them |
 | `template/.github/` | GitHub workflows, agent prompts, and their helper scripts. Each workflow is a Copier choice; `template/docs/WORKFLOWS.md.jinja` is the catalog |
 
