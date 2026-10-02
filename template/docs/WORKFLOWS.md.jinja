@@ -45,7 +45,7 @@ until `agent_schedules` is turned on.
 | Key | State | File | What it does | Writes | Needs |
 |---|---|---|---|---|---|
 | `claude` | {{ mark('claude') }} | `claude.yaml` | Answers `@claude` from people with write access, in issues and PRs. | branches, PRs, comments | Claude GitHub App installed |
-| `review` | {{ mark('review') }} | `review.yaml` | Reviews each same-repo PR with the `review-record` skill and approves or requests changes. `/review` re-runs it. Refuses PRs from forks, however started. | reviews | reviewer App, or Actions allowed to approve PRs |
+| `review` | {{ mark('review') }} | `review.yaml` | Reviews each same-repo PR with the `review-record` skill. The agent reads the PR as data with a read-only token; a step with no model approves or requests changes. `/review` re-runs it. Refuses PRs from forks, however started. | reviews | reviewer App, or Actions allowed to approve PRs |
 | `triage` | {{ mark('triage') }} | `triage.yaml` | Labels new issues. The agent only reads; a step with no model applies labels that exist. | labels | `just labels` run once |
 | `dedupe` | {{ mark('dedupe') }} | `dedupe.yaml`, `auto-close-duplicates.yaml` | Flags likely duplicates; closes them after three days unless a person objects. | one comment, a label, closure | nothing more |
 | `pr-shepherd` | {{ mark('pr-shepherd') }} | `pr-shepherd.yaml` | Comments on the most stuck PR, saying why and what would unstick it. Never pushes or approves. | one comment | nothing more |

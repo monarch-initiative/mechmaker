@@ -3,6 +3,11 @@
 # PR to run it again, or start it by hand with a PR number. A PR from a fork
 # is never reviewed here, however it is started: review it by hand.
 #
+# The PR is data, never code. The review job runs the default branch's tools
+# with a read-only token; the PR's files sit in pr/, and nothing runs them.
+# The agent returns its review as JSON. A second job with no model checks it
+# against the PR, still at the commit that was reviewed, and posts it.
+#
 # Needs ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN. To have its approvals
 # count toward branch protection, either set MECH_REVIEWER_APP_ID and
 # MECH_REVIEWER_PRIVATE_KEY (a GitHub App used only for reviews), or allow
@@ -23,6 +28,8 @@ on:
         required: true
         type: number
 {% raw %}
+permissions: {}
+
 concurrency:
   group: review-${{ github.event.pull_request.number || github.event.issue.number || inputs.pr_number }}
   cancel-in-progress: true
@@ -40,31 +47,41 @@ jobs:
     timeout-minutes: 45
     permissions:
       contents: read
-      pull-requests: write
+      pull-requests: read
       issues: read
-      id-token: write
     env:
       PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number || inputs.pr_number }}
+    outputs:
+      review: ${{ steps.run.outputs.structured_output }}
+      pr: ${{ env.PR_NUMBER }}
+      sha: ${{ steps.pr.outputs.sha }}
     steps:
-      # The job checks out the PR and runs its code with the agent's
-      # credentials. A same-repo PR comes from someone with write access; a
-      # fork's does not. The pull_request trigger already skips forks; this
-      # stops the /review comment and the manual start too.
-      - name: Refuse pull requests from forks
+      # Forks are refused before anything else: an agent's approval of a
+      # stranger's PR is worth too little to automate.
+      - name: Refuse pull requests from forks, and pin the commit
+        id: pr
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          fork=$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json isCrossRepository -q .isCrossRepository)
+          read -r fork sha < <(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" \
+            --json isCrossRepository,headRefOid -q '"\(.isCrossRepository) \(.headRefOid)"')
           if [ "$fork" != "false" ]; then
             echo "::error title=Review refused::PR #$PR_NUMBER comes from a fork. Review it by hand."
             exit 1
           fi
-      # The prompt and helper scripts come from the default branch, so a PR
-      # cannot change the instructions it is reviewed under.
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+      # The tools, the prompt, the skills and the helper scripts come from the
+      # default branch, so a PR cannot change what reviews it.
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      # The PR's files, as data. Nothing runs from pr/.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ steps.pr.outputs.sha }}
+          path: pr
           persist-credentials: false
       - name: Build prompt
         id: prompt
@@ -76,22 +93,6 @@ jobs:
         uses: ./.github/actions/setup-agent
         with:
           workflow: review
-          install-project: "false"
-      - name: Reviewer App token
-        id: reviewer
-        continue-on-error: true
-        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
-        with:
-          app-id: ${{ secrets.MECH_REVIEWER_APP_ID }}
-          private-key: ${{ secrets.MECH_REVIEWER_PRIVATE_KEY }}
-          permission-pull-requests: write
-      - name: Check out the pull request
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh auth setup-git
-          gh pr checkout "$PR_NUMBER"
-          just install
       # GitHub's API returns no file list for very large diffs, and the review
       # action fails on that. Skip loudly instead. Any other probe result runs
       # the review.
@@ -116,7 +117,7 @@ jobs:
         if: steps.size.outputs.oversized != 'true'
         uses: anthropics/claude-code-action@fd1c128679612beff4ca259c78021c506e8aa7a7 # v1.0.237
         env:
-          GH_TOKEN: ${{ steps.reviewer.outputs.token || github.token }}
+          GH_TOKEN: ${{ github.token }}
 {% endraw %}{% if langfuse %}          LANGFUSE_PUBLIC_KEY: ${{ '{{' }} secrets.LANGFUSE_PUBLIC_KEY {{ '}}' }}
           LANGFUSE_SECRET_KEY: ${{ '{{' }} secrets.LANGFUSE_SECRET_KEY {{ '}}' }}
           LANGFUSE_BASE_URL: ${{ '{{' }} secrets.LANGFUSE_BASE_URL {{ '}}' }}
@@ -129,9 +130,8 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude_code_oauth_token: ${{ secrets.ANTHROPIC_API_KEY == '' && secrets.CLAUDE_CODE_OAUTH_TOKEN || '' }}
           path_to_claude_code_executable: ${{ steps.agent.outputs.executable }}
-          github_token: ${{ steps.reviewer.outputs.token || github.token }}
+          github_token: ${{ github.token }}
           prompt: ${{ steps.prompt.outputs.prompt }}
-          track_progress: ${{ github.event_name == 'pull_request' }}
           # PRs opened by the agent App or the Claude App are reviewed too.
           allowed_bots: "*"
 {% endraw %}{% if langfuse %}          plugin_marketplaces: |
@@ -141,10 +141,48 @@ jobs:
 {% endif %}{% raw %}          claude_args: |
             --model ${{ steps.agent.outputs.model }}
             --max-turns ${{ steps.agent.outputs.max-turns }}
-            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr review:*),Bash(cat:*),Bash(grep:*),Bash(head:*),Bash(tail:*),Bash(wc:*),Bash(find:*),Bash(ls:*),Bash(just:*),Bash(uv run:*),Read,Glob,Grep"
+            --allowedTools "Bash(gh pr diff:*),Bash(gh pr view:*),Bash(just validate:*),Bash(just validate-schema:*),Bash(just fetch-reference:*),Bash(just term-info:*),Bash(just search-term:*),Bash(just term-ancestors:*),Bash(just term-parents:*),Bash(just term-under:*),Read,Glob,Grep"
+            --json-schema '{"type":"object","properties":{"verdict":{"enum":["approve","request_changes"]},"checklist":{"type":"object","properties":{"qc":{"type":"boolean"},"quotes":{"type":"boolean"},"terms":{"type":"boolean"},"scope":{"type":"boolean"},"history":{"type":"boolean"}},"required":["qc","quotes","terms","scope","history"],"additionalProperties":false},"summary":{"type":"string","minLength":1,"maxLength":6000},"findings":{"type":"array","maxItems":50,"items":{"type":"object","properties":{"severity":{"enum":["error","warning","note"]},"path":{"type":"string","maxLength":300},"line":{"type":"integer","minimum":1},"body":{"type":"string","minLength":1,"maxLength":3000}},"required":["severity","body"],"additionalProperties":false}}},"required":["verdict","checklist","summary","findings"],"additionalProperties":false}'
       - name: Check the agent run
         if: always() && steps.agent.outcome == 'success' && steps.size.outputs.oversized != 'true'
         env:
           EXECUTION_FILE: ${{ steps.run.outputs.execution_file }}
         run: python3 .github/scripts/check_agent_run.py "$EXECUTION_FILE" "Review"
+
+  # No model and no PR code run here. The review is checked against the PR as
+  # it is now: still open, still same-repository, still at the reviewed commit.
+  publish:
+    needs: review
+    if: needs.review.outputs.review != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+          sparse-checkout: .github/scripts
+      - name: Reviewer App token
+        id: reviewer
+        continue-on-error: true
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.MECH_REVIEWER_APP_ID }}
+          private-key: ${{ secrets.MECH_REVIEWER_PRIVATE_KEY }}
+          permission-pull-requests: write
+      - uses: actions/github-script@v9
+        env:
+          REVIEW: ${{ needs.review.outputs.review }}
+          PR: ${{ needs.review.outputs.pr }}
+          SHA: ${{ needs.review.outputs.sha }}
+        with:
+          github-token: ${{ steps.reviewer.outputs.token || github.token }}
+          script: |
+            const { publish } = require('./.github/scripts/review-publish.js');
+            await publish(github, context.repo, JSON.parse(process.env.REVIEW), {
+              pr: Number(process.env.PR), sha: process.env.SHA, log: core.info, warn: core.warning,
+            });
 {% endraw %}
