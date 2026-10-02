@@ -142,12 +142,22 @@ identity_adapter:
 
 identity_direct_only:
   type: bool
-  help: >-
-    Accept only direct is-a children of the root as record ids, not the
-    root itself and not terms further down. Say yes when the level below
-    the root is the record and lower levels are something else: in VBO,
-    goat breeds sit directly under Goat breed and national populations of a
-    breed one level lower. `just check-identity` enforces it, in
+  help: |-
+    Are records only the root's direct children? Answer yes when the
+    level just below the root is the kind of thing a record describes, and
+    terms further down are something else.
+    YES, goat breeds in VBO. Under VBO:0400025 (Goat breed) sit breeds,
+    such as VBO:0000827 (Saanen). One level lower sit national populations,
+    such as VBO:0009093 (Saanen, Argentina). A population is not a breed,
+    so it must not key a record.
+    NO, diseases in MONDO. MONDO:0005015 (diabetes mellitus) sits under
+    MONDO:0000001 (disease) but is not its direct child, and
+    MONDO:0005148 (type 2 diabetes mellitus) sits below that. Each is a
+    disease, and each can be a record. Yes would reject them all.
+    To decide, look two levels below the root. If a term there is still
+    the kind of thing a record describes, answer no. Check a few expected
+    records with `check_terms.py under --direct`. With yes, the root itself
+    cannot key a record either. `just check-identity` enforces the rule, in
     `just qc-full`
   default: false
   when: "{{ identity_prefix != '' }}"
