@@ -184,6 +184,9 @@ then a readable diff against the template.
 
 ## 4. Design
 
+If the person has an existing schema for the domain, the design starts
+from it: `just import-schema` (see `design-mech-schema`).
+
 Run the `design-mech-schema` skill in the new repository. It fills in
 `docs/DOMAIN.md`, reshapes the scaffold schema to the domain, and, if deep
 research is on, rewrites the research prompt from the same sections and

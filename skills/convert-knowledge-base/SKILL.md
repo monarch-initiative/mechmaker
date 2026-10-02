@@ -76,7 +76,9 @@ Run `survey-domain` with the knowledge base as the main source. Decide:
 ## 3. Generate and design
 
 `make-mech` steps 2 and 3, then `design-mech-schema`, with the source's
-fields as the inventory. Put `repository` or `source` and a version (a
+fields as the inventory. If the knowledge base has a schema of its own
+(LinkML, JSON Schema, OWL, XSD, a frictionless package), import it with
+`just import-schema` instead of rebuilding it field by field. Put `repository` or `source` and a version (a
 commit, a release, an export date) on the record when the source changes
 over time. Evidence will be pinned to it.
 

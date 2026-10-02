@@ -14,6 +14,24 @@ description: >-
 Work in the generated repository. The scaffold schema has one section per
 ontology chosen at generation time. It validates, and it is not a design.
 
+## Starting from an existing schema
+
+If the domain already has a schema, LinkML or otherwise, start from it
+rather than reshaping the scaffold by hand:
+
+```bash
+just import-schema SOURCE --record-class CLASS                    # dry run, copy mode
+just import-schema SOURCE --record-class CLASS --mode reference   # keep it unchanged, extend it
+just import-schema SOURCE --from json-schema --record-class CLASS # another format
+```
+
+Copy mode when the Mech will own and reshape the model; reference mode when
+it must stay conformant with an upstream standard. Ask the person which.
+Read every line the import prints: what was kept, renamed or demoted. Then
+carry on with the order of work below: DOMAIN.md, the example record, the
+paper test. Mechmaker's docs page "Starting from an existing schema" has the
+details.
+
 ## Order of work
 
 1. Write `docs/DOMAIN.md` before touching the schema. Fill every TODO. The
