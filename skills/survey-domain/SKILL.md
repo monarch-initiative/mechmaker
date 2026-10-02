@@ -36,11 +36,12 @@ everything else rests on.
 - Which ontology keys records? Look for the one whose terms match the record
   entity one to one. None may fit; then records mint their own ids.
 - Find the root. Take five expected records, look up their CURIEs, and find
-  the most specific common is-a ancestor:
+  the most specific common is-a ancestor. `<scripts>` is the make-mech
+  skill's `scripts/` folder, `../make-mech/scripts` from this skill's own:
 
   ```bash
-  python skills/make-mech/scripts/check_terms.py search <ontology> "<name>"
-  python skills/make-mech/scripts/check_terms.py under <ROOT> <CURIE> <CURIE> ...
+  python3 <scripts>/check_terms.py search <ontology> "<name>"
+  python3 <scripts>/check_terms.py under <ROOT> <CURIE> <CURIE> ...
   ```
 
 - What fraction of expected records have a term? Measure it on the sample.
