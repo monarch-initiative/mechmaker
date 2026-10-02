@@ -133,6 +133,13 @@ add-evidence file *args:
 fill-titles *args:
     uv run python -m {{slug}}.titles "$@"
 
+# Start the schema from an existing one: a LinkML schema, or another format
+# through schema-automator (--from json-schema, owl, xsd, ...). Copy mode by
+# default; --mode reference imports it unchanged. Dry run unless --apply.
+# `just import-schema https://.../schema.yaml --record-class Sample`
+import-schema *args:
+    uv run python -m {{slug}}.schema_import "$@"
+
 # Run a conversion script, which reads an existing knowledge base and writes
 # DRAFT records through validation. Dry run unless --apply; --limit 5 for a trial.
 # `just convert scripts/convert_old_kb.py --limit 5`

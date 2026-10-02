@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/ingredient.schema.json",
+  "title": "Ingredient",
+  "type": "object",
+  "properties": {
+    "id": {"type": "string"},
+    "name": {"type": "string"},
+    "cas_number": {"type": "string", "pattern": "^\\d{2,7}-\\d{2}-\\d$"},
+    "form": {"type": "string", "enum": ["powder", "liquid", "gas"]},
+    "source": {"$ref": "#/$defs/Source"}
+  },
+  "required": ["id", "name"],
+  "$defs": {
+    "Source": {"type": "object", "properties": {"supplier": {"type": "string"}, "catalog_number": {"type": "string"}}}
+  }
+}
