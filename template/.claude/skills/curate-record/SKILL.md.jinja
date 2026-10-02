@@ -29,6 +29,18 @@ never guess it:
 just search-term {{ identity_adapter }} "<name>"
 just term-info {{ identity_adapter }} <CURIE>
 ```
+{%- if identity_direct_only %}
+
+A record's term is a direct child of `{{ identity_root }}`: not the root,
+and not a term below a child. Check it before scaffolding:
+
+```bash
+just term-parents <CURIE>     # {{ identity_root }} must be among them
+```
+
+A term one level too deep is a variant of a record, not a record. Find its
+parent and curate that, or add the variant to the parent's record.
+{%- endif %}
 
 If no term fits, mint `{{ mech_slug }}:<slug>` and open a `CURATION_TODO`
 discussion that says a term is missing.

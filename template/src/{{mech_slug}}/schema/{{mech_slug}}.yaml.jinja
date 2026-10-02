@@ -371,12 +371,20 @@ enums:
 {%- if identity_prefix and identity_root %}
 
   IdentityTerm:
+{%- if identity_direct_only %}
+    description: >-
+      A {{ identity_prefix }} term that can key {{ record_article }} {{ record_noun }}: a direct
+      is-a child of {{ identity_root }}, not the root and not a term further
+      down. linkml-term-validator ignores is_direct, so `just check-identity`
+      enforces it.
+{%- else %}
     description: A {{ identity_prefix }} term that can key {{ record_article }} {{ record_noun }}.
+{%- endif %}
     reachable_from:
       source_nodes:
         - {{ identity_root }}
-      is_direct: false
-      include_self: true
+      is_direct: {{ 'true' if identity_direct_only else 'false' }}
+      include_self: {{ 'false' if identity_direct_only else 'true' }}
       relationship_types:
         - rdfs:subClassOf
 {%- endif %}

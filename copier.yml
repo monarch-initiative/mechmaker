@@ -140,6 +140,18 @@ identity_adapter:
   default: "{{ 'ols:' if term_backend == 'ols' else 'sqlite:obo:' }}{{ identity_prefix | lower }}"
   when: "{{ identity_prefix != '' }}"
 
+identity_direct_only:
+  type: bool
+  help: >-
+    Accept only direct is-a children of the root as record ids, not the
+    root itself and not terms further down. Say yes when the level below
+    the root is the record and lower levels are something else: in VBO,
+    goat breeds sit directly under Goat breed and national populations of a
+    breed one level lower. `just check-identity` enforces it, in
+    `just qc-full`
+  default: false
+  when: "{{ identity_prefix != '' }}"
+
 ontologies:
   type: str
   help: >-

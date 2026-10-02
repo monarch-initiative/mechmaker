@@ -93,6 +93,10 @@ SCENARIOS["extras"] = {
     "mech_name": "ExtraMech",
     "record_class": "Specimen",
     "term_backend": "sqlite",
+    # Records are breeds: direct children of Goat breed, as in GoatMech.
+    "identity_prefix": "VBO",
+    "identity_root": "VBO:0400025",
+    "identity_direct_only": True,
     "ontologies": ["VBO", "VT", "NCIT_COUNTRY"],
     "extra_ontologies": [
         TINY,
@@ -218,6 +222,21 @@ def test_schema_structure(generated):
     if answers.get("identity_prefix"):
         assert "IdentityTerm" in schema["enums"]
     assert ("mechanisms" in schema["classes"][rc]["slots"]) == answers["causal_graphs"]
+
+
+def test_identity_rule_follows_answers(generated):
+    _, answers, dest = generated
+    slug = answers["mech_slug"]
+    schema = yaml.safe_load((dest / "src" / slug / "schema" / f"{slug}.yaml").read_text())
+    if not answers.get("identity_prefix"):
+        assert "IdentityTerm" not in schema["enums"]
+        return
+    query = schema["enums"]["IdentityTerm"]["reachable_from"]
+    direct = answers.get("identity_direct_only", False)
+    assert (query["is_direct"], query["include_self"]) == (direct, not direct)
+    assert ("check-identity" in (dest / "src" / slug / "qc.py").read_text())
+    claude = (dest / "CLAUDE.md").read_text()
+    assert (f"a record id's must include {answers['identity_root']}" in claude) == direct
 
 
 def test_optional_parts(generated):

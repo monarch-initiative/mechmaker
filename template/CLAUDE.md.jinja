@@ -38,6 +38,8 @@ just fetch-reference PMID:NNN   # fetch and cache a source; read it before quoti
 just fill-titles [FILE...]      # fill missing reference_title from the cache (dry-run unless --apply)
 just search-term PREFIX "text"  # search an ontology through its configured adapter, e.g. GO
 just term-ancestors CURIE       # where a term sits; use when an enum root rejects it
+just term-parents CURIE         # direct is-a parents{% if identity_direct_only %}; a record id's must include {{ identity_root }}{% endif %}
+just check-identity [FILE...]   # record ids follow the identity enum's rule (network, in qc-full)
 just report            # corpus statistics
 just compliance        # completeness per record, lowest first
 just export            # every format in conf/export.yaml, into build/export/, each read back

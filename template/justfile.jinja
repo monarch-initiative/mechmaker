@@ -22,11 +22,12 @@ install:
 
 # ---------------------------------------------------------------- validation
 
-# Full validation of one record: closed schema, ontology terms, verbatim quotes.
-# Network on first use of a term or reference; cached after.
+# Full validation of one record: closed schema, ontology terms, identity,
+# verbatim quotes. Network on first use of a term or reference; cached after.
 validate file:
     uv run python -m {{slug}}.validate "$1"
     @just validate-terms "$1"
+    @just check-identity "$1"
     @just validate-references "$1"
 
 # Closed-schema validation of one record. Unknown fields are errors.
@@ -58,6 +59,12 @@ validate-terms-all:
     if [ ${#files[@]} -eq 0 ]; then echo "No records under {{records}}."; exit 0; fi
     uv run python -m {{slug}}.termcheck validate-data "${files[@]}" -s {{schema}} -t {{record_class}} --labels -c {{oak_config}}
 
+# Record ids follow the identity enum's rule: direct children only, or not
+# the root itself, when the schema says so. linkml-term-validator ignores
+# is_direct, so this asks the ontology for each id's parents (network).
+check-identity *files:
+    uv run python -m {{slug}}.terms check-identity "$@"
+
 # Reference validation of every record (network on first run).
 validate-references-all:
     #!/usr/bin/env bash
@@ -84,6 +91,13 @@ validate-changed *files:
         fi
     fi
     [ "$rc" -eq 0 ] || exit "$rc"
+    uv run python -m {{slug}}.terms check-identity "$@"
+    rc=$?
+    if [ "$rc" -eq 2 ]; then
+        echo "::warning title=Identity not checked::The ontology service did not answer. Run 'just check-identity' locally."
+    elif [ "$rc" -ne 0 ]; then
+        exit "$rc"
+    fi
     uv run linkml-reference-validator validate data "$@" --schema {{schema}} --target-class {{record_class}} --config {{ref_config}} --no-full-text
 
 # Fetch a reference into references_cache/ and print it. Read it before quoting it.
@@ -110,6 +124,10 @@ term-info adapter curie:
 # is-a ancestors of a term, through its prefix's adapter: `just term-ancestors ENVO:00000051`
 term-ancestors curie:
     uv run python -m {{slug}}.terms ancestors "$1"
+
+# Direct is-a parents of a term: `just term-parents VBO:0009093`
+term-parents curie:
+    uv run python -m {{slug}}.terms parents "$1"
 
 # Does a term sit under a root? `just term-under GO:0015979 GO:0008150`
 term-under curie root:
