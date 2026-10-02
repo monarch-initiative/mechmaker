@@ -103,9 +103,12 @@ SCENARIOS["extras"] = {
          "noun": "anatomy", "slot": "anatomy_terms"},
     ],
     "workflows": ["sweep"],
+    # KGX in the Mech's own terms, with no Biolink.
+    "output_formats": ["yaml", "json", "sqlite", "kgx", "kgx_maximal"],
+    "kgx_biolink": False,
 }
 SCENARIOS["minimal"]["workflows"] = []
-ALL_FORMATS = ["yaml", "json", "jsonld", "ttl", "sqlite", "duckdb", "sql", "csv", "tsv"]
+ALL_FORMATS = ["yaml", "json", "jsonld", "ttl", "sqlite", "duckdb", "sql", "csv", "tsv", "kgx", "kgx_maximal"]
 SCENARIOS["disease"].update({"site_palette": "brown", "site_theme": "light", "deep_research": True,
                              "output_formats": ALL_FORMATS, "tabular_layout": "flat",
                              "load_targets": ["mongodb", "neo4j"]})
@@ -297,6 +300,24 @@ def test_linkml_store_only_when_chosen(generated):
         assert t in store[0]
     load_cfg = yaml.safe_load((dest / "conf" / "load.yaml").read_text())
     assert sorted(load_cfg["targets"]) == sorted(targets)
+
+
+def test_kgx_settings_follow_answers(generated):
+    _, answers, dest = generated
+    deps = tomllib.loads((dest / "pyproject.toml").read_text())["project"]["dependencies"]
+    kgx = {"kgx", "kgx_maximal"} & set(answers["output_formats"])
+    biolink = answers.get("kgx_biolink", True)
+    assert any(d.startswith("biolink-model") for d in deps) == bool(kgx and biolink)
+    cfg = yaml.safe_load((dest / "conf" / "kgx.yaml").read_text())
+    assert cfg["biolink"] is biolink
+    slug = answers["mech_slug"]
+    schema = yaml.safe_load((dest / "src" / slug / "schema" / f"{slug}.yaml").read_text())
+    record_slots = set(schema["classes"][answers["record_class"]]["slots"])
+    assert set(cfg["sections"]) <= record_slots
+    prefix = "biolink:" if biolink else f"{slug}:"
+    assert cfg["record_category"].startswith(prefix)
+    assert all(s["category"].startswith(prefix) and s["predicate"].startswith(prefix)
+               for s in cfg["sections"].values())
 
 
 def test_no_output_format_is_rejected(tmp_path):

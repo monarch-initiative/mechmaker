@@ -17,12 +17,14 @@ Every format comes from LinkML or the libraries it brings.
 | `sqlite` | `<slug>-records.sqlite` | A database to query directly |
 | `duckdb` | `<slug>-records.duckdb` | Analytics in DuckDB: one table of records, nested values as JSON. Optional, see below |
 | `sql` | `<slug>-schema.sql`, `<slug>-records.sql` | The schema as SQL DDL, and the data as SQL to load anywhere |
+| `kgx` | `<slug>-kgx_nodes`, `_edges` (`.jsonl`, `.tsv`) | A knowledge graph in KGX: an edge from each record to each term it binds. See below |
+| `kgx_maximal` | `<slug>-kgx_maximal_nodes`, `_edges` | The whole record graph in KGX: every object a node. See below |
 | `csv`, `tsv` | see below | Spreadsheets and data frames |
 
 ## Choosing
 
 Copier asks `output_formats` when the Mech is made. The default is every
-format but TSV and DuckDB. Change the choice any time in `conf/export.yaml`:
+format but TSV, DuckDB and the two KGX formats. Change the choice any time in `conf/export.yaml`:
 
 ```yaml
 formats:
@@ -31,6 +33,71 @@ formats:
   - ttl
 tabular_layout: per_class
 ```
+
+## KGX: a knowledge graph
+
+[KGX](https://github.com/biolink/kgx) is the node and edge format of the
+Monarch knowledge graph and other Biolink graphs. A Mech can write it two
+ways, after [DisMech's two KGX exports](https://github.com/monarch-initiative/dismech/tree/main/src/dismech/export):
+
+- **`kgx`**: one association per term a record's section binds,
+  from the record to the term. A record that binds the same term twice gives
+  one edge. Evidence goes on the edge: references in `publications`, and
+  each quote in `supporting_text` as
+  `[PMID:1] [SUPPORT] the quote --- Explanation: why`.
+- **`kgx_maximal`**: every object in a record is a node, labelled
+  `<slug>:<Class>`, and every field holding objects is an edge,
+  `<slug>:<field>`. Records also carry their record category; ontology
+  terms are shared nodes with their section's category. Nothing is left
+  out, and most of it is local to the Mech.
+
+Every edge carries `primary_knowledge_source` (`infores:<slug>`),
+`knowledge_level` (`knowledge_assertion`) and `agent_type`
+(`manual_validation_of_automated_agent`: agents curate, people review), and
+an id hashed from subject, predicate and object, stable between exports.
+
+`conf/kgx.yaml` maps the Mech onto a graph: the record's category, and for
+each record section, the predicate from the record to its terms and the
+terms' category.
+
+### With Biolink, or without
+
+By default the graph uses the [Biolink model](https://biolink.github.io/biolink-model/),
+as the Monarch graph does. The template starts every section at
+`biolink:related_to`, which is never wrong, with categories from the
+ontology catalog. The `design-mech-schema` skill chooses sharper ones.
+
+Biolink is biomedical. A Mech about goat breeds fits it; a Mech about
+software ingests or soil horizons may not. Answer no to `kgx_biolink` when
+generating, or set `biolink: false` in `conf/kgx.yaml` later. The graph
+then uses the Mech's own terms: records are `<slug>:<RecordClass>`, terms
+`<slug>:<Noun>`, and each section's predicate `<slug>:<section>`. Nothing
+checks them against a model, and `biolink-model` is not installed. Every
+category and predicate must still be a CURIE. The provenance fields keep
+Biolink's values for `knowledge_level` and `agent_type`, since KGX uses
+them either way.
+
+```yaml
+biolink: true
+record_category: biolink:OrganismTaxon
+sections:
+  origins:
+    predicate: biolink:related_to
+    category: biolink:GeographicLocation
+  measurements:
+    predicate: biolink:related_to
+    category: biolink:NamedThing
+    term_field: trait        # the item's field that holds the term
+```
+
+With Biolink, the export checks every category and predicate against the model:
+a category must be a concrete class (not a mixin, not abstract), and a
+predicate must descend from `related_to`. Either fails the export. A
+predicate whose Biolink domain or range does not fit the categories is a
+warning. For example, `biolink:has_phenotype` expects a biological entity,
+so it warns from an `OrganismTaxon`. The check uses the `biolink-model`
+package, which the template adds only when a KGX format is chosen with
+Biolink.
 
 ## DuckDB, an optional extra
 
@@ -149,5 +216,8 @@ thing.
   item a second, empty field before loading it; the data is unchanged.
 - Classes and slots from the shared `mech_shared` module take its URIs,
   under `https://w3id.org/kg-microbe/mech-shared/`.
+- The KGX files are not run through the `kgx` package's validator, which
+  brings over thirty dependencies; the export's own checks cover categories,
+  predicates and dangling edges.
 - Parquet and Croissant are not LinkML-native and not yet offered
   ([#21](https://github.com/monarch-initiative/mechmaker/issues/21)).

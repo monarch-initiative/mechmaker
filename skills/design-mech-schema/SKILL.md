@@ -177,6 +177,26 @@ schema's own URIs. A prefix with no URI becomes a broken IRI, and
 Check with `just export`: it reads the Turtle and JSON-LD back and lists
 any IRI that did not expand.
 
+## The knowledge graph mapping
+
+If `conf/export.yaml` has `kgx` or `kgx_maximal`, map the domain in
+`conf/kgx.yaml` once the sections are settled. First decide whether Biolink
+fits. It covers biomedicine: genes, chemicals, diseases, phenotypes,
+organisms, anatomy, and places. If most records and terms would be
+`biolink:NamedThing`, set `biolink: false` and name the Mech's own
+categories and predicates as `<slug>:` CURIEs instead. Otherwise:
+
+1. `record_category`: the most specific concrete Biolink class every record
+   is. A breed under NCBITaxon is a `biolink:OrganismTaxon`; a disorder a
+   `biolink:Disease`.
+2. One entry per section that binds terms: the `category` of its terms, and
+   the `predicate` from the record to them. Keep `biolink:related_to` unless
+   a sharper predicate holds for every item of that section. Run
+   `just export`: a predicate whose Biolink domain or range does not fit is
+   a warning, and a warning means choose again or keep `related_to`.
+3. Set `term_field` for a section whose items hold the term in another
+   field (a measurement's `trait`).
+
 ## The paper test
 
 Take two real entities, one typical and one awkward. Write their records in
