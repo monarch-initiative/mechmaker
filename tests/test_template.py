@@ -184,6 +184,13 @@ def test_docs_site_config(generated):
         assert (dest / "docs" / page).exists(), page
 
 
+def test_recipes_run_on_bash_3(generated):
+    """macOS ships bash 3.2, which has no globstar: `shopt -s globstar` stops
+    the recipe before it checks anything."""
+    _, _, dest = generated
+    assert not re.search(r"shopt[^\n]*globstar", (dest / "justfile").read_text())
+
+
 def test_schema_pages_are_in_a_folder_per_kind(generated):
     """Every Mech has a Term class and a term slot. In one folder their pages
     are Term.md and term.md, one file where case is ignored, and the docs
