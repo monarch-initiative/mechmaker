@@ -26,6 +26,7 @@ that need judgment about the domain.
 | 4c. Style the site | you, with `site-design` | `conf/site.yaml` |
 | 5. Seed records | you, with the new Mech's `curate-record` | 3 to 5 exemplar records |
 | 6. Register | you, with `register-mech` | a MechRegistry pull request |
+| 7. Audit | script and you, with `audit-mech` | a checklist of what was asked for |
 
 If the person already has a knowledge base to bring in, use
 `convert-knowledge-base` instead. It follows these steps and adds the
@@ -66,6 +67,11 @@ Run the `survey-domain` skill. It answers: what is one record, what keys it,
 which ontologies ground it, what sources feed it, and which existing Mechs
 overlap. Do not continue until the brief names the record entity in one
 sentence.
+
+Start `requests.yml` now, beside where `answers.yml` will go. Put in each
+thing the person asks for, in their words, as they ask: a section, a
+source, an import, a page. Add to it at every step. Step 7 checks the Mech
+against it. The `audit-mech` skill gives the format.
 
 ## 2. Answers
 
@@ -256,6 +262,13 @@ with `extend-schema`, while there are five records and not five hundred.
 
 Run the `register-mech` skill.
 
+## 7. Audit
+
+Run the `audit-mech` skill on the new Mech, with `requests.yml`. It checks
+every answer and every ask against the files, and you judge what a script
+cannot. Do not fix what it finds in the same breath: report it, and let the
+person choose.
+
 ## Publishing
 
 Creating the GitHub repository and pushing are visible to others. Ask the
@@ -265,4 +278,6 @@ user before either one. Tell them what will be created and where.
 
 End with: the repository path, what `just qc-full` said, the records seeded,
 the decisions you made that the user should look at (record type, identity
-root, sections cut or added), and anything you could not source.
+root, sections cut or added), and anything you could not source. Then the
+audit from step 7: its checklist, what was not implemented and why, and
+its next steps.
