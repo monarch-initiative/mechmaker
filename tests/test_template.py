@@ -184,6 +184,15 @@ def test_docs_site_config(generated):
         assert (dest / "docs" / page).exists(), page
 
 
+def test_schema_pages_are_in_a_folder_per_kind(generated):
+    """Every Mech has a Term class and a term slot. In one folder their pages
+    are Term.md and term.md, one file where case is ignored, and the docs
+    build fails there. A folder per kind keeps them apart."""
+    _, answers, dest = generated
+    source = (dest / "src" / answers["mech_slug"] / "docs.py").read_text()
+    assert "subfolder_type_separation=True" in source
+
+
 def test_registry_entry_front_matter(generated):
     _, answers, dest = generated
     text = (dest / "registry" / f"{answers['mech_slug']}.md").read_text()

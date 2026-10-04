@@ -31,6 +31,21 @@ def test_schema_loads():
     assert sv.get_class(RECORD_CLASS).tree_root
 
 
+@pytest.mark.parametrize("kind", ["all_classes", "all_slots", "all_enums", "all_types"])
+def test_names_of_one_kind_differ_by_more_than_case(kind):
+    """The schema pages are one file per element, in a folder per kind. Two
+    names of one kind that differ only by case are one file on macOS and
+    Windows, and the documentation build loses a page."""
+    names = [str(n) for n in getattr(SchemaView(str(SCHEMA_PATH)), kind)()]
+    seen: dict[str, str] = {}
+    clashes = []
+    for name in names:
+        if name.casefold() in seen:
+            clashes.append((seen[name.casefold()], name))
+        seen[name.casefold()] = name
+    assert clashes == []
+
+
 @pytest.mark.parametrize("name,md5", VENDORED_MD5.items())
 def test_vendored_modules_are_unmodified(name, md5):
     assert hashlib.md5((SCHEMA_DIR / name).read_bytes()).hexdigest() == md5
