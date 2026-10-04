@@ -57,6 +57,9 @@ you along the way:
 4. **Choose workflows.** It asks which GitHub automation to turn on.
 5. **Seed.** It writes the first three to five records, with real sources.
 6. **Register.** It drafts your entry for MechRegistry.
+7. **Audit.** It checks the Mech against everything you asked for, and
+   gives you a checklist: what is there, what is not and why, and what to
+   do next. Ask for an audit at any time later, too.
 
 It asks before it creates anything on GitHub.
 
