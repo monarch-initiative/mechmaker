@@ -6,7 +6,8 @@
 
 Generated, and not committed:
   docs/elements/     one page per class, slot, enum and type (LinkML gen-doc),
-                     with class diagrams and the example record inline
+                     in a folder per kind, with class diagrams and the example
+                     record inline
   docs/structure.md  what a record can contain, as one diagram
   docs/corpus.md     counts from the records
   docs/schema/       the schema with imports merged, and as JSON Schema
