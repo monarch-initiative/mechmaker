@@ -1,6 +1,9 @@
 # Label each new issue. The agent only reads and returns label names; a
 # second job with no model applies the ones that exist. Anyone can open an
-# issue, so the agent that reads it has no write access at all.
+# issue, so the agent that reads it has no write access at all, and it may
+# choose only from a fixed list. `curation` hands an issue to the curation
+# scanner, which can push, so it goes on only when the issue's author has
+# write access to the repository; on anyone else's issue a person adds it.
 name: Triage
 
 on:
@@ -78,8 +81,8 @@ jobs:
 {% endif %}{% raw %}          claude_args: |
             --model ${{ steps.agent.outputs.model }}
             --max-turns ${{ steps.agent.outputs.max-turns }}
-            --allowedTools "Bash(gh label list:*),Bash(gh issue view:*)"
-            --json-schema '{"type":"object","properties":{"labels":{"type":"array","maxItems":6,"items":{"type":"string","minLength":1,"maxLength":50}}},"required":["labels"],"additionalProperties":false}'
+            --allowedTools "Bash(gh issue view:*)"
+            --json-schema '{"type":"object","properties":{"labels":{"type":"array","maxItems":6,"items":{"enum":["curation","low_effort","medium_effort","high_effort","schema","bug","enhancement","question","documentation","high-priority","low-priority"]}}},"required":["labels"],"additionalProperties":false}'
       - name: Check the agent run
         if: always() && steps.agent.outcome == 'success'
         env:
@@ -100,13 +103,29 @@ jobs:
           NUMBER: ${{ needs.choose.outputs.number }}
         with:
           script: |
-            const wanted = (JSON.parse(process.env.RESULT).labels || []).map(String);
+            // The agent's schema already limits it to these; check again here.
+            const ALLOWED = new Set(['curation', 'low_effort', 'medium_effort', 'high_effort', 'schema',
+              'bug', 'enhancement', 'question', 'documentation', 'high-priority', 'low-priority']);
+            const WRITERS = new Set(['OWNER', 'MEMBER', 'COLLABORATOR']);
+            const issue_number = Number(process.env.NUMBER);
+            let wanted = [...new Set((JSON.parse(process.env.RESULT).labels || []).map(String))];
+            const refused = wanted.filter(l => !ALLOWED.has(l));
+            if (refused.length) core.warning(`Ignoring labels triage may not apply: ${refused.join(', ')}`);
+            wanted = wanted.filter(l => ALLOWED.has(l));
+            if (wanted.includes('curation')) {
+              const { data: issue } = await github.rest.issues.get({ ...context.repo, issue_number });
+              if (!WRITERS.has(issue.author_association)) {
+                core.notice(`Not adding curation: @${issue.user.login} (${issue.author_association}) ` +
+                  'cannot write to this repository. A person adds it after reading the issue.');
+                wanted = wanted.filter(l => l !== 'curation');
+              }
+            }
             const existing = new Set((await github.paginate(github.rest.issues.listLabelsForRepo,
               { ...context.repo, per_page: 100 })).map(l => l.name));
-            const labels = [...new Set(wanted)].filter(l => existing.has(l));
+            const labels = wanted.filter(l => existing.has(l));
             const dropped = wanted.filter(l => !existing.has(l));
             if (dropped.length) core.warning(`Ignoring labels that do not exist: ${dropped.join(', ')}`);
             if (!labels.length) { core.info('No labels to apply.'); return; }
-            await github.rest.issues.addLabels({ ...context.repo, issue_number: Number(process.env.NUMBER), labels });
+            await github.rest.issues.addLabels({ ...context.repo, issue_number, labels });
             core.info(`Applied: ${labels.join(', ')}`);
 {% endraw %}

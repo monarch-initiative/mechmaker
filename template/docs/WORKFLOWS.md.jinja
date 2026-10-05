@@ -46,11 +46,11 @@ until `agent_schedules` is turned on.
 |---|---|---|---|---|---|
 | `claude` | {{ mark('claude') }} | `claude.yaml` | Answers `@claude` from people with write access, in issues and PRs. | branches, PRs, comments | Claude GitHub App installed |
 | `review` | {{ mark('review') }} | `review.yaml` | Reviews each same-repo PR with the `review-record` skill. The agent reads the PR as data with a read-only token; a step with no model approves or requests changes. `/review` re-runs it. Refuses PRs from forks, however started. | reviews | reviewer App, or Actions allowed to approve PRs |
-| `triage` | {{ mark('triage') }} | `triage.yaml` | Labels new issues. The agent only reads; a step with no model applies labels that exist. | labels | `just labels` run once |
+| `triage` | {{ mark('triage') }} | `triage.yaml` | Labels new issues. The agent only reads; a step with no model applies labels from a fixed list. `curation` goes on only when the author can write to the repository. | labels | `just labels` run once |
 | `dedupe` | {{ mark('dedupe') }} | `dedupe.yaml`, `auto-close-duplicates.yaml` | Flags likely duplicates; closes them after three days unless a person objects. | one comment, a label, closure | nothing more |
-| `pr-shepherd` | {{ mark('pr-shepherd') }} | `pr-shepherd.yaml` | Comments on the most stuck PR, saying why and what would unstick it. Never pushes or approves. | one comment | nothing more |
+| `pr-shepherd` | {{ mark('pr-shepherd') }} | `pr-shepherd.yaml` | Comments on the most stuck PR, saying why and what would unstick it. The agent only reads; a step with no model posts. Never pushes or approves. | one comment | nothing more |
 | `curation-scanner` | {{ mark('curation-scanner') }} | `curation-scanner.yaml` | Picks one unassigned `curation` issue or PR per effort tier and advances it. | branches, PRs, comments | agent App |
-| `literature-scan` | {{ mark('literature-scan') }} | `literature-scan.yaml` | Finds recent papers (PubMed or preprints) that match records and files a few `curation` issues. Tune `conf/literature_scan.yaml`. | issues | nothing more |
+| `literature-scan` | {{ mark('literature-scan') }} | `literature-scan.yaml` | Finds recent papers (PubMed or preprints) that match records and files a few `curation` issues. The agent only reads; a step with no model files them. Tune `conf/literature_scan.yaml`. | issues | nothing more |
 | `compliance` | {{ mark('compliance') }} | `compliance.yaml` | Improves the least complete records by `just compliance`, one PR each. | branches, PRs | agent App |
 | `post-review` | {{ mark('post-review') }} | `post-review.yaml` | Proposes a suggestion, reply or `Editorial:` issue for each unanswered human review comment; a step with no model posts them. | suggestions, replies, issues | nothing more |
 
@@ -93,9 +93,13 @@ Off. Answer `langfuse` in Copier to add tracing to every agent workflow.
 
 ### Safety
 
-- Agents that read text anyone can write (issues, comments) have no write
-  access. They return structured results, and a step with no model checks
-  and posts them: `triage`, `dedupe`, `post-review`.
+- Agents that read text anyone can write (issues, comments, PR bodies,
+  abstracts) have no write access. They return structured results, and a
+  step with no model checks and posts them: `review`, `triage`, `dedupe`,
+  `post-review`, `pr-shepherd`, `literature-scan`.
+- Triage adds `curation` only to issues whose author can write to the
+  repository. The curation scanner can push, so a stranger's issue reaches
+  it only after a person has read it and added the label.
 - Prompts and helper scripts load from the default branch, so a PR cannot
   change the instructions it is reviewed under.
 - Tool lists are explicit. No workflow runs with permissions bypassed.

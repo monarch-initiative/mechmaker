@@ -1,0 +1,31 @@
+// Post the comment the PR shepherd returned. No model runs here. The agent
+// read PR bodies and comments, which anyone can write, so it only returns
+// one PR number and the comment's text; this step checks the PR and posts.
+
+const MARKER = 'mech-pr-shepherd:v1';
+
+function clean(text, max = 4000) {
+  // One agent's words must not summon people or other agents.
+  return String(text ?? '').replace(/@/g, '@​').trim().slice(0, max);
+}
+
+async function publish(github, repo, result, { dryRun = true, only = null, summary = null,
+  log = console.log, warn = console.warn } = {}) {
+  const assessment = clean(result?.assessment, 6000);
+  if (summary && assessment) await summary.addHeading('PR shepherd', 2).addRaw(assessment).write();
+  const pr = result?.pr;
+  const comment = clean(result?.comment);
+  if (!Number.isSafeInteger(pr) || pr < 1 || !comment) { log('Nothing to post.'); return { posted: null }; }
+  if (only && pr !== only) { warn(`Asked about #${only}, but the agent chose #${pr}; nothing posted.`); return { posted: null }; }
+  if (dryRun) { log(`Dry run: would comment on #${pr}.`); return { posted: null }; }
+  const { data: pull } = await github.rest.pulls.get({ ...repo, pull_number: pr });
+  if (pull.state !== 'open') { warn(`PR #${pr} is ${pull.state}; nothing posted.`); return { posted: null }; }
+  if ((pull.labels ?? []).some(l => l.name === 'needs-human')) {
+    warn(`PR #${pr} is labelled needs-human; nothing posted.`); return { posted: null };
+  }
+  await github.rest.issues.createComment({ ...repo, issue_number: pr, body: `${comment}\n\n<!-- ${MARKER} -->` });
+  log(`Commented on #${pr}.`);
+  return { posted: pr };
+}
+
+module.exports = { publish, clean };
