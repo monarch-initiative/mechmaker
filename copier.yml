@@ -82,8 +82,14 @@ records_dir:
   help: Repository-relative directory that holds one YAML file per record
   default: "data/{{ record_noun | replace(' ', '_') }}s"
   validator: >-
-    {% if records_dir.startswith('/') or '..' in records_dir %}
-    Give a relative path inside the repository.
+    {% if not records_dir.strip() %}
+    Give a directory, e.g. data/widgets.
+    {% elif records_dir.startswith('/') or '..' in records_dir or '.' in records_dir.split('/') %}
+    Give a relative path inside the repository, with no "." or "..".
+    {% elif records_dir.endswith('/') %}
+    Leave off the trailing slash: data/widgets, not data/widgets/.
+    {% elif not (records_dir | regex_search('^[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)*$')) %}
+    Use letters, digits, ".", "_" and "-", with single slashes between folders.
     {% endif %}
 
 term_backend:
@@ -162,327 +168,8 @@ identity_direct_only:
   default: false
   when: "{{ identity_prefix != '' }}"
 
-ontologies:
-  type: str
-  help: >-
-    Ontologies the record binds terms to. Each one adds a descriptor class, a
-    dynamic enum and a record section to the starting schema
-  multiselect: true
-  choices:
-    "GO biological process": GO_BP
-    "GO molecular function": GO_MF
-    "GO cellular component": GO_CC
-    "CL cell types": CL
-    "UBERON anatomy": UBERON
-    "CHEBI chemical entities": CHEBI
-    "HP phenotypes (human)": HP
-    "MONDO diseases": MONDO
-    "NCBITaxon organisms": NCBITaxon
-    "ENVO environments": ENVO
-    "PATO qualities": PATO
-    "OBI assays": OBI
-    "UO units": UO
-    "PR proteins": PR
-    "SO sequence features": SO
-    "MAXO medical actions": MAXO
-    "FOODON foods": FOODON
-    "VBO vertebrate breeds": VBO
-    "VT vertebrate traits": VT
-    "NCIT countries": NCIT_COUNTRY
-  default: [GO_BP, CHEBI, NCBITaxon]
-
-extra_ontologies:
-  type: yaml
-  multiline: true
-  help: >-
-    Ontologies outside the catalog, as a YAML list. Each one gets a descriptor
-    class, a dynamic enum and a record section, as a catalog ontology does.
-    Any ontology OAK can read works: on OLS (adapter ols:vt), from OBO Foundry
-    (sqlite:obo:vt), on BioPortal (bioportal:<acronym>, needs
-    BIOPORTAL_API_KEY), or a local file in the repository
-    (simpleobo:ontologies/my.obo, pronto:ontologies/my.owl,
-    sqlite:ontologies/my.db). Each item needs prefix, root, root_label and
-    noun. adapter (default ols:<prefix>), uri (default the OBO PURL), slot,
-    descriptor, enum and category (the Biolink class of its terms in KGX
-    exports, default biolink:NamedThing) are optional. Check the root before using it.
-    Example: [{prefix: VT, root: "VT:0000001", root_label: vertebrate trait, noun: trait}]
-  default: []
-  validator: >-
-    {%- if extra_ontologies is not sequence or extra_ontologies is string -%}
-    Give a YAML list, e.g. [{prefix: VT, root: "VT:0000001", root_label: vertebrate trait, noun: trait}].
-    {%- else -%}
-    {%- for x in extra_ontologies -%}
-    {%- if x is not mapping -%}
-    Item {{ loop.index }} is not a mapping.
-    {%- elif not (x.prefix and x.root and x.root_label and x.noun) -%}
-    Item {{ loop.index }} needs prefix, root, root_label and noun.
-    {%- elif not (x.prefix | string | regex_search('^[A-Za-z][A-Za-z0-9_]*$')) -%}
-    Item {{ loop.index }}: a prefix is letters, digits and underscores.
-    {%- elif not (x.root | string).startswith(x.prefix ~ ':') -%}
-    Item {{ loop.index }}: the root {{ x.root }} must carry the prefix {{ x.prefix }}.
-    {%- elif not ((x.noun | string) | regex_search('^[A-Za-z][A-Za-z0-9 ]*$')) -%}
-    Item {{ loop.index }}: the noun is letters, digits and spaces, e.g. "trait".
-    {%- endif -%}
-    {%- endfor -%}
-    {%- endif -%}
-
-causal_graphs:
-  type: bool
-  help: Include mechanism nodes and causal edges, the pathograph pattern from DisMech
-  default: true
-
-taxon_scope:
-  type: str
-  help: >-
-    NCBITaxon CURIEs the Mech is scoped to, comma-separated (e.g.
-    NCBITaxon:9606). Leave empty if not taxon-scoped
-  default: ""
-
-domains:
-  type: str
-  help: MechRegistry domain tags (the registry's DomainEnum)
-  multiselect: true
-  choices: [biomedical, clinical, microbiology, environment, organisms, phenotype,
-            pathways, pharmacology, genomics, immunology, nutrition, other]
-  default: [other]
-  validator: "{% if not domains %}Pick at least one; the registry requires it.{% endif %}"
-
-# ---------------------------------------------------------------- people
-
-author_name:
-  type: str
-  help: Maintainer name
-
-author_email:
-  type: str
-  help: Maintainer email
-
-author_orcid:
-  type: str
-  help: Maintainer ORCID (0000-0000-0000-0000), or empty
-  default: ""
-  validator: >-
-    {% if author_orcid and not (author_orcid | regex_search('^[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X]$')) %}
-    An ORCID looks like 0000-0002-1825-0097.
-    {% endif %}
-
-github_org:
-  type: str
-  help: GitHub organization or user that will own the repository
-
-github_user:
-  type: str
-  help: Maintainer GitHub login
-  default: "{{ github_org }}"
-
-repo_name:
-  type: str
-  help: GitHub repository name
-  default: "{{ mech_slug }}"
-
-collection:
-  type: str
-  help: Which family of Mechs this one joins
-  choices:
-    "Monarch Initiative (DisMech pattern)": monarch
-    "X-Mech suite (CultureBotAI fleet, claw-governed)": xmech
-    "Neither": none
-  default: none
-
-# ---------------------------------------------------------------- licenses
-
-data_license:
-  type: str
-  help: License for the records
-  choices:
-    "CC BY 4.0": CC-BY-4.0
-    "CC0 1.0": CC0-1.0
-  default: CC-BY-4.0
-
-code_license:
-  type: str
-  help: License for the code
-  choices:
-    "BSD 3-Clause": BSD-3-Clause
-    "MIT": MIT
-    "Apache 2.0": Apache-2.0
-  default: BSD-3-Clause
-
-copyright_year:
-  type: str
-  help: Copyright year
-  default: "2026"
-
-# ---------------------------------------------------------------- options
-
-include_site:
-  type: bool
-  help: Render a static record browser under pages/ with `just render`
-  default: true
-
-site_palette:
-  type: str
-  help: >-
-    Main color of the documentation site and record browser (a Material for
-    MkDocs color name). Change it later in conf/site.yaml
-  choices: [indigo, blue, light-blue, cyan, teal, green, light-green, lime, yellow,
-            amber, orange, deep-orange, red, pink, purple, deep-purple, brown, grey, blue-grey]
-  default: indigo
-
-site_accent:
-  type: str
-  help: Highlight color, for hover and focus (a Material accent name)
-  choices: [indigo, blue, light-blue, cyan, teal, green, light-green, lime, yellow,
-            amber, orange, deep-orange, red, pink, purple, deep-purple]
-  default: "{{ site_palette if site_palette not in ['brown', 'grey', 'blue-grey'] else 'amber' }}"
-
-site_theme:
-  type: str
-  help: Light or dark pages. auto follows each visitor's system setting
-  choices: [auto, light, dark]
-  default: auto
-
-include_claude_hook:
-  type: bool
-  help: >-
-    Add a Claude Code PreToolUse hook that validates a record before an edit
-    to it lands
-  default: true
-
-# ---------------------------------------------------------------- workflows
-#
-# Every GitHub workflow the template knows is listed here. Pick the ones this
-# Mech needs now; re-run `copier update` with a changed answer to add or drop
-# one later. docs/WORKFLOWS.md in the generated Mech describes each, with what
-# it needs (secrets, apps, labels) and when it is worth turning on.
-
-agent_workflows:
-  type: yaml
-  when: false
-  default: "[claude, review, triage, dedupe, pr-shepherd, curation-scanner, literature-scan, compliance, post-review]"
-
-workflows:
-  type: str
-  help: >-
-    GitHub workflows beyond the always-on QC check. Agent workflows need an
-    Anthropic credential as a repository secret; see docs/WORKFLOWS.md
-  multiselect: true
-  choices:
-    "Weekly full check of terms and quotes (no agent)": sweep
-    "Publish the documentation site to GitHub Pages (no agent)": docs
-    "Hide risky comments from untrusted users (no agent)": comment-guard
-    "Close pull requests from forks (no agent)": close-fork-prs
-    "Attach a records bundle to each release (no agent)": release-records
-    "Warm the reference cache weekly (no agent)": warm-reference-cache
-    "Publish the package to PyPI on release (no agent)": pypi-publish
-    "Agent: answer @claude mentions": claude
-    "Agent: review every pull request": review
-    "Agent: label new issues": triage
-    "Agent: flag duplicate issues, close after 3 days": dedupe
-    "Agent: comment on stuck pull requests": pr-shepherd
-    "Agent: work the curation issue queue (needs a GitHub App)": curation-scanner
-    "Agent: file issues for new literature": literature-scan
-    "Agent: improve the least complete records (needs a GitHub App)": compliance
-    "Agent: act on human review comments": post-review
-  default: [sweep, docs, comment-guard]
-
-agent_schedules:
-  type: bool
-  help: >-
-    Run the scheduled agent workflows on their schedules. Off means they run
-    only when started by hand, which is the safe way to begin
-  default: false
-  when: "{{ workflows | select('in', ['pr-shepherd', 'curation-scanner', 'literature-scan', 'compliance', 'post-review']) | list | length > 0 }}"
-
-langfuse:
-  type: bool
-  help: Send agent traces to Langfuse (needs LANGFUSE_* secrets)
-  default: false
-  when: "{{ workflows | select('in', agent_workflows) | list | length > 0 }}"
-
-# ---------------------------------------------------------------- research and outputs
-
-deep_research:
-  type: bool
-  help: >-
-    Add deep research through deep-research-client: AI research reports on a
-    record, from providers such as Claude Code, OpenAI or Edison, as leads for
-    curators. Most useful for Mechs built on scholarly literature. Each provider
-    needs its own access; claude_code needs only Claude Code
-  default: false
-
-output_formats:
-  type: str
-  help: >-
-    Formats `just export` writes and checks, and releases attach. All come
-    from LinkML. JSON-LD and Turtle are RDF: they are only as good as the
-    schema's prefixes and URIs, which the design step must declare. Change
-    later in conf/export.yaml
-  multiselect: true
-  choices:
-    "YAML, the curated files (zip)": yaml
-    "JSON and JSON Lines": json
-    "JSON-LD (RDF)": jsonld
-    "Turtle (RDF)": ttl
-    "SQLite database": sqlite
-    "DuckDB database (adds linkml-store and its dependencies)": duckdb
-    "KGX, an edge from each record to each term it binds": kgx
-    "KGX, the whole record graph as nodes and edges": kgx_maximal
-    "SQL: schema DDL, and the data as SQL": sql
-    "CSV": csv
-    "TSV": tsv
-  default: [yaml, json, jsonld, ttl, sqlite, sql, csv]
-  validator: "{% if not output_formats %}Pick at least one format.{% endif %}"
-
-kgx_biolink:
-  type: bool
-  help: >-
-    Map the KGX export onto the Biolink model, and check it against
-    Biolink (adds biolink-model). Biolink is biomedical; say no when its
-    classes and predicates do not fit the domain, and the graph uses the
-    Mech's own categories and predicates instead. Change later in
-    conf/kgx.yaml
-  default: true
-  when: "{{ 'kgx' in output_formats or 'kgx_maximal' in output_formats }}"
-
-load_targets:
-  type: str
-  help: >-
-    Running databases `just load` can fill with the records, through
-    linkml-store: MongoDB (one collection) and Neo4j (a graph of every
-    object). Each adds linkml-store to the Mech. Addresses go in
-    conf/load.yaml, with passwords read from the environment
-  multiselect: true
-  choices:
-    "MongoDB": mongodb
-    "Neo4j (a graph of every object)": neo4j
-  default: []
-
-tabular_layout:
-  type: str
-  help: >-
-    How CSV and TSV hold nested data. One table per class, linked by ids, as
-    in the SQL export; or one row per record, with nested values as JSON
-  choices:
-    "One table per class (normalized)": per_class
-    "One row per record (flattened)": flat
-  default: per_class
-  when: "{{ 'csv' in output_formats or 'tsv' in output_formats }}"
-
-python_min:
-  type: str
-  help: Minimum Python version
-  choices: ["3.11", "3.12", "3.13"]
-  default: "3.11"
-
-# ---------------------------------------------------------------- computed
-
-uses_agents:
-  type: bool
-  when: false
-  default: "{{ workflows | select('in', agent_workflows) | list | length > 0 }}"
-
-
+# The ontologies offered below, with their verified roots. Defined before the
+# questions so the extra_ontologies validator can read it.
 ontology_catalog:
   type: yaml
   when: false
@@ -709,6 +396,347 @@ ontology_catalog:
       noun: country
       category: biolink:GeographicLocation
 
+ontologies:
+  type: str
+  help: >-
+    Ontologies the record binds terms to. Each one adds a descriptor class, a
+    dynamic enum and a record section to the starting schema
+  multiselect: true
+  choices:
+    "GO biological process": GO_BP
+    "GO molecular function": GO_MF
+    "GO cellular component": GO_CC
+    "CL cell types": CL
+    "UBERON anatomy": UBERON
+    "CHEBI chemical entities": CHEBI
+    "HP phenotypes (human)": HP
+    "MONDO diseases": MONDO
+    "NCBITaxon organisms": NCBITaxon
+    "ENVO environments": ENVO
+    "PATO qualities": PATO
+    "OBI assays": OBI
+    "UO units": UO
+    "PR proteins": PR
+    "SO sequence features": SO
+    "MAXO medical actions": MAXO
+    "FOODON foods": FOODON
+    "VBO vertebrate breeds": VBO
+    "VT vertebrate traits": VT
+    "NCIT countries": NCIT_COUNTRY
+  default: [GO_BP, CHEBI, NCBITaxon]
+
+extra_ontologies:
+  type: yaml
+  multiline: true
+  help: >-
+    Ontologies outside the catalog, as a YAML list. Each one gets a descriptor
+    class, a dynamic enum and a record section, as a catalog ontology does.
+    Any ontology OAK can read works: on OLS (adapter ols:po), from OBO Foundry
+    (sqlite:obo:po), on BioPortal (bioportal:<acronym>, needs
+    BIOPORTAL_API_KEY), or a local file in the repository
+    (simpleobo:ontologies/my.obo, pronto:ontologies/my.owl,
+    sqlite:ontologies/my.db). Each item needs prefix, root, root_label and
+    noun. adapter (default ols:<prefix>), uri (default the OBO PURL), slot,
+    descriptor, enum and category (the Biolink class of its terms in KGX
+    exports, default biolink:NamedThing) are optional. Its prefix and slot must
+    differ from those of every ontology picked above and every other extra.
+    Check the root before using it.
+    Example: [{prefix: PO, root: "PO:0025131", root_label: plant anatomical entity, noun: plant structure}]
+  default: []
+  validator: >-
+    {%- if extra_ontologies is not sequence or extra_ontologies is string -%}
+    Give a YAML list, e.g. [{prefix: PO, root: "PO:0025131", root_label: plant anatomical entity, noun: plant structure}].
+    {%- else -%}
+    {#- Prefixes and slots already taken: the catalog picks, then each extra in turn.
+        The slot default repeats the plural rule in ontology_selection. -#}
+    {%- set seen = namespace(prefixes=[], slots=[]) -%}
+    {%- for key in ontologies if key in ontology_catalog -%}
+    {%- set seen.prefixes = seen.prefixes + [ontology_catalog[key].prefix] -%}
+    {%- set seen.slots = seen.slots + [ontology_catalog[key].slot] -%}
+    {%- endfor -%}
+    {%- for x in extra_ontologies -%}
+    {%- set noun = x.noun | string | trim if x is mapping else '' -%}
+    {%- set plural = (noun[:-1] ~ 'ies') if (noun.endswith('y') and noun[-2:-1] not in 'aeiou') else (noun ~ 'es' if noun.endswith(('s', 'x', 'ch', 'sh')) else noun ~ 's') -%}
+    {%- set slot = (x.slot | default(plural | replace(' ', '_') | lower)) | string if x is mapping else '' -%}
+    {%- if x is not mapping -%}
+    Item {{ loop.index }} is not a mapping.
+    {%- elif not (x.prefix and x.root and x.root_label and x.noun) -%}
+    Item {{ loop.index }} needs prefix, root, root_label and noun.
+    {%- elif not (x.prefix | string | regex_search('^[A-Za-z][A-Za-z0-9_]*$')) -%}
+    Item {{ loop.index }}: a prefix is letters, digits and underscores.
+    {%- elif not (x.root | string).startswith(x.prefix ~ ':') -%}
+    Item {{ loop.index }}: the root {{ x.root }} must carry the prefix {{ x.prefix }}.
+    {%- elif not ((x.noun | string) | regex_search('^[A-Za-z][A-Za-z0-9 ]*$')) -%}
+    Item {{ loop.index }}: the noun is letters, digits and spaces, e.g. "trait".
+    {%- elif (x.prefix | string) in seen.prefixes -%}
+    Item {{ loop.index }}: the prefix {{ x.prefix }} is already bound by a picked ontology or an earlier extra.
+    {%- elif slot in seen.slots -%}
+    Item {{ loop.index }}: the slot {{ slot }} is already used by a picked ontology or an earlier extra. Give it another slot.
+    {%- endif -%}
+    {%- if x is mapping -%}
+    {%- set seen.prefixes = seen.prefixes + [x.prefix | string] -%}
+    {%- set seen.slots = seen.slots + [slot] -%}
+    {%- endif -%}
+    {%- endfor -%}
+    {%- endif -%}
+
+causal_graphs:
+  type: bool
+  help: Include mechanism nodes and causal edges, the pathograph pattern from DisMech
+  default: true
+
+taxon_scope:
+  type: str
+  help: >-
+    NCBITaxon CURIEs the Mech is scoped to, comma-separated (e.g.
+    NCBITaxon:9606). Leave empty if not taxon-scoped
+  default: ""
+
+domains:
+  type: str
+  help: MechRegistry domain tags (the registry's DomainEnum)
+  multiselect: true
+  choices: [biomedical, clinical, microbiology, environment, organisms, phenotype,
+            pathways, pharmacology, genomics, immunology, nutrition, other]
+  default: [other]
+  validator: "{% if not domains %}Pick at least one; the registry requires it.{% endif %}"
+
+# ---------------------------------------------------------------- people
+
+author_name:
+  type: str
+  help: Maintainer name
+
+author_email:
+  type: str
+  help: Maintainer email
+
+author_orcid:
+  type: str
+  help: Maintainer ORCID (0000-0000-0000-0000), or empty
+  default: ""
+  validator: >-
+    {% if author_orcid and not (author_orcid | regex_search('^[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X]$')) %}
+    An ORCID looks like 0000-0002-1825-0097.
+    {% endif %}
+
+github_org:
+  type: str
+  help: GitHub organization or user that will own the repository
+
+github_user:
+  type: str
+  help: Maintainer GitHub login
+  default: "{{ github_org }}"
+
+repo_name:
+  type: str
+  help: GitHub repository name
+  default: "{{ mech_slug }}"
+
+collection:
+  type: str
+  help: Which family of Mechs this one joins
+  choices:
+    "Monarch Initiative (DisMech pattern)": monarch
+    "X-Mech suite (CultureBotAI fleet, claw-governed)": xmech
+    "Neither": none
+  default: none
+
+# ---------------------------------------------------------------- licenses
+
+data_license:
+  type: str
+  help: License for the records
+  choices:
+    "CC BY 4.0": CC-BY-4.0
+    "CC0 1.0": CC0-1.0
+  default: CC-BY-4.0
+
+code_license:
+  type: str
+  help: License for the code
+  choices:
+    "BSD 3-Clause": BSD-3-Clause
+    "MIT": MIT
+    "Apache 2.0": Apache-2.0
+  default: BSD-3-Clause
+
+copyright_year:
+  type: str
+  help: Copyright year
+  default: "{{ '%Y' | strftime }}"
+
+# ---------------------------------------------------------------- options
+
+include_site:
+  type: bool
+  help: Render a static record browser under pages/ with `just render`
+  default: true
+
+site_palette:
+  type: str
+  help: >-
+    Main color of the documentation site and record browser (a Material for
+    MkDocs color name). Change it later in conf/site.yaml
+  choices: [indigo, blue, light-blue, cyan, teal, green, light-green, lime, yellow,
+            amber, orange, deep-orange, red, pink, purple, deep-purple, brown, grey, blue-grey]
+  default: indigo
+
+site_accent:
+  type: str
+  help: Highlight color, for hover and focus (a Material accent name)
+  choices: [indigo, blue, light-blue, cyan, teal, green, light-green, lime, yellow,
+            amber, orange, deep-orange, red, pink, purple, deep-purple]
+  default: "{{ site_palette if site_palette not in ['brown', 'grey', 'blue-grey'] else 'amber' }}"
+
+site_theme:
+  type: str
+  help: Light or dark pages. auto follows each visitor's system setting
+  choices: [auto, light, dark]
+  default: auto
+
+include_claude_hook:
+  type: bool
+  help: >-
+    Add a Claude Code PreToolUse hook that validates a record before an edit
+    to it lands
+  default: true
+
+# ---------------------------------------------------------------- workflows
+#
+# Every GitHub workflow the template knows is listed here. Pick the ones this
+# Mech needs now; re-run `copier update` with a changed answer to add or drop
+# one later. docs/WORKFLOWS.md in the generated Mech describes each, with what
+# it needs (secrets, apps, labels) and when it is worth turning on.
+
+agent_workflows:
+  type: yaml
+  when: false
+  default: "[claude, review, triage, dedupe, pr-shepherd, curation-scanner, literature-scan, compliance, post-review]"
+
+workflows:
+  type: str
+  help: >-
+    GitHub workflows beyond the always-on QC check. Agent workflows need an
+    Anthropic credential as a repository secret; see docs/WORKFLOWS.md
+  multiselect: true
+  choices:
+    "Weekly full check of terms and quotes (no agent)": sweep
+    "Publish the documentation site to GitHub Pages (no agent)": docs
+    "Hide risky comments from untrusted users (no agent)": comment-guard
+    "Close pull requests from forks (no agent)": close-fork-prs
+    "Attach a records bundle to each release (no agent)": release-records
+    "Warm the reference cache weekly (no agent)": warm-reference-cache
+    "Publish the package to PyPI on release (no agent)": pypi-publish
+    "Agent: answer @claude mentions": claude
+    "Agent: review every pull request": review
+    "Agent: label new issues": triage
+    "Agent: flag duplicate issues, close after 3 days": dedupe
+    "Agent: comment on stuck pull requests": pr-shepherd
+    "Agent: work the curation issue queue (needs a GitHub App)": curation-scanner
+    "Agent: file issues for new literature": literature-scan
+    "Agent: improve the least complete records (needs a GitHub App)": compliance
+    "Agent: act on human review comments": post-review
+  default: [sweep, docs, comment-guard]
+
+agent_schedules:
+  type: bool
+  help: >-
+    Run the scheduled agent workflows on their schedules. Off means they run
+    only when started by hand, which is the safe way to begin
+  default: false
+  when: "{{ workflows | select('in', ['pr-shepherd', 'curation-scanner', 'literature-scan', 'compliance', 'post-review']) | list | length > 0 }}"
+
+langfuse:
+  type: bool
+  help: Send agent traces to Langfuse (needs LANGFUSE_* secrets)
+  default: false
+  when: "{{ workflows | select('in', agent_workflows) | list | length > 0 }}"
+
+# ---------------------------------------------------------------- research and outputs
+
+deep_research:
+  type: bool
+  help: >-
+    Add deep research through deep-research-client: AI research reports on a
+    record, from providers such as Claude Code, OpenAI or Edison, as leads for
+    curators. Most useful for Mechs built on scholarly literature. Each provider
+    needs its own access; claude_code needs only Claude Code
+  default: false
+
+output_formats:
+  type: str
+  help: >-
+    Formats `just export` writes and checks, and releases attach. All come
+    from LinkML. JSON-LD and Turtle are RDF: they are only as good as the
+    schema's prefixes and URIs, which the design step must declare. Change
+    later in conf/export.yaml
+  multiselect: true
+  choices:
+    "YAML, the curated files (zip)": yaml
+    "JSON and JSON Lines": json
+    "JSON-LD (RDF)": jsonld
+    "Turtle (RDF)": ttl
+    "SQLite database": sqlite
+    "DuckDB database (adds linkml-store and its dependencies)": duckdb
+    "KGX, an edge from each record to each term it binds": kgx
+    "KGX, the whole record graph as nodes and edges": kgx_maximal
+    "SQL: schema DDL, and the data as SQL": sql
+    "CSV": csv
+    "TSV": tsv
+  default: [yaml, json, jsonld, ttl, sqlite, sql, csv]
+  validator: "{% if not output_formats %}Pick at least one format.{% endif %}"
+
+kgx_biolink:
+  type: bool
+  help: >-
+    Map the KGX export onto the Biolink model, and check it against
+    Biolink (adds biolink-model). Biolink is biomedical; say no when its
+    classes and predicates do not fit the domain, and the graph uses the
+    Mech's own categories and predicates instead. Change later in
+    conf/kgx.yaml
+  default: true
+  when: "{{ 'kgx' in output_formats or 'kgx_maximal' in output_formats }}"
+
+load_targets:
+  type: str
+  help: >-
+    Running databases `just load` can fill with the records, through
+    linkml-store: MongoDB (one collection) and Neo4j (a graph of every
+    object). Each adds linkml-store to the Mech. Addresses go in
+    conf/load.yaml, with passwords read from the environment
+  multiselect: true
+  choices:
+    "MongoDB": mongodb
+    "Neo4j (a graph of every object)": neo4j
+  default: []
+
+tabular_layout:
+  type: str
+  help: >-
+    How CSV and TSV hold nested data. One table per class, linked by ids, as
+    in the SQL export; or one row per record, with nested values as JSON
+  choices:
+    "One table per class (normalized)": per_class
+    "One row per record (flattened)": flat
+  default: per_class
+  when: "{{ 'csv' in output_formats or 'tsv' in output_formats }}"
+
+python_min:
+  type: str
+  help: Minimum Python version
+  choices: ["3.11", "3.12", "3.13"]
+  default: "3.11"
+
+# ---------------------------------------------------------------- computed
+
+uses_agents:
+  type: bool
+  when: false
+  default: "{{ workflows | select('in', agent_workflows) | list | length > 0 }}"
+
+
 # Every ontology a Mech binds: the catalog picks, then extra_ontologies, with
 # names filled in. The templates read this, never the catalog directly.
 ontology_selection:
@@ -742,7 +770,7 @@ ontology_selection:
     {%- endfor -%}
     {{ sel | tojson }}
 
-# Whether any adapter reads a file in the repository, or BioPortal.
+# Whether any adapter reads a file in the repository (BioPortal is uses_bioportal).
 local_ontology_files:
   type: bool
   when: false

@@ -44,7 +44,9 @@ jobs:
       - run: uv tool install rust-just
       - run: just install
       - name: Warm
-        run: just warm-reference-cache "${{ inputs.limit || '500' }}"
+        env:
+          LIMIT: ${{ inputs.limit || '500' }}
+        run: just warm-reference-cache "$LIMIT"
       - name: Any changes?
         id: diff
         run: |
@@ -74,7 +76,10 @@ jobs:
           git checkout -B "$branch"
           git add references_cache/
           git commit -m "Warm reference cache ($(date -u +%F))"
-          git push --force-with-lease "https://github.com/${REPO}.git" "$branch"
+          # Push to origin, not a bare URL: the lease compares against
+          # origin/<branch>, which the full-history checkout fetched. Pushed to
+          # a URL, there is no tracking ref and a re-run is refused as stale.
+          git push --force-with-lease origin "$branch"
           if [ -z "$(gh pr list --repo "$REPO" --head "$branch" --state open --json number --jq '.[].number')" ]; then
             gh pr create --repo "$REPO" --head "$branch" --base main \
               --title "Warm reference cache ($(date -u +%F))" \

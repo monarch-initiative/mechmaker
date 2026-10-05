@@ -213,7 +213,7 @@ research-providers:
     uv run python -m {{slug}}.research providers
 
 # Research one record (its filename stem) or a new name. Costs a provider run.
-# `just research claude_code saanen`, or `just research falcon saanen -- --fallback`
+# `just research claude_code <record stem>`, or `just research falcon <record stem> -- --fallback`
 research provider target *args:
     uv run python -m {{slug}}.research run "$@"
 

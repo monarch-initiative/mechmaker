@@ -22,6 +22,8 @@ jobs:
           enable-cache: true
       - run: uv tool install rust-just
       - run: just install
+      # Linters for the rendered workflows: test_actionlint skips without them.
+      - run: uv pip install actionlint-py shellcheck-py
       - run: just lint
       - run: just test
       - run: just docs-build
