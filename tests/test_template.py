@@ -191,6 +191,22 @@ def test_recipes_run_on_bash_3(generated):
     assert not re.search(r"shopt[^\n]*globstar", (dest / "justfile").read_text())
 
 
+def test_named_recipes_exist(generated):
+    """Every `just <recipe>` the agent's instructions name is in the justfile.
+    Recipes gated off by an answer (render with include_site: false) must not
+    be named either, or the agent runs into "recipe not found"."""
+    _, _, dest = generated
+    recipes = set(re.findall(r"^([a-z][a-z0-9-]*)[^\n=]*:", (dest / "justfile").read_text(), re.M))
+    texts = [dest / "CLAUDE.md", dest / "README.md", *(dest / ".claude").rglob("*.md"),
+             *(dest / "conf").glob("*.yaml")]
+    missing = set()
+    for path in texts:
+        for name in re.findall(r"(?:^|`)\s*(?:# )?just ([a-z][a-z0-9-]*)", path.read_text(), re.M):
+            if name not in recipes:
+                missing.add((str(path.relative_to(dest)), name))
+    assert not missing, sorted(missing)
+
+
 def test_schema_pages_are_in_a_folder_per_kind(generated):
     """Every Mech has a Term class and a term slot. In one folder their pages
     are Term.md and term.md, one file where case is ignored, and the docs

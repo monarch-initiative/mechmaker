@@ -1,22 +1,36 @@
 ---
 name: site-design
 description: >-
-  Change how the {{ mech_name }} documentation site{% if include_site %} and record browser{% endif %} look:
-  colors, light or dark mode, title, footer{% if include_site %}, the columns of the browser's
-  front page, the sections shown on record pages,{% endif %} and deeper changes to the
+{%- if include_site %}
+  Change how the {{ mech_name }} documentation site and record browser look:
+  colors, light or dark mode, title, footer, the columns of the browser's
+  front page, the sections shown on record pages, and deeper changes to the
   page templates. Use when asked to restyle, rebrand, recolor or reorganize
+{%- else %}
+  Change how the {{ mech_name }} documentation site looks: colors, light or
+  dark mode, and deeper changes to its layout and pages. Use when asked to
+  restyle, rebrand, recolor or reorganize
+{%- endif %}
   the site, or when the site is hard to read.
 ---
 
 # Site design
-
+{% if include_site %}
 Most changes are one line in `conf/site.yaml`. Start there. Edit the page
 templates only for what the settings cannot do.
+{%- else %}
+Most changes are one line in `conf/site.yaml`. Start there. Edit the site's
+layout only for what the settings cannot do.
+
+This Mech has no record browser: no `pages/`, no `render.py`, no page
+templates. Everything below is about the documentation site.
+{%- endif %}
 
 ## Settings: `conf/site.yaml`
 
 | Setting | What it does | Values |
 |---|---|---|
+{%- if include_site %}
 | `title` | Title of the record browser's front page | text |
 | `palette` | Main color: docs header, browser header band, links | red, pink, purple, deep-purple, indigo, blue, light-blue, cyan, teal, green, light-green, lime, yellow, amber, orange, deep-orange, brown, grey, blue-grey |
 | `accent` | Hover and focus color | the palette names except brown, grey, blue-grey |
@@ -26,22 +40,36 @@ templates only for what the settings cannot do.
 | `footer` | Footer on every browser page | text |
 
 The names are Material for MkDocs' own, so one name colors both sites.
+{%- else %}
+| `palette` | Main color: docs header and links | red, pink, purple, deep-purple, indigo, blue, light-blue, cyan, teal, green, light-green, lime, yellow, amber, orange, deep-orange, brown, grey, blue-grey |
+| `accent` | Hover and focus color | the palette names except brown, grey, blue-grey |
+| `theme` | Light or dark pages | `auto` (follows the visitor's system), `light`, `dark` |
+
+The names are Material for MkDocs' own.
+{%- endif %}
 
 After any change:
 
 ```bash
 just site-check     # validates the file and reports contrast
+{%- if include_site %}
 just render         # rebuilds pages/; commit the result
 just docs-serve     # look at both sites at http://127.0.0.1:8000
+{%- else %}
+just docs-serve     # look at the site at http://127.0.0.1:8000
+{%- endif %}
 ```
+{%- if include_site %}
 
 `just qc` fails if `pages/` is stale, so always run `just render` and commit
 `pages/` with the settings change.
+{%- endif %}
 
 ## Choosing colors
 
 - Pick for the domain, not for decoration. A palette the maintainers
   already use (a lab or project color) is a good choice.
+{%- if include_site %}
 - Readability is handled for links: the browser darkens or lightens the
   palette color until it reaches 4.5:1 against the page, and picks black or
   white header text, whichever reads better. `just site-check` shows the
@@ -49,11 +77,17 @@ just docs-serve     # look at both sites at http://127.0.0.1:8000
   light palettes (cyan, light-green, and similar) put white text under 3:1
   on the header; prefer a darker palette if the docs header must be
   readable.
+{%- else %}
+- The docs site uses Material's own pairings, which for a few light
+  palettes (cyan, light-green, and similar) put white text under 3:1 on the
+  header. `just site-check` reports the header contrast; prefer a darker
+  palette if it is low.
+{%- endif %}
 - Ask the person before changing an established color. It is part of how
   people recognize the site.
 
 ## Beyond the settings
-
+{% if include_site %}
 A record page is laid out from the shape of the data and the schema, by
 `src/{{ mech_slug }}/render.py`. Its docstring lists the rules: an overview
 table for simple values, tables for lists of small uniform objects, cards
@@ -93,3 +127,27 @@ The docs site's layout is `mkdocs.yml`; its pages are `docs/`. Never edit
 If a request needs a setting that does not exist yet (a logo, a second
 table layout), add it to `conf/site.yaml`, read it in `site.py` and the
 templates, document it in this skill, and say so in the pull request.
+{%- else %}
+The site's layout and navigation are `mkdocs.yml`; its hand-written pages
+are `docs/`. The schema pages come from the schema, so a thin page is fixed
+by improving the schema's descriptions, not by editing the page.
+
+Rules:
+
+- Keep colors in `conf/site.yaml`, not in `mkdocs.yml`: `just docs-build`
+  writes the palette into `.mkdocs.site.yml` from it.
+- Keep every link relative. The site is hosted under a path.
+- Look at a change with `just docs-serve` at desktop and phone widths, and
+  run `just docs-build`, which is strict: a broken link fails it.
+
+Never edit `.mkdocs.site.yml`, `site/`, `docs/elements/`, `docs/schema/`,
+`docs/structure.md` or `docs/corpus.md`: they are generated.
+
+If a request needs a setting that does not exist yet (a logo), add it to
+`conf/site.yaml`, read it in `site.py` and `docs.py`, document it in this
+skill, and say so in the pull request.
+
+A record browser is a template option, off for this Mech. To add one, ask
+the person first, then change the answer with
+`uvx copier update --skip-answered --data include_site=true`.
+{%- endif %}
