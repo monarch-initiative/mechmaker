@@ -23,9 +23,13 @@ const created = [];
 const github = { rest: {
   search: { issuesAndPullRequests: async ({ q }) =>
     ({ data: { total_count: (c.open ?? []).some(id => q.includes(`"${id}"`)) ? 1 : 0 } }) },
-  issues: { create: async args => { created.push(args); return { data: { number: 100 + created.length } }; } },
+  issues: { create: async args => {
+    created.push(args);
+    return { data: { number: 100 + created.length } };
+  } },
 } };
-publish(github, { owner: 'o', repo: 'r' }, c.result, c.packet, { max: c.max ?? 5, log: () => {}, warn: () => {} })
+publish(github, { owner: 'o', repo: 'r' }, c.result, c.packet,
+  { max: c.max ?? 5, log: () => {}, warn: () => {} })
   .then(result => console.log(JSON.stringify({ result, created })));
 """
 

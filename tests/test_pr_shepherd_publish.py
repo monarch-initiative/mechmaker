@@ -19,7 +19,9 @@ const { publish } = require(process.argv[1]);
 const c = JSON.parse(process.argv[2]);
 const comments = [];
 const github = { rest: {
-  pulls: { get: async () => ({ data: { state: c.state ?? 'open', labels: (c.labels ?? []).map(name => ({ name })) } }) },
+  pulls: { get: async () => ({ data: {
+    state: c.state ?? 'open', labels: (c.labels ?? []).map(name => ({ name })),
+  } }) },
   issues: { createComment: async args => { comments.push(args); } },
 } };
 publish(github, { owner: 'o', repo: 'r' }, c.result,
@@ -29,7 +31,8 @@ publish(github, { owner: 'o', repo: 'r' }, c.result,
 
 
 def run(result=None, **case):
-    case = {"result": result or {"assessment": "Looked at 3.", "pr": 7, "comment": "Behind main by 4."}, **case}
+    result = result or {"assessment": "Looked at 3.", "pr": 7, "comment": "Behind main by 4."}
+    case = {"result": result, **case}
     out = subprocess.run(["node", "-e", HARNESS, str(SCRIPT), json.dumps(case)],
                          capture_output=True, text=True, check=True)
     return json.loads(out.stdout)

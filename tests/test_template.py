@@ -516,7 +516,8 @@ def test_triage_applies_only_its_own_labels(tmp_path):
     schema = json.loads(re.search(r"--json-schema '(.+)'", agent["with"]["claude_args"]).group(1))
     offered = set(schema["properties"]["labels"]["items"]["enum"])
     script = jobs["apply"]["steps"][0]["with"]["script"]
-    allowed = set(re.findall(r"'([\w-]+)'", re.search(r"ALLOWED = new Set\(\[(.+?)\]\)", script, re.S).group(1)))
+    listed = re.search(r"ALLOWED = new Set\(\[(.+?)\]\)", script, re.S).group(1)
+    allowed = set(re.findall(r"'([\w-]+)'", listed))
     assert offered == allowed
     assert not allowed & {"scope-override", "duplicate-pending", "needs-human", "editorial", "literature"}
     labels = {x["name"] for x in yaml.safe_load((dest / ".github" / "labels.yaml").read_text())}
