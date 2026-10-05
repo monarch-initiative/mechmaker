@@ -25,10 +25,12 @@ def test_the_start_prompt_is_the_same_everywhere():
 
 def test_skills_call_scripts_by_their_own_folder():
     # Installed skills do not sit in a mechmaker checkout, so a command like
-    # `python skills/make-mech/scripts/...` fails for everyone who installed them.
-    for skill in (ROOT / "skills").glob("*/SKILL.md"):
-        bad = re.findall(r"python3? skills/\S+", skill.read_text())
-        assert not bad, f"{skill.parent.name}: {bad}"
+    # `python skills/make-mech/scripts/...` or `uv run skills/...` fails for everyone
+    # who installed them. Prose may name the folder; no path may name a file in it.
+    for skill in (ROOT / "skills").rglob("*.md"):
+        text = re.sub(r"https?://\S+", "", skill.read_text())
+        bad = re.findall(r"(?<![\w-])skills/[\w-]+/scripts/\S+", text)
+        assert not bad, f"{skill.relative_to(ROOT)}: {bad}"
 
 
 def test_llms_txt_links_every_page_and_skill():

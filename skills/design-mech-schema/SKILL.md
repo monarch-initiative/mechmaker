@@ -44,6 +44,7 @@ details.
    prompt from `docs/DOMAIN.md` (see "The research prompt", below).
 6. `just lint`, `just test`, `just qc`.
 7. Record the change: `just new-history --kind schema --slug <slug>
+   --path src/<slug>/schema/<slug>.yaml
    --event EDIT --outcome changed --summary ... --details ... --apply`.
 
 ## Sections

@@ -36,7 +36,8 @@ each. `check` is optional; without it the item is left for the agent to verify.
 
 Each item is done, missing, or to check (a person or agent must look).
 Exit 0 when nothing is missing, 1 when something is, 2 when the folder is
-not a Mech, 64 on a usage error.
+not a Mech, 64 on a usage error: a bad argument, or a requests file that is
+absent or cannot be read as above.
 """
 
 from __future__ import annotations
@@ -113,6 +114,9 @@ DATA_LICENSE_TEXT = {
     "CC-BY-4.0": "creativecommons.org/licenses/by/4.0",
     "CC0-1.0": "creativecommons.org/publicdomain/zero/1.0",
 }
+
+# The collection answer -> its name, and its value in the registry's CollectionEnum.
+COLLECTIONS = {"monarch": ("Monarch", "monarch"), "xmech": ("X-Mech suite", "x-mech-suite")}
 
 # make-mech seeds three to five records.
 SEED_MIN = 3
@@ -207,7 +211,7 @@ class Mech:
 
     def records(self) -> list[Path]:
         d = self.root / self.answers.get("records_dir", "")
-        return sorted(d.glob("*.yaml")) if d.is_dir() else []
+        return sorted(d.rglob("*.yaml")) if d.is_dir() else []
 
     def recipes(self) -> set[str]:
         return set(re.findall(r"^@?([A-Za-z][\w-]*)\b[^:=\n]*:(?!=)", self.text("justfile"), re.M))
@@ -434,15 +438,16 @@ def from_answers(m: Mech) -> list[Item]:
                 f"set domains in {reg_path}",
             )
         )
-    if a.get("collection") == "monarch":
+    if a.get("collection") in COLLECTIONS:
+        name, value = COLLECTIONS[a["collection"]]
         got = reg.get("collection") or []
         out.append(
             item(
-                "Joins the Monarch collection",
+                f"Joins the {name} collection",
                 "collection",
-                "monarch" in got,
+                value in got,
                 f"{reg_path} collection {got or 'none'}",
-                f"add collection: [monarch] to {reg_path}",
+                f"add collection: [{value}] to {reg_path}",
             )
         )
 
@@ -600,7 +605,7 @@ def workflow_items(m: Mech) -> list[Item]:
                 "workflows",
                 not absent,
                 f"{', '.join(files)} present" if not absent else f"absent: {', '.join(absent)}",
-                f"run `uvx copier update --skip-answered` with {name} in workflows",
+                f"run `uvx copier update --skip-answered --defaults` with {name} in workflows",
             )
         )
         if name in PROMPTED:
@@ -721,13 +726,14 @@ def from_steps(m: Mech) -> list[Item]:
         )
 
     domain = m.text("docs/DOMAIN.md")
-    todos = len(re.findall(r"^TODO", domain, re.M))
+    # A TODO opens a line, or fills a table cell.
+    todos = len(re.findall(r"^TODO|\|\s*TODO\s*(?=\|)", domain, re.M))
     out.append(
         item(
             "Domain model written in docs/DOMAIN.md",
             "make-mech step 4",
             bool(domain) and not todos,
-            f"{todos} TODO section(s) left" if todos else ("filled in" if domain else "file absent"),
+            f"{todos} TODO(s) left" if todos else ("filled in" if domain else "file absent"),
             "run design-mech-schema; each TODO is a decision not yet made",
         )
     )
@@ -803,15 +809,53 @@ def from_steps(m: Mech) -> list[Item]:
     return out
 
 
-def from_requests(m: Mech, path: Path) -> list[Item]:
-    data = yaml.safe_load(path.read_text()) or []
+class RequestsError(ValueError):
+    """A requests file the audit cannot read."""
+
+
+def load_requests(path: Path) -> list[dict]:
+    """The requests file as a list of mappings, or a RequestsError that says what is wrong."""
+    try:
+        data = yaml.safe_load(path.read_text())
+    except yaml.YAMLError as exc:
+        raise RequestsError(f"not valid YAML: {exc}") from exc
     if isinstance(data, dict):
-        data = data.get("requests") or []
-    out = []
-    classes, slots, recipes = m.classes(), m.slots(), m.recipes()
+        if "requests" not in data:
+            raise RequestsError(
+                "a mapping with no `requests:` key; write a list, or put it under `requests:`"
+            )
+        data = data["requests"]
+    data = data or []
+    if not isinstance(data, list):
+        raise RequestsError("the requests must be a list")
+    reqs = []
     for i, r in enumerate(data, 1):
         if isinstance(r, str):
             r = {"feature": r}
+        if not isinstance(r, dict):
+            raise RequestsError(f"request {i} is {r!r}; each must be a mapping or a string")
+        check = r.get("check")
+        if check is not None and not isinstance(check, dict):
+            raise RequestsError(f"request {i}: `check` is {check!r}; write it as a mapping, e.g. {{slot: x}}")
+        for kind, arg in (check or {}).items():
+            if kind in ("class", "slot", "recipe", "path") and not isinstance(arg, str):
+                raise RequestsError(f"request {i}: `{kind}` takes a name, not {arg!r}")
+            if kind == "contains" and not (
+                isinstance(arg, dict)
+                and isinstance(arg.get("path"), str)
+                and isinstance(arg.get("text"), str)
+            ):
+                raise RequestsError(f"request {i}: `contains` takes {{path: ..., text: ...}}, not {arg!r}")
+            if kind == "records" and (isinstance(arg, bool) or not isinstance(arg, int)):
+                raise RequestsError(f"request {i}: `records` takes a whole number, not {arg!r}")
+        reqs.append(r)
+    return reqs
+
+
+def from_requests(m: Mech, path: Path) -> list[Item]:
+    out = []
+    classes, slots, recipes = m.classes(), m.slots(), m.recipes()
+    for i, r in enumerate(load_requests(path), 1):
         feature = r.get("feature") or f"request {i}"
         asked = "requested" + (f': "{r["said"]}"' if r.get("said") else "")
         check = r.get("check") or {}
@@ -860,7 +904,7 @@ def from_requests(m: Mech, path: Path) -> list[Item]:
                     )
                 )
             elif kind == "contains":
-                p, text = arg.get("path", ""), arg.get("text", "")
+                p, text = arg["path"], arg["text"]
                 hit = text in m.text(p)
                 out.append(
                     item(
@@ -877,7 +921,7 @@ def from_requests(m: Mech, path: Path) -> list[Item]:
                     item(
                         feature,
                         asked,
-                        n >= int(arg),
+                        n >= arg,
                         f"{n} record(s); asked for {arg}",
                         "curate more records",
                     )
@@ -954,13 +998,20 @@ def main(argv: list[str] | None = None) -> int:
         print(f"No requests file at {args.requests}.", file=sys.stderr)
         return 64
     m = Mech(root)
+    requested: list[Item] = []
+    if args.requests:
+        # Read the requests first, so a bad file stops the audit before `just qc` runs.
+        try:
+            requested = from_requests(m, args.requests)
+        except RequestsError as exc:
+            print(f"Cannot read {args.requests}: {exc}", file=sys.stderr)
+            return 64
     items = from_answers(m) + from_steps(m)
     if args.qc_full:
         items.append(run_qc(m, "qc-full"))
     elif args.qc:
         items.append(run_qc(m, "qc"))
-    if args.requests:
-        items += from_requests(m, args.requests)
+    items += requested
     if args.json:
         print(json.dumps({"mech": str(root), "items": [asdict(i) for i in items]}, indent=2))
     else:

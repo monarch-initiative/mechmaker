@@ -17,9 +17,9 @@ maturity: seeded
 homepage_url: {{ site if 'docs' in workflows else "https://github.com/" ~ github_org ~ "/" ~ repo_name }}
 repository: https://github.com/{{ github_org }}/{{ repo_name }}
 schema_url: https://github.com/{{ github_org }}/{{ repo_name }}/blob/main/src/{{ mech_slug }}/schema/{{ mech_slug }}.yaml
-{%- if collection == 'monarch' %}
+{%- if collection in ('monarch', 'xmech') %}
 collection:
-  - monarch
+  - {{ 'x-mech-suite' if collection == 'xmech' else 'monarch' }}
 {%- endif %}
 domains:
 {%- for d in domains %}

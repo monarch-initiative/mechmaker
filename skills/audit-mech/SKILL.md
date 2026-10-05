@@ -78,7 +78,10 @@ same items for a program.
 
 Each item is `[x]` done, `[ ]` missing, or `[?]` to check. The script
 exits 1 when anything is missing. That is a finding, not a failure of the
-audit.
+audit. It exits 2 when the folder is not a Mech, and 64 when it cannot read
+`requests.yml`: not a list, an item that is not a mapping, or a `check`
+that is not shaped as above. The message names the item. Fix the file and
+run it again.
 
 What it checks from the answers: the package and schema, the record class
 as tree root, the records folder, the identity prefix, root, direct rule
