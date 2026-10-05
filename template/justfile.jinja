@@ -54,8 +54,9 @@ validate-all:
 validate-terms-all:
     #!/usr/bin/env bash
     set -euo pipefail
-    shopt -s nullglob globstar
-    files=({{records}}/**/*.yaml)
+    # find, not the ** glob: globstar needs bash 4, and macOS ships bash 3.2.
+    files=()
+    while IFS= read -r f; do files+=("$f"); done < <(find {{records}} -name '*.yaml' | sort)
     if [ ${#files[@]} -eq 0 ]; then echo "No records under {{records}}."; exit 0; fi
     uv run python -m {{slug}}.termcheck validate-data "${files[@]}" -s {{schema}} -t {{record_class}} --labels -c {{oak_config}}
 
@@ -69,8 +70,9 @@ check-identity *files:
 validate-references-all:
     #!/usr/bin/env bash
     set -euo pipefail
-    shopt -s nullglob globstar
-    files=({{records}}/**/*.yaml)
+    # find, not the ** glob: globstar needs bash 4, and macOS ships bash 3.2.
+    files=()
+    while IFS= read -r f; do files+=("$f"); done < <(find {{records}} -name '*.yaml' | sort)
     if [ ${#files[@]} -eq 0 ]; then echo "No records under {{records}}."; exit 0; fi
     uv run linkml-reference-validator validate data "${files[@]}" --schema {{schema}} --target-class {{record_class}} --config {{ref_config}}
 

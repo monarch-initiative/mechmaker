@@ -6,7 +6,8 @@
 
 Generated, and not committed:
   docs/elements/     one page per class, slot, enum and type (LinkML gen-doc),
-                     with class diagrams and the example record inline
+                     in a folder per kind, with class diagrams and the example
+                     record inline
   docs/structure.md  what a record can contain, as one diagram
   docs/corpus.md     counts from the records
   docs/schema/       the schema with imports merged, and as JSON Schema
@@ -79,7 +80,13 @@ def generate() -> None:
 
     elements = DOCS / "elements"
     shutil.rmtree(elements, ignore_errors=True)
-    DocGenerator(str(SCHEMA_PATH), example_directory=str(examples)).serialize(directory=str(elements))
+    # Classes, slots, enums and types each get a folder. In one folder, the Term
+    # class and the term slot are Term.md and term.md, which are the same file
+    # on a filesystem that ignores case (macOS, Windows): one overwrites the
+    # other and the build fails on the links to the lost page.
+    DocGenerator(
+        str(SCHEMA_PATH), example_directory=str(examples), subfolder_type_separation=True
+    ).serialize(directory=str(elements))
 
     diagram = ERDiagramGenerator(str(SCHEMA_PATH), structural=True).serialize()
     (DOCS / "structure.md").write_text(
