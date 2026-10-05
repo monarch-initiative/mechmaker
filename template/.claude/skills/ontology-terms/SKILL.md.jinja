@@ -30,7 +30,7 @@ description: >-
    ```
 
    Over a local file (`simpleobo:`, `pronto:`) search matches whole labels
-   only. Put `l~` in front for a partial match: `just search-term TINY "l~widget"`.
+   only. Put `l~` in front for a partial match: `just search-term <PREFIX> "l~<part of a label>"`.
 
 3. Inspect each candidate before choosing. Definition, then ancestors:
 

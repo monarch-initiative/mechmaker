@@ -26,7 +26,12 @@ on:
         description: Report actions without posting them
         type: boolean
         default: false
-{% raw %}
+{% if uses_bioportal %}
+# BioPortal terms need a key, for the agent's term checks. Set the repository
+# secret BIOPORTAL_API_KEY.
+env:
+  BIOPORTAL_API_KEY: ${{ '{{' }} secrets.BIOPORTAL_API_KEY {{ '}}' }}
+{% endif %}{% raw %}
 permissions: {}
 
 concurrency:
@@ -84,7 +89,7 @@ jobs:
 {% endif %}{% raw %}          claude_args: |
             --model ${{ steps.agent.outputs.model }}
             --max-turns ${{ steps.agent.outputs.max-turns }}
-            --allowedTools "Bash(gh pr list:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh api:*),Bash(gh issue list:*),Bash(just:*),Read,Glob,Grep,WebFetch"
+            --allowedTools "Bash(gh pr list:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh api:*),Bash(gh issue list:*),Bash(just validate:*),Bash(just validate-schema:*),Bash(just fetch-reference:*),Bash(just term-info:*),Bash(just search-term:*),Bash(just term-ancestors:*),Bash(just term-parents:*),Bash(just term-under:*),Read,Glob,Grep,WebFetch"
             --json-schema '{"type":"object","properties":{"actions":{"type":"array","maxItems":20,"items":{"type":"object","properties":{"kind":{"enum":["suggestion","reply","issue"]},"pr":{"type":"integer","minimum":1},"comment_id":{"type":"integer","minimum":1},"path":{"type":"string"},"line":{"type":"integer","minimum":1},"start_line":{"type":"integer","minimum":1},"title":{"type":"string","maxLength":200},"body":{"type":"string","minLength":1,"maxLength":6000}},"required":["kind","body"],"additionalProperties":false}}},"required":["actions"],"additionalProperties":false}'
       - name: Check the agent run
         if: always() && steps.agent.outcome == 'success'

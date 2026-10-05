@@ -130,3 +130,69 @@ def test_markdown_lists_what_is_missing(fresh):
 def test_not_a_mech(tmp_path):
     out = subprocess.run([sys.executable, str(SCRIPT), str(tmp_path)], capture_output=True, text=True)
     assert out.returncode == 2
+
+
+def test_todo_in_a_table_cell_is_not_filled_in(mech):
+    domain = mech / "docs" / "DOMAIN.md"
+    domain.write_text("# Domain\n\n| Section | Rule |\n|---|---|\n| `ph` | TODO |\n")
+    _, items = audit(mech)
+    assert status(items, "Domain model") == "missing"
+    assert "1 TODO(s) left" in items["Domain model written in docs/DOMAIN.md"]["found"]
+    domain.write_text("# Domain\n\n| Section | Rule |\n|---|---|\n| `ph` | one value per sample |\n")
+    _, items = audit(mech)
+    assert status(items, "Domain model") == "done"
+
+
+def test_records_in_subfolders_count(mech):
+    sub = mech / "data" / "habitats" / "aquatic"
+    sub.mkdir(parents=True)
+    for stem in ("hot_spring", "lake", "river"):
+        (sub / f"{stem}.yaml").write_text(f"name: {stem}\nstatus: PROPOSED\n")
+    _, items = audit(mech)
+    assert status(items, "3 to 5 seed records") == "done"
+
+
+def test_xmech_collection_is_x_mech_suite(mech):
+    answers = mech / ".copier-answers.yml"
+    answers.write_text(answers.read_text() + "collection: xmech\n")
+    registry = mech / "registry" / "samplehabitatmech.md"
+    _, items = audit(mech)
+    assert status(items, "Joins the X-Mech suite") == "missing"
+    entry = registry.read_text().replace("\ndomains:", "\ncollection:\n  - x-mech-suite\ndomains:", 1)
+    registry.write_text(entry)
+    _, items = audit(mech)
+    assert status(items, "Joins the X-Mech suite") == "done"
+
+
+@pytest.mark.parametrize("text, says", [
+    ("- feature: Countries\n  check: countries\n", "`check` is 'countries'"),
+    ("- feature: Seeds\n  check: {records: five}\n", "`records` takes a whole number"),
+    ("- feature: A page\n  check: {contains: docs/x.md}\n", "`contains` takes"),
+    ("- [a, list]\n", "request 1 is"),
+    ("feature: Countries\ncheck: {slot: countries}\n", "no `requests:` key"),
+    ("requests: {feature: x}\n", "must be a list"),
+    ("- feature: [unclosed\n", "not valid YAML"),
+])
+def test_unreadable_requests_are_a_usage_error(tmp_path, text, says):
+    requests = tmp_path / "requests.yml"
+    requests.write_text(text)
+    with pytest.raises(audit_mech.RequestsError) as exc:
+        audit_mech.load_requests(requests)
+    assert says in str(exc.value)
+
+
+def test_unreadable_requests_exit_64_without_a_traceback(fresh, tmp_path):
+    requests = tmp_path / "requests.yml"
+    requests.write_text("- feature: Countries\n  check: countries\n")
+    out = subprocess.run([sys.executable, str(SCRIPT), str(fresh), "--requests", str(requests)],
+                         capture_output=True, text=True)
+    assert out.returncode == 64
+    assert "Traceback" not in out.stderr and "request 1" in out.stderr
+
+
+def test_requests_under_a_key_and_strings_still_read(tmp_path):
+    requests = tmp_path / "requests.yml"
+    requests.write_text("requests:\n  - A plain ask\n  - feature: Seeds\n    check: {records: 3}\n")
+    assert [r["feature"] for r in audit_mech.load_requests(requests)] == ["A plain ask", "Seeds"]
+    requests.write_text("")
+    assert audit_mech.load_requests(requests) == []

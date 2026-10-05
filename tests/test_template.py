@@ -313,6 +313,14 @@ def test_adapters_follow_answers(generated):
         assert "secrets.BIOPORTAL_API_KEY" in (dest / ".github" / "workflows" / wf).read_text()
 
 
+def test_agents_that_check_terms_get_the_bioportal_key(tmp_path):
+    term_checkers = ["claude", "review", "post-review", "compliance", "curation-scanner"]
+    dest = render(tmp_path / "bp", {**SCENARIOS["extras"], "workflows": term_checkers})
+    for key in term_checkers:
+        text = (dest / ".github" / "workflows" / f"{key}.yaml").read_text()
+        assert yaml.safe_load(text)["env"]["BIOPORTAL_API_KEY"] == "${{ secrets.BIOPORTAL_API_KEY }}", key
+
+
 def test_no_bioportal_secret_without_bioportal(generated):
     name, _, dest = generated
     if name == "extras":
@@ -329,6 +337,48 @@ def test_no_bioportal_secret_without_bioportal(generated):
 ])
 def test_bad_extra_ontologies_rejected(tmp_path, extras):
     data = {**BASE, "mech_name": "BadExtraMech", "record_class": "Thing", "extra_ontologies": extras}
+    with pytest.raises(Exception):  # noqa: B017
+        render(tmp_path / "out", data)
+
+
+@pytest.mark.parametrize("extras", [
+    # The prefix of a picked catalog ontology (GO_BP).
+    [{"prefix": "GO", "root": "GO:0003674", "root_label": "molecular_function", "noun": "activity"}],
+    # The slot of a picked catalog ontology: CHEBI's chemical_entities.
+    [{"prefix": "PO", "root": "PO:0025131", "root_label": "plant anatomical entity",
+      "noun": "plant structure", "slot": "chemical_entities"}],
+    # A default slot that collides: "organism" pluralizes to NCBITaxon's organisms.
+    [{"prefix": "PO", "root": "PO:0025131", "root_label": "plant anatomical entity", "noun": "organism"}],
+    # Two extras with one prefix, and two with one slot.
+    [{"prefix": "PO", "root": "PO:0025131", "root_label": "plant anatomical entity",
+      "noun": "plant structure"},
+     {"prefix": "PO", "root": "PO:0009012", "root_label": "plant structure development stage",
+      "noun": "plant stage"}],
+    [{"prefix": "PO", "root": "PO:0025131", "root_label": "plant anatomical entity",
+      "noun": "plant structure"},
+     {"prefix": "ZFA", "root": "ZFA:0100000", "root_label": "zebrafish anatomical entity",
+      "noun": "fish part", "slot": "plant_structures"}],
+])
+def test_duplicate_extra_ontologies_rejected(tmp_path, extras):
+    data = {**BASE, "mech_name": "DupExtraMech", "record_class": "Thing",
+            "ontologies": ["GO_BP", "CHEBI", "NCBITaxon"], "extra_ontologies": extras}
+    with pytest.raises(Exception, match="already"):
+        render(tmp_path / "out", data)
+
+
+def test_distinct_extra_ontologies_accepted(tmp_path):
+    extras = [{"prefix": "PO", "root": "PO:0025131", "root_label": "plant anatomical entity",
+               "noun": "plant structure"}]
+    data = {**BASE, "mech_name": "PlantExtraMech", "record_class": "Thing",
+            "ontologies": ["GO_BP", "CHEBI", "NCBITaxon"], "extra_ontologies": extras, "workflows": []}
+    dest = render(tmp_path / "out", data)
+    assert "PO" in yaml.safe_load((dest / "conf" / "oak_config.yaml").read_text())["ontology_adapters"]
+
+
+@pytest.mark.parametrize("records_dir", ["", "  ", "data/widgets/", "/data/widgets", "../widgets",
+                                         "data/../widgets", "data//widgets", "./data", "data/my widgets"])
+def test_bad_records_dir_rejected(tmp_path, records_dir):
+    data = {**BASE, "mech_name": "BadDirMech", "record_class": "Widget", "records_dir": records_dir}
     with pytest.raises(Exception):  # noqa: B017
         render(tmp_path / "out", data)
 

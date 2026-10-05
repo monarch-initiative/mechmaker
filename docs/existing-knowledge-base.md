@@ -26,6 +26,9 @@ You can turn it into a Mech. Ask your agent to run the
    gap.
 6. **The rest goes in batches** of a few dozen records per pull request, so
    people can read them.
+7. **It audits the result.** It checks the Mech against what you asked
+   for and gives you a checklist of what is there, what is missing and
+   why, and what to do next.
 
 Your existing knowledge base stays where it is. The Mech lists it as the
 source its records were derived from.

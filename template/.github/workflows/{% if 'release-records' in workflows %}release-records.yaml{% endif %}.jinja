@@ -7,9 +7,6 @@ on:
     types: [published]
 
 permissions: {}
-
-env:
-  MECH_SLUG: "{{ mech_slug }}"
 {% raw %}
 jobs:
   bundle:
@@ -31,7 +28,7 @@ jobs:
       - name: Verify the export is not empty
         run: |
           if [ -z "$(ls -A build/export 2>/dev/null)" ]; then echo "::error::build/export is empty"; exit 1; fi
-      - uses: softprops/action-gh-release@v3
+      - uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           files: build/export/*
 {% endraw %}

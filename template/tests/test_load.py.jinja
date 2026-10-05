@@ -58,7 +58,7 @@ def test_passwords_are_masked_and_variables_required(monkeypatch):
 
 def test_unknown_target_is_rejected(tmp_path, monkeypatch):
     bad = tmp_path / "load.yaml"
-    bad.write_text("targets:\n  solr: http://localhost:8983/solr\n")
+    bad.write_text("targets:\n  solr: http://localhost:8983/solr\n", encoding="utf-8")
     monkeypatch.setattr(load, "SETTINGS", bad)
     with pytest.raises(SystemExit):
         load.settings()
@@ -87,7 +87,7 @@ def reference_schema(tmp_path):
             "parent": {"range": RECORD_CLASS}, "kin": {"range": RECORD_CLASS, "multivalued": True}}}},
     }
     path = tmp_path / "refs.yaml"
-    path.write_text(_yaml.safe_dump(schema))
+    path.write_text(_yaml.safe_dump(schema), encoding="utf-8")
     return SchemaView(str(path))
 
 
@@ -120,7 +120,7 @@ def term_schema(tmp_path):
         },
     }
     path = tmp_path / "terms.yaml"
-    path.write_text(_yaml.safe_dump(schema))
+    path.write_text(_yaml.safe_dump(schema), encoding="utf-8")
     return SchemaView(str(path))
 
 

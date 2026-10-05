@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 import sys
+import urllib.error
 from pathlib import Path
 
 import pytest
@@ -112,3 +113,44 @@ def test_outage_and_failure_differ_and_hide_keys(mod, capsys):
         mod.main(args + ["TINY:0000777"])
     for exc in (outage.value, failed.value):
         assert "SECRET123" not in str(exc) and "apikey=***" in str(exc)
+
+
+def test_curie_without_a_colon_is_a_usage_error(mod, capsys):
+    assert mod.main(["label", "GO0008150"]) == 64
+    assert "Not a CURIE: GO0008150" in capsys.readouterr().err
+    assert mod.main(["--adapter", "simpleobo:tiny.obo", "under", "TINY:0000001", "TINY0000003"]) == 64
+
+
+def test_under_needs_a_term(mod, capsys):
+    assert mod.main(["--adapter", "simpleobo:tiny.obo", "under", "TINY:0000001"]) == 64
+    assert mod.main(["--adapter", "simpleobo:tiny.obo", "under", "--direct", "TINY:0000001"]) == 64
+    assert "under needs a root and at least one term" in capsys.readouterr().err
+
+
+def _http_error(code):
+    def urlopen(url, timeout=None):
+        raise urllib.error.HTTPError(url, code, "x", {}, None)
+    return urlopen
+
+
+def test_ols_404_is_missing_and_5xx_is_an_outage(mod, monkeypatch):
+    monkeypatch.setattr(mod.time, "sleep", lambda s: None)
+    monkeypatch.setattr(mod.urllib.request, "urlopen", _http_error(404))
+    assert mod.label("GO:0000000") is None
+    assert mod.parents("GO:0000000") == set() and mod.ancestors("GO:0000000") == set()
+    monkeypatch.setattr(mod.urllib.request, "urlopen", _http_error(503))
+    for call in (mod.label, mod.parents, mod.ancestors):
+        with pytest.raises(mod.Unreachable, match="HTTP 503"):
+            call("GO:0008150")
+
+
+def test_ols_adapter_names_the_ontology_for_search(mod, monkeypatch):
+    seen = []
+
+    def get(url, tries=3):
+        seen.append(url)
+        return {"response": {"docs": []}}
+
+    monkeypatch.setattr(mod, "_get", get)
+    assert mod.main(["--adapter", "ols:ncit", "search", "-", "France"]) == 0
+    assert "ontology=ncit" in seen[0]

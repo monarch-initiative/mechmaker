@@ -16,7 +16,7 @@ Answer `deep_research: true` when making the Mech (see
 [Copier questions](reference/questions.md)), or add it later:
 
 ```bash
-uvx copier update --skip-answered --data deep_research=true
+uvx copier update --skip-answered --defaults --data deep_research=true
 ```
 
 The Mech then gets:
@@ -43,7 +43,8 @@ keys from repository secrets so an agent can run it too.
 - **At least one provider.** Check with:
 
     ```bash
-    python3 skills/make-mech/scripts/check_env.py --research
+    curl -fsSLO https://raw.githubusercontent.com/monarch-initiative/mechmaker/main/skills/make-mech/scripts/check_env.py
+    python3 check_env.py --research
     ```
 
 | Provider | Needs |

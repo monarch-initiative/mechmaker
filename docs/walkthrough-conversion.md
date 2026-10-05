@@ -49,8 +49,9 @@ attribution, is allowed. Had it not been, the skill stops there.
 ## 2. Map it and generate
 
 One record is one ingest repository in the template layout. No ontology
-names ingests, so ids are minted: `ingestmech:omim-ingest`. It was generated from a mechmaker checkout, hence the `.`. The answers are
+names ingests, so ids are minted: `ingestmech:omim-ingest`. The answers are
 in [`example/ingest-answers.yml`](https://github.com/monarch-initiative/mechmaker/blob/main/example/ingest-answers.yml).
+It was generated from a mechmaker checkout, hence the `.` in the command.
 
 ```console
 $ copier copy --trust --defaults --data-file example/ingest-answers.yml . example/ingestmech

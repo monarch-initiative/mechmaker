@@ -17,12 +17,13 @@ adapter OAK accepts. OAK runs through uvx, so this needs uv:
     check_terms.py --adapter simpleobo:my.obo search - "l~widget"
 
 bioportal: needs BIOPORTAL_API_KEY in the environment. With --adapter, the
-ontology argument of search is ignored; pass -.
+ontology argument of search is ignored; pass -. An ols:<id> adapter searches
+the OLS ontology <id>.
 
 Exit status is 1 if any term is missing or any check fails, so the result can
 gate a script. It exits 2 if OLS or the adapter does not answer: that is an
 outage, not a missing term. It exits 3 if OAK itself fails, and 64 on a
-usage error, such as a missing argument. Ontology ids
+usage error, such as a missing argument or a CURIE with no colon. Ontology ids
 default to the lowercased prefix.
 """
 
@@ -55,24 +56,34 @@ def _mask(text):
 
 
 def _get(url, tries=3):
+    """JSON from OLS. A 4xx is a real answer, such as 404 for a missing term, and is raised as is.
+    A 5xx, a 429 or no answer at all is tried again, then raised as Unreachable."""
     for attempt in range(1, tries + 1):
         try:
             with urllib.request.urlopen(url, timeout=60) as resp:
                 return json.load(resp)
-        except urllib.error.HTTPError:
-            raise  # a real answer, such as 404 for a missing term
+        except urllib.error.HTTPError as exc:
+            if exc.code < 500 and exc.code != 429:
+                raise
+            if attempt == tries:
+                raise Unreachable(f"HTTP {exc.code}") from exc
         except (urllib.error.URLError, TimeoutError, OSError) as exc:
             if attempt == tries:
                 raise Unreachable(str(exc)) from exc
-            time.sleep(5 * attempt)
+        time.sleep(5 * attempt)
 
 
 def _term_url(curie, suffix=""):
     prefix, local = curie.split(":", 1)
     iri = f"http://purl.obolibrary.org/obo/{prefix}_{local}"
     enc = urllib.parse.quote(urllib.parse.quote(iri, safe=""), safe="")
-    onto = ADAPTER.removeprefix("ols:") if ADAPTER and ADAPTER.startswith("ols:") else prefix.lower()
+    onto = _ols_ontology() or prefix.lower()
     return f"{OLS}/ontologies/{onto}/terms/{enc}{suffix}"
+
+
+def _ols_ontology():
+    """The ontology an ols:<id> adapter names, or None."""
+    return ADAPTER.removeprefix("ols:") if ADAPTER and ADAPTER.startswith("ols:") else None
 
 
 def _oak_mode():
@@ -159,7 +170,10 @@ def parents(curie):
     """Direct is-a parents."""
     if _oak_mode():
         return _oak_py(PARENTS_PY, curie)
-    data = _get(_term_url(curie, "/parents?size=500"))
+    try:
+        data = _get(_term_url(curie, "/parents?size=500"))
+    except urllib.error.HTTPError:
+        return set()
     return {t.get("obo_id") for t in data.get("_embedded", {}).get("terms", [])}
 
 
@@ -168,7 +182,10 @@ def ancestors(curie):
         return _oak_ancestors(curie)
     out, url = set(), _term_url(curie, "/ancestors?size=500")
     while url:
-        data = _get(url)
+        try:
+            data = _get(url)
+        except urllib.error.HTTPError:
+            break
         out |= {t.get("obo_id") for t in data.get("_embedded", {}).get("terms", [])}
         url = data.get("_links", {}).get("next", {}).get("href")
     return out
@@ -186,6 +203,11 @@ def main(argv):
         print(__doc__)
         return 64
     cmd, args = argv[0], argv[1:]
+    if cmd in ("label", "under"):
+        bad = [a for a in args if a != "--direct" and ":" not in a]
+        if bad:
+            print(f"Not a CURIE: {', '.join(bad)}. Write PREFIX:ID, e.g. GO:0008150.", file=sys.stderr)
+            return 64
     ok = True
     if cmd == "label":
         for c in args:
@@ -195,8 +217,8 @@ def main(argv):
     elif cmd == "under":
         direct = "--direct" in args
         args = [a for a in args if a != "--direct"]
-        if not args:
-            print(__doc__)
+        if len(args) < 2:
+            print("under needs a root and at least one term: under ROOT TERM [TERM ...]", file=sys.stderr)
             return 64
         root, terms = args[0], args[1:]
         if label(root) is None:
@@ -220,6 +242,7 @@ def main(argv):
             for c, lab in _oak("search", query)[:10]:
                 print(f"{c}\t{lab}")
             return 0
+        onto = _ols_ontology() or onto
         q = urllib.parse.urlencode({"q": query, "ontology": onto, "rows": 10, "exact": "false"})
         for d in _get(f"{OLS}/search?{q}").get("response", {}).get("docs", []):
             print(f"{d.get('obo_id')}\t{d.get('label')}")

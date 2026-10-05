@@ -27,6 +27,10 @@ In the Mech repository:
   `ADOPTED`.
 - `features`: only what exists. `static_browser` only if the site is
   published. `causal_mechanism_graphs` only if records carry graphs.
+- `collection`: the registry's `CollectionEnum` value for the Copier
+  `collection` answer. `monarch` is `monarch`. `xmech` is `x-mech-suite`.
+  `none` has no field. The draft may lack an `xmech` Mech's collection; add
+  it.
 - `homepage_url`: the published site if there is one, else the repository.
 - `cross_references`: the neighbors named in the domain survey, with
   relations from the registry's `MechRelationEnum`: `follows_pattern_of`,

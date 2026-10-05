@@ -13,6 +13,10 @@ A fresh Mech passes all its checks. This is what it holds.
 | `pages/` | A browsable page for every record (optional), published at `/records/` on the documentation site |
 | `conf/site.yaml` | How the documentation site and record browser look; see [Site options](site-options.md) |
 | `conf/oak_config.yaml` | Which ontology service checks which kind of identifier |
+| `conf/export.yaml`, `conf/kgx.yaml`, `conf/load.yaml` | What `just export` writes, how KGX maps the records, and which databases `just load` fills |
+| `tests/` | The Mech's own tests, run by `just qc` |
+| `ontologies/` | Local ontology files the term checks read (optional) |
+| `research/` | Deep research reports, kept as leads (optional) |
 | `cache/`, `references_cache/` | Answers from ontology services and copies of cited papers, kept so checks work offline |
 | `curation/source_queue.tsv` | The ranked list of sources that feed curation |
 | `registry/<slug>.md` | A draft entry for MechRegistry |
@@ -23,14 +27,17 @@ A fresh Mech passes all its checks. This is what it holds.
 
 ## The checks
 
-Every record passes three checks before it is accepted.
+Every record passes these checks before it is accepted.
 
 1. **Schema.** The record must match the data model. An unknown field is an
    error, not a silent pass.
 2. **Terms.** [linkml-term-validator](https://github.com/linkml/linkml-term-validator)
    checks that each ontology identifier exists, carries the ontology's own
    label, and falls under the right part of the ontology.
-3. **Quotes.** [linkml-reference-validator](https://github.com/linkml/linkml-reference-validator)
+3. **Identity.** When records are keyed by an ontology, each record's id
+   must sit under the identity root, or be its direct child when the Mech
+   asks for that.
+4. **Quotes.** [linkml-reference-validator](https://github.com/linkml/linkml-reference-validator)
    fetches each cited paper and checks that the quoted text is in it.
 
 Some rules a schema cannot state are checked too: every causal edge points
@@ -48,6 +55,7 @@ just                 # list every command
 just qc              # every offline check; what CI requires
 just qc-full         # also check every term and quote against the live services
 just validate FILE   # schema, terms, identity and quotes on one record
+just check-identity  # each record id sits under the identity root
 just new-record ...  # start a record
 just new-history ... # log a curation session
 just add-evidence ... # add a quote to a record, checked against its source first
@@ -56,6 +64,10 @@ just convert ...     # run a conversion script: DRAFT records from an existing k
 just report          # count what is in the knowledge base
 just compliance      # completeness per record, lowest first
 just export          # the records in every chosen format, each read back
+just load ...        # the records into MongoDB or Neo4j, counted back
+just import-schema ... # start the schema from an existing one
+just site-check      # check conf/site.yaml and its colors
+just render          # rebuild the record browser in pages/ (when the Mech has one)
 just docs-serve      # the documentation site, locally
 ```
 

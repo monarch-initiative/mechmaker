@@ -53,6 +53,10 @@ just docs-serve     # look at both at http://127.0.0.1:8000
 
 `just qc` runs `site-check`, and fails if `pages/` is stale.
 
+A Mech made with `include_site: false` has no browser. Its
+`conf/site.yaml` holds only `palette`, `accent` and `theme`, and it has no
+`just render`: run `just site-check`, then `just docs-serve`.
+
 ## How a record page is laid out
 
 The browser reads the shape of each record and the Mech's schema, so a new
@@ -90,14 +94,16 @@ shows the result:
 ```console
 $ just site-check
 palette yellow, accent amber, theme dark
-  header: #1f1f1f on #ffec3d, contrast 13.6
+  docs header: #1f1f1f on #ffec3d, contrast 13.6
+  browser header: #1f1f1f on #ffec3d, contrast 13.6
   links on light pages: #756d1c (adjusted from #ffec3d), contrast 4.5
   links on dark pages: #ffec3d, contrast 11.8
 ```
 
 The documentation site uses Material for MkDocs' own color pairings. For a
 few light palettes, such as cyan and light-green, Material puts white text
-under 3:1 on the header. Prefer a darker palette if that matters.
+under 3:1 on the header, and `just site-check` marks the docs header line
+with a warning. Prefer a darker palette if that matters.
 
 ## With an agent
 

@@ -45,10 +45,10 @@ def test_skips_invalid_and_reports_why(tmp_path):
 
 
 def test_never_overwrites(tmp_path):
-    (tmp_path / "alpha.yaml").write_text("keep: me\n")
+    (tmp_path / "alpha.yaml").write_text("keep: me\n", encoding="utf-8")
     report = convert([entry("a1", "Alpha")], source="Old KB", apply=True, records_dir=tmp_path)
     assert [k for k, _ in report.exists] == ["a1"]
-    assert (tmp_path / "alpha.yaml").read_text() == "keep: me\n"
+    assert (tmp_path / "alpha.yaml").read_text(encoding="utf-8") == "keep: me\n"
 
 
 def test_two_entries_one_file(tmp_path):
@@ -78,4 +78,4 @@ def test_long_lines_are_not_folded(tmp_path):
     long = "word " * 40
     report = convert([entry("a1", "Alpha", description=long.strip())], source="Old KB",
                      apply=True, records_dir=tmp_path)
-    assert f"description: {long.strip()}\n" in report.written[0][1].read_text()
+    assert f"description: {long.strip()}\n" in report.written[0][1].read_text(encoding="utf-8")

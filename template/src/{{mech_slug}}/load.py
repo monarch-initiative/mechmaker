@@ -49,7 +49,7 @@ EXTRA = {"mongodb": "mongodb", "neo4j": "neo4j"}
 
 
 def settings() -> dict[str, str]:
-    data = (yaml.safe_load(SETTINGS.read_text()) if SETTINGS.exists() else {}) or {}
+    data = (yaml.safe_load(SETTINGS.read_text(encoding="utf-8")) if SETTINGS.exists() else {}) or {}
     targets = data.get("targets") or {}
     bad = [t for t in targets if t not in TARGETS]
     if bad:

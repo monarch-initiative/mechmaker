@@ -17,9 +17,9 @@ maturity: seeded
 homepage_url: {{ site if 'docs' in workflows else "https://github.com/" ~ github_org ~ "/" ~ repo_name }}
 repository: https://github.com/{{ github_org }}/{{ repo_name }}
 schema_url: https://github.com/{{ github_org }}/{{ repo_name }}/blob/main/src/{{ mech_slug }}/schema/{{ mech_slug }}.yaml
-{%- if collection == 'monarch' %}
+{%- if collection in ('monarch', 'xmech') %}
 collection:
-  - monarch
+  - {{ 'x-mech-suite' if collection == 'xmech' else 'monarch' }}
 {%- endif %}
 domains:
 {%- for d in domains %}
@@ -42,10 +42,10 @@ record_identifier_policy: >-
   Records are keyed by minted {{ mech_slug }}: CURIEs.
 {%- endif %}
 identifier_prefix: {{ mech_slug }}
-ontologies:
 {%- set seen = [] %}
 {%- if identity_prefix %}{% set _ = seen.append(identity_prefix) %}{% endif %}
 {%- for o in ontology_selection if o.prefix not in seen %}{% set _ = seen.append(o.prefix) %}{% endfor %}
+ontologies:{% if not seen %} []{% endif %}
 {%- for p in seen %}
   - {{ p }}
 {%- endfor %}
@@ -94,7 +94,9 @@ features:
   - causal_mechanism_graphs
 {%- endif %}
   - evidence_snippets
+{%- if seen %}
   - ontology_grounding
+{%- endif %}
   - append_only_history
   - knowledge_gaps
 {%- if include_site %}

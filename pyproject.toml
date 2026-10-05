@@ -1,6 +1,6 @@
 [project]
 name = "mechmaker"
-version = "0.1.1"
+version = "0.1.2"
 description = "A Copier template and agent skills for making Mechs."
 readme = "README.md"
 license = { text = "BSD-3-Clause" }

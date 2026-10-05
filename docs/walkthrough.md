@@ -230,7 +230,7 @@ distinguishing_features:
         snippet: It has white skin and a short white coat; some small pigmented areas may be tolerated.
 ```
 
-Then the three checks:
+Then the checks:
 
 ```console
 $ just validate data/goat_breeds/saanen.yaml

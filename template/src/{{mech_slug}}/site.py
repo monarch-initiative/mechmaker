@@ -46,6 +46,9 @@ THEMES = ("auto", "light", "dark")
 # a hovered table row (style.css --plain-bg). Contrast is checked against these.
 LIGHT_BG, DARK_BG = "#ececf0", "#2a2a30"
 MIN_CONTRAST = 4.5  # WCAG AA for body text
+MIN_HEADER_CONTRAST = 3.0  # WCAG AA for large text, such as a header title
+# The record browser is optional; without it, only the docs site's colors apply.
+BROWSER = Path(__file__).parent / "render.py"
 
 DEFAULTS = {
     "title": MECH_NAME,
@@ -95,7 +98,7 @@ def readable(color: str, background: str, minimum: float = MIN_CONTRAST) -> str:
 
 
 def load(path: Path = CONFIG) -> dict:
-    data = yaml.safe_load(path.read_text()) if path.exists() else {}
+    data = yaml.safe_load(path.read_text(encoding="utf-8")) if path.exists() else {}
     settings = {**DEFAULTS, **(data or {})}
     return settings
 
@@ -142,8 +145,15 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     c = colors(settings)
     print(f"palette {settings['palette']}, accent {settings['accent']}, theme {settings['theme']}")
+    # The docs site keeps Material's own text color on the palette color.
+    on_docs = PRIMARY[settings["palette"]][1]
+    docs = contrast(on_docs, c["primary"])
+    low = f" (WARNING: under {MIN_HEADER_CONTRAST:.1f})" if docs < MIN_HEADER_CONTRAST else ""
+    print(f"  docs header: {on_docs} on {c['primary']}, contrast {docs:.1f}{low}")
+    if not BROWSER.exists():
+        return 0
     header = contrast(c["on_primary"], c["primary"])
-    print(f"  header: {c['on_primary']} on {c['primary']}, contrast {header:.1f}")
+    print(f"  browser header: {c['on_primary']} on {c['primary']}, contrast {header:.1f}")
     for mode, bg in (("light", LIGHT_BG), ("dark", DARK_BG)):
         link = c[f"link_{mode}"]
         note = "" if link == c["primary"] else f" (adjusted from {c['primary']})"

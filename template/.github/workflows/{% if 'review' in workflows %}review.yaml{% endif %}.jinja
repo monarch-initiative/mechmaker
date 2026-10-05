@@ -27,15 +27,22 @@ on:
         description: Pull request to review
         required: true
         type: number
-{% raw %}
+{% if uses_bioportal %}
+# BioPortal terms need a key, for the agent's term checks. Set the repository
+# secret BIOPORTAL_API_KEY.
+env:
+  BIOPORTAL_API_KEY: ${{ '{{' }} secrets.BIOPORTAL_API_KEY {{ '}}' }}
+{% endif %}{% raw %}
 permissions: {}
-
-concurrency:
-  group: review-${{ github.event.pull_request.number || github.event.issue.number || inputs.pr_number }}
-  cancel-in-progress: true
 
 jobs:
   review:
+    # Concurrency sits on the job, not the workflow: a comment that is not
+    # `/review` starts a run whose job is skipped, and a skipped job joins no
+    # group, so it cannot cancel a review in progress.
+    concurrency:
+      group: review-${{ github.event.pull_request.number || github.event.issue.number || inputs.pr_number }}
+      cancel-in-progress: true
     if: |
       (github.event_name == 'pull_request' && !github.event.pull_request.draft &&
         github.event.pull_request.head.repo.full_name == github.repository) ||

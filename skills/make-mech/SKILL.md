@@ -4,8 +4,8 @@ description: >-
   Create a new Mech (an AI agent-curated, ontology-grounded, evidence-backed
   knowledge base in the DisMech pattern) from the mechmaker Copier template,
   end to end: survey the domain, choose the template answers, generate the
-  repository, design the schema, seed the first records, and prepare the
-  MechRegistry entry. Use when asked to make, start, scaffold or set up a new
+  repository, design the schema, seed the first records, prepare the
+  MechRegistry entry, and audit the result. Use when asked to make, start, scaffold or set up a new
   Mech or knowledge base for some domain.
 ---
 
@@ -227,7 +227,7 @@ Ask the person which to turn on, and whether they will create the Apps.
 Then:
 
 ```bash
-uvx copier update --skip-answered --data 'workflows=[...]'
+uvx copier update --skip-answered --defaults --data 'workflows=[...]'
 ```
 
 Adapt `.github/prompts/` to the domain, and tune `conf/literature_scan.yaml`

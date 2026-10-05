@@ -25,7 +25,12 @@ on:
         description: Model override (blank uses .github/agent-config.yaml)
         type: string
         default: ""
-{% raw %}
+{% if uses_bioportal %}
+# BioPortal terms need a key, for the agent's term checks. Set the repository
+# secret BIOPORTAL_API_KEY.
+env:
+  BIOPORTAL_API_KEY: ${{ '{{' }} secrets.BIOPORTAL_API_KEY {{ '}}' }}
+{% endif %}{% raw %}
 permissions:
   contents: read
 

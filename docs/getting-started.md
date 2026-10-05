@@ -55,9 +55,10 @@ you along the way:
    organization, the licenses.
 3. **Design.** It shapes the data model to your field.
 4. **Choose workflows.** It asks which GitHub automation to turn on.
-5. **Seed.** It writes the first three to five records, with real sources.
-6. **Register.** It drafts your entry for MechRegistry.
-7. **Audit.** It checks the Mech against everything you asked for, and
+5. **Style.** If you like, it sets the site's colors and layout.
+6. **Seed.** It writes the first three to five records, with real sources.
+7. **Register.** It drafts your entry for MechRegistry.
+8. **Audit.** It checks the Mech against everything you asked for, and
    gives you a checklist: what is there, what is not and why, and what to
    do next. Ask for an audit at any time later, too.
 

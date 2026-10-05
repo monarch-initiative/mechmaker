@@ -81,7 +81,7 @@ def template_problems(text: str) -> tuple[list[str], list[str]]:
     warnings = []
     if GENERIC_LINE in text:
         warnings.append("the prompt still has the generic sections; rewrite them from docs/DOMAIN.md "
-                        "(the design-mech-schema and deep-research skills say how)")
+                        "(mechmaker's design-mech-schema skill and the deep-research skill say how)")
     return errors, warnings
 
 
@@ -89,7 +89,7 @@ def check_template() -> int:
     if not TEMPLATE.exists():
         print(f"ERROR: no research prompt at {TEMPLATE.relative_to(REPO_ROOT)}")
         return 1
-    errors, warnings = template_problems(TEMPLATE.read_text())
+    errors, warnings = template_problems(TEMPLATE.read_text(encoding="utf-8"))
     for e in errors:
         print(f"ERROR {TEMPLATE.relative_to(REPO_ROOT)}: {e}")
     for w in warnings:
@@ -135,7 +135,7 @@ def run(provider: str, target: str, extra: list[str], force: bool) -> int:
     if not TEMPLATE.exists():
         print(f"ERROR: no research template at {TEMPLATE.relative_to(REPO_ROOT)}")
         return 1
-    errors, _ = template_problems(TEMPLATE.read_text())
+    errors, _ = template_problems(TEMPLATE.read_text(encoding="utf-8"))
     if errors:
         print("ERROR: the research prompt cannot be filled; run check-template. No provider was called.")
         return 1
