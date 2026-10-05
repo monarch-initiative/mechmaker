@@ -53,6 +53,10 @@ just docs-serve     # look at both at http://127.0.0.1:8000
 
 `just qc` runs `site-check`, and fails if `pages/` is stale.
 
+A Mech made with `include_site: false` has no browser. Its
+`conf/site.yaml` holds only `palette`, `accent` and `theme`, and it has no
+`just render`: run `just site-check`, then `just docs-serve`.
+
 ## How a record page is laid out
 
 The browser reads the shape of each record and the Mech's schema, so a new

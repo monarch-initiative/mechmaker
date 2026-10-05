@@ -43,7 +43,8 @@ keys from repository secrets so an agent can run it too.
 - **At least one provider.** Check with:
 
     ```bash
-    python3 skills/make-mech/scripts/check_env.py --research
+    curl -fsSLO https://raw.githubusercontent.com/monarch-initiative/mechmaker/main/skills/make-mech/scripts/check_env.py
+    python3 check_env.py --research
     ```
 
 | Provider | Needs |

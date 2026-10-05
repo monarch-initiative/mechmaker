@@ -63,7 +63,7 @@ Quote the person in `said` when you have their words. Do not add asks they
 did not make. An ask you think they should have made is a next step, not
 a request.
 
-If make-mech kept `requests.yml` from step 2, start from it and add what
+If make-mech kept `requests.yml` from step 1, start from it and add what
 came later.
 
 ## 2. Run the checks

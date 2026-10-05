@@ -400,6 +400,8 @@ langfuse:
   default: false
   when: "{{ workflows | select('in', agent_workflows) | list | length > 0 }}"
 
+# ---------------------------------------------------------------- research and outputs
+
 deep_research:
   type: bool
   help: >-

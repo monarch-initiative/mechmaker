@@ -53,8 +53,12 @@ The agent works in steps and checks with you along the way:
    your GitHub organization, and the license you want.
 3. **Design.** It shapes the data model to your field.
 4. **Choose workflows.** It asks which GitHub automation to turn on.
-5. **Seed.** It writes the first three to five records, with real sources.
-6. **Register.** It drafts your entry for MechRegistry.
+5. **Style.** If you like, it sets the site's colors and layout.
+6. **Seed.** It writes the first three to five records, with real sources.
+7. **Register.** It drafts your entry for MechRegistry.
+8. **Audit.** It checks the Mech against everything you asked for, and
+   gives you a checklist: what is there, what is not and why, and what to
+   do next.
 
 It asks before it creates anything on GitHub.
 
@@ -224,6 +228,8 @@ The rest of this README is about working on mechmaker itself.
 | `.claude-plugin/` | Makes this repository installable as a Claude Code plugin |
 | `AGENTS.md` | Where an agent pointed at this repository starts |
 | `tests/` | Tests that generate sample Mechs and check them |
+| `example/` | Two Mechs made with the skills, GoatMech and IngestMech, with their answers and survey briefs |
+| `docs/`, `mkdocs.yml`, `scripts/gen_docs.py` | The documentation site. Reference pages are generated |
 | `template/.github/` | GitHub workflows, agent prompts, and their helper scripts. Each workflow is a Copier choice; `template/docs/WORKFLOWS.md.jinja` is the catalog |
 
 `skills/make-mech/scripts/check_terms.py` looks up ontology terms, labels and

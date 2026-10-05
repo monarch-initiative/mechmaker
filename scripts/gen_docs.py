@@ -45,12 +45,32 @@ def source_link(path: Path) -> str:
 
 
 def md_cell(text: object) -> str:
-    return " ".join(str(text).split()).replace("|", "\\|")
+    """One table cell: on one line, pipes escaped, and <placeholders> outside
+    code spans escaped, or the browser takes them for tags and hides them."""
+    parts = " ".join(str(text).split()).replace("|", "\\|").split("`")
+    for i in range(0, len(parts), 2):  # the even parts are outside code spans
+        parts[i] = parts[i].replace("<", "&lt;").replace(">", "&gt;")
+    return "`".join(parts)
+
+
+def sentence(text: str) -> str:
+    """Help text ends with a period, so what follows it does not run on."""
+    return text if not text or text.endswith((".", "?", "!")) else text + "."
 
 
 def fill(text: str) -> str:
-    text = re.sub(r"\{\{\s*(\w+)[^}]*\}\}", lambda m: PLACEHOLDERS.get(m.group(1), m.group(1)), text)
-    return re.sub(r"\{%.*?%\}", "", text)
+    """A template's text as it renders for the example Mech, with every option
+    on (so a description shows its fullest branch). Unknown names show as names."""
+    import jinja2
+
+    class Named(jinja2.Undefined):
+        def __str__(self) -> str:
+            return self._undefined_name or ""
+
+    workflows = yaml.safe_load((ROOT / "copier.yml").read_text())["workflows"]["default"]
+    env = jinja2.Environment(undefined=Named, keep_trailing_newline=True)
+    return env.from_string(text).render(**PLACEHOLDERS, include_site=True, deep_research=True,
+                                        workflows=workflows)
 
 
 def sections(raw: str) -> dict[str, str]:
@@ -92,7 +112,7 @@ def questions() -> str:
             current = where.get(key)
             lines += ["", f"## {current}", "",
                       "| Question | Type | Default | What it decides |", "|---|---|---|---|"]
-        help_text = md_cell(q.get("help", ""))
+        help_text = sentence(md_cell(q.get("help", "")))
         if "when" in q:
             help_text += f" *Asked when* `{md_cell(q['when']).strip('{} ')}`."
         choices = q.get("choices")
@@ -219,7 +239,8 @@ def mech_skills() -> str:
     lines = [
         "# Skills in a generated Mech",
         "",
-        "Every Mech carries these in `.claude/skills/`, for everyday curation.",
+        "A Mech carries these in `.claude/skills/`, for everyday curation. An",
+        "*optional* one comes only with the answer named beside it.",
         "They are templates. The Mech's own name, record noun and paths are filled",
         "in when it is generated; below they are shown for an example Mech,",
         "HabitatMech, whose records are habitats.",
@@ -229,8 +250,11 @@ def mech_skills() -> str:
     ]
     for path in sorted((ROOT / "template" / ".claude" / "skills").glob("*/SKILL.md.jinja")):
         meta, _ = frontmatter(path.read_text())
-        lines.append(f"| `{meta.get('name', path.parent.name)}` | {md_cell(meta.get('description', ''))} "
-                     f"| [template]({source_link(path)}) |")
+        gate = re.match(r"\{%\s*if (\w+)\s*%\}", path.parent.name)
+        note = f" *Optional:* `{gate.group(1)}: true`." if gate else ""
+        desc = md_cell(meta.get("description", ""))
+        name = meta.get("name", path.parent.name)
+        lines.append(f"| `{name}` | {desc}{note} | [template]({source_link(path)}) |")
     return "\n".join(lines) + "\n"
 
 
@@ -309,7 +333,6 @@ LLMS_DESCRIPTIONS = {
 
 def llms() -> str:
     """docs/llms.txt (https://llmstxt.org): what an agent reads first."""
-    tracked = {p.relative_to(DOCS).as_posix() for p in DOCS.glob("*.md")} - {"workflows.md"}
     groups: dict[str, list[str]] = {"Docs": [], "Skills": [], "Reference": [], "Optional": []}
     for title, path in nav_pages():
         if path.startswith("skills/") and path != "skills/index.md":
@@ -320,8 +343,9 @@ def llms() -> str:
             continue
         if path == "skills/index.md":
             continue
-        # A page in git links its Markdown; a generated one, the site.
-        url = RAW + "docs/" + path if path in tracked else SITE + path.removesuffix(".md") + "/"
+        # The site, not the raw Markdown: a page in git links pages that are
+        # generated and not in git, and those links would not resolve from raw.
+        url = SITE + ("" if path == "index.md" else path.removesuffix(".md") + "/")
         desc = LLMS_DESCRIPTIONS.get(path) or first_sentence((DOCS / path).read_text())
         group = ("Optional" if path in ("developing.md", "glossary.md")
                  else "Reference" if path.startswith("reference/") or path == "workflows.md" else "Docs")
