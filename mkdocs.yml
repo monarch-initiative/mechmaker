@@ -62,6 +62,7 @@ nav:
       - design-mech-schema: skills/design-mech-schema.md
       - convert-knowledge-base: skills/convert-knowledge-base.md
       - register-mech: skills/register-mech.md
+      - audit-mech: skills/audit-mech.md
   - Reference:
       - Copier questions: reference/questions.md
       - Ontology catalog: reference/ontologies.md

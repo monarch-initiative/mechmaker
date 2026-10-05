@@ -185,7 +185,9 @@ history record. Say in each pull request what was skipped and why.
 
 End with: the counts (entries, converted, skipped and why), what `just
 qc-full` said, the gaps left open, and the schema decisions the person
-should look at.
+should look at. Then run `audit-mech`, with the person's asks in
+`requests.yml` (the conversion itself is one; give it a `records` check
+with the count you expect), and give its checklist, gaps and next steps.
 
 The IngestMech example in mechmaker's `example/` did all of this for
 three Monarch ingests.
