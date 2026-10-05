@@ -35,7 +35,7 @@ templates. Everything below is about the documentation site.
 | `palette` | Main color: docs header, browser header band, links | red, pink, purple, deep-purple, indigo, blue, light-blue, cyan, teal, green, light-green, lime, yellow, amber, orange, deep-orange, brown, grey, blue-grey |
 | `accent` | Hover and focus color | the palette names except brown, grey, blue-grey |
 | `theme` | Light or dark pages, for both sites | `auto` (follows the visitor's system), `light`, `dark` |
-| `index_columns` | Columns of the browser's front-page table, in order; the first links to the record | record field names, e.g. `name`, `id`, `status`, `record_term` |
+| `index_columns` | Columns of the browser's front-page table, in order; the first links to the record | record field names, e.g. `name`, `id`, `status`{% if identity_prefix %}, `record_term`{% endif %} |
 | `hidden_sections` | Record sections left off browser record pages; the data keeps them | record field names |
 | `footer` | Footer on every browser page | text |
 
