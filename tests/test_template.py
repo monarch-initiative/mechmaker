@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import re
 import shutil
@@ -481,6 +482,47 @@ def test_review_reads_the_pr_as_data_and_posts_without_a_model(tmp_path):
     assert jobs["publish"]["permissions"]["pull-requests"] == "write"
     assert not any("MECH_REVIEWER" in str(s) for s in review)
     assert (dest / ".github" / "scripts" / "review-publish.js").exists()
+
+
+# Agents that hold a write token on purpose. Each reads only text a person
+# with write access put in front of it.
+WRITING_AGENTS = {"claude", "curation-scanner", "compliance"}
+
+
+def test_agents_that_read_untrusted_text_cannot_write(tmp_path):
+    dest = render(tmp_path / "readers", SCENARIOS["all-workflows"])
+    for key in AGENT_WORKFLOWS - WRITING_AGENTS:
+        for name in WORKFLOW_FILES[key]:
+            flow = yaml.safe_load((dest / ".github" / "workflows" / name).read_text())
+            for job_name, job in flow["jobs"].items():
+                agent = next((s for s in job["steps"] if "claude-code-action" in s.get("uses", "")), None)
+                if agent is None:
+                    continue
+                where = f"{name}:{job_name}"
+                perms = job.get("permissions", flow.get("permissions"))
+                assert all(v in ("read", "none") for v in perms.values()), where
+                assert not any("create-github-app-token" in s.get("uses", "") for s in job["steps"]), where
+                args = agent["with"]["claude_args"]
+                assert "--json-schema" in args, where
+                for tool in ("gh issue create", "gh issue edit", "gh issue comment", "gh pr comment",
+                             "gh pr review", "gh label", "git push"):
+                    assert f"Bash({tool}" not in args, (where, tool)
+
+
+def test_triage_applies_only_its_own_labels(tmp_path):
+    dest = render(tmp_path / "triage", SCENARIOS["all-workflows"])
+    jobs = yaml.safe_load((dest / ".github" / "workflows" / "triage.yaml").read_text())["jobs"]
+    agent = next(s for s in jobs["choose"]["steps"] if "claude-code-action" in s.get("uses", ""))
+    schema = json.loads(re.search(r"--json-schema '(.+)'", agent["with"]["claude_args"]).group(1))
+    offered = set(schema["properties"]["labels"]["items"]["enum"])
+    script = jobs["apply"]["steps"][0]["with"]["script"]
+    allowed = set(re.findall(r"'([\w-]+)'", re.search(r"ALLOWED = new Set\(\[(.+?)\]\)", script, re.S).group(1)))
+    assert offered == allowed
+    assert not allowed & {"scope-override", "duplicate-pending", "needs-human", "editorial", "literature"}
+    labels = {x["name"] for x in yaml.safe_load((dest / ".github" / "labels.yaml").read_text())}
+    assert allowed <= labels
+    # `curation` hands an issue to an agent that can push; a stranger's issue does not get it.
+    assert "author_association" in script
 
 
 @pytest.mark.skipif(shutil.which("actionlint") is None, reason="actionlint not installed")
