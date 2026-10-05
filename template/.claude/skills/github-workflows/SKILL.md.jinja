@@ -19,7 +19,7 @@ off, with what it needs. Read it first.
 Workflows are Copier answers, so their files stay in step with the template:
 
 ```bash
-uvx copier update --skip-answered --data 'workflows=["sweep","docs","comment-guard","review"]'
+uvx copier update --skip-answered --defaults --data 'workflows=["sweep","docs","comment-guard","review"]'
 ```
 
 List every workflow to keep; the list replaces the old one. Copier writes

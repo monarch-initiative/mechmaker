@@ -4,9 +4,9 @@
 
 Every workflow mechmaker knows is listed here, on or off. The set that is on
 was chosen when this repository was made. To change it, run
-`just update-template` and answer the `workflows` question again, or
-`uvx copier update --data 'workflows=[...]' --skip-answered`. Copier adds and
-removes the files; your edits to the ones you keep are merged.
+`uvx copier update --skip-answered --defaults --data 'workflows=[...]'` with
+the whole new list. Copier adds and removes the files; your edits to the
+ones you keep are merged.
 
 The `github-workflows` skill walks an agent through turning one on, setting
 its secrets, and adapting its prompt.

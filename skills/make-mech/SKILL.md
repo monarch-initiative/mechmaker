@@ -227,7 +227,7 @@ Ask the person which to turn on, and whether they will create the Apps.
 Then:
 
 ```bash
-uvx copier update --skip-answered --data 'workflows=[...]'
+uvx copier update --skip-answered --defaults --data 'workflows=[...]'
 ```
 
 Adapt `.github/prompts/` to the domain, and tune `conf/literature_scan.yaml`

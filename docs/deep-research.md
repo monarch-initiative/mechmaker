@@ -16,7 +16,7 @@ Answer `deep_research: true` when making the Mech (see
 [Copier questions](reference/questions.md)), or add it later:
 
 ```bash
-uvx copier update --skip-answered --data deep_research=true
+uvx copier update --skip-answered --defaults --data deep_research=true
 ```
 
 The Mech then gets:
