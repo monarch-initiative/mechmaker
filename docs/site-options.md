@@ -102,7 +102,8 @@ palette yellow, accent amber, theme dark
 
 The documentation site uses Material for MkDocs' own color pairings. For a
 few light palettes, such as cyan and light-green, Material puts white text
-under 3:1 on the header. Prefer a darker palette if that matters.
+under 3:1 on the header, and `just site-check` marks the docs header line
+with a warning. Prefer a darker palette if that matters.
 
 ## With an agent
 
