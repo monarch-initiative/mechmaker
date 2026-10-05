@@ -93,12 +93,24 @@ def schemaview():
 
 
 def graph(sv, records: list[dict]) -> tuple[list[dict], list[dict]]:
-    """(nodes, edges) for a property graph. Nodes have id and LABEL; edges subject, predicate, object."""
+    """(nodes, edges) for a property graph. Nodes have id and LABEL; edges subject, predicate, object.
+
+    Every record id is placed before any record is walked, so a record keeps its
+    bare id whatever order the files are read in, and a term or other object
+    sharing that id becomes "<id> (<Class>)". An object first met as a reference
+    by id is a stub until the object itself is met, and is walked then.
+    """
     classes = set(sv.all_classes())
     nodes: dict[str, dict] = {}
     edges: list[dict] = []
+    walked: set[str] = set()
+
+    def place(cid: str, rng: str) -> str:
+        """The node id for an object of class rng whose own id is cid."""
+        return f"{cid} ({rng})" if cid in nodes and nodes[cid][LABEL] != rng else cid
 
     def walk(cls: str, obj: dict, node_id: str) -> None:
+        walked.add(node_id)
         nodes[node_id] = {"id": node_id, LABEL: cls}
         props = {}
         for slot in sv.class_induced_slots(cls):
@@ -119,29 +131,27 @@ def graph(sv, records: list[dict]) -> tuple[list[dict], list[dict]]:
                     if not ident:
                         raise SystemExit(f"load: {cls}.{slot.name} holds {child!r}, but {rng} has no "
                                          "identifier, so it must be a nested object")
-                    cid = str(child)
+                    cid = place(str(child), rng)
                     nodes.setdefault(cid, {"id": cid, LABEL: rng})  # a stub until the object itself is walked
                     edges.append({"subject": node_id, "predicate": slot.name, "object": cid})
                     continue
                 if ident:
-                    cid = str(child[ident.name])
-                    if cid in nodes and nodes[cid][LABEL] != rng:
-                        cid = f"{cid} ({rng})"
+                    cid = place(str(child[ident.name]), rng)
                 else:
                     cid = f"{node_id}/{slot.name}" + (f"/{i}" if slot.multivalued else "")
-                if cid not in nodes:
+                if cid not in walked:
                     walk(rng, child, cid)
                 edges.append({"subject": node_id, "predicate": slot.name, "object": cid})
         nodes[node_id].update(props)
 
     for r in records:
         rid = str(r["id"])
-        if rid in nodes and nodes[rid].get("_walked"):
+        if rid in nodes:
             raise SystemExit(f"load: two records have the id {rid!r}; their nodes would merge")
-        walk(RECORD_CLASS, r, rid)
-        nodes[rid]["_walked"] = True
-    for n in nodes.values():
-        n.pop("_walked", None)
+        nodes[rid] = {"id": rid, LABEL: RECORD_CLASS}
+    walked.update(nodes)  # each record is walked below, never from inside another
+    for r in records:
+        walk(RECORD_CLASS, r, str(r["id"]))
     return list(nodes.values()), edges
 
 
