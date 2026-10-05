@@ -130,7 +130,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if bool(args.date_from) != bool(args.date_to):
         parser.error("--date-from and --date-to go together")
-    cfg = yaml.safe_load(CONFIG.read_text()) or {}
+    cfg = yaml.safe_load(CONFIG.read_text(encoding="utf-8")) or {}
     end = args.date_to or dt.date.today().isoformat()
     start = args.date_from or (dt.date.today() - dt.timedelta(days=args.days)).isoformat()
     limit = args.max_records or int(cfg.get("max_records", 200))
@@ -157,7 +157,7 @@ def main(argv: list[str] | None = None) -> int:
     rows.sort(key=lambda x: (x["already_cited"], -(x["matches"][0]["score"] if x["matches"] else 0)))
     OUT.mkdir(parents=True, exist_ok=True)
     packet = {"query": query, "source": args.source, "from": start, "to": end, "papers": rows}
-    (OUT / "packet.json").write_text(json.dumps(packet, indent=2, ensure_ascii=False))
+    (OUT / "packet.json").write_text(json.dumps(packet, indent=2, ensure_ascii=False), encoding="utf-8")
     lines = [f"# Literature packet ({args.source}, {start} to {end})", "", f"Query: `{query}`",
              f"{len(rows)} paper(s); {sum(bool(x['matches']) for x in rows)} match a record.", ""]
     for x in rows:
@@ -167,7 +167,7 @@ def main(argv: list[str] | None = None) -> int:
                   "- matches: " + (", ".join(f"{m['record']} ({m['name']}, {m['where']})"
                                              for m in x["matches"]) or "none"),
                   "", x["abstract"], ""]
-    (OUT / "packet.md").write_text("\n".join(lines))
+    (OUT / "packet.md").write_text("\n".join(lines), encoding="utf-8")
     print(f"{len(rows)} paper(s) -> {(OUT / 'packet.md').relative_to(REPO_ROOT)}")
     return 0
 

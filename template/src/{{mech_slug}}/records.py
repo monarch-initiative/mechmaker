@@ -56,7 +56,7 @@ def write_validated_record(data: dict, path: Path | None = None, *, dry_run: boo
         raise ValueError("record is invalid:\n  " + "\n  ".join(errors))
     if not dry_run:
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(dump(data))
+        path.write_text(dump(data), encoding="utf-8")
     return path
 
 

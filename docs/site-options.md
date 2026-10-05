@@ -94,7 +94,8 @@ shows the result:
 ```console
 $ just site-check
 palette yellow, accent amber, theme dark
-  header: #1f1f1f on #ffec3d, contrast 13.6
+  docs header: #1f1f1f on #ffec3d, contrast 13.6
+  browser header: #1f1f1f on #ffec3d, contrast 13.6
   links on light pages: #756d1c (adjusted from #ffec3d), contrast 4.5
   links on dark pages: #ffec3d, contrast 11.8
 ```

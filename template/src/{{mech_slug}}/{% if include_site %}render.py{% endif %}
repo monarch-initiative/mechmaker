@@ -373,6 +373,8 @@ def build() -> dict[Path, str]:
     records = []
     for path in iter_records():
         data = load(path) or {}
+        if not isinstance(data, dict):  # not a record; just validate reports it
+            continue
         records.append({"stem": path.stem, "data": data})
     records.sort(key=lambda r: str(r["data"].get("name", r["stem"])).lower())
     statuses: dict[str, int] = {}
@@ -402,7 +404,7 @@ def main(argv: list[str] | None = None) -> int:
         if not PAGES_DIR.exists() and not iter_records():
             print("No records and no pages/ yet; nothing to check.")
             return 0
-        stale = [p for p, text in wanted.items() if not p.exists() or p.read_text() != text]
+        stale = [p for p, text in wanted.items() if not p.exists() or p.read_text(encoding="utf-8") != text]
         extra = sorted(existing - set(wanted))
         for p in stale + extra:
             print(f"STALE {p.relative_to(REPO_ROOT)}")
@@ -415,7 +417,7 @@ def main(argv: list[str] | None = None) -> int:
         p.unlink()
     for p, text in wanted.items():
         p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(text)
+        p.write_text(text, encoding="utf-8")
     print(f"Wrote {len(wanted)} files to {PAGES_DIR.relative_to(REPO_ROOT)}/.")
     return 0
 

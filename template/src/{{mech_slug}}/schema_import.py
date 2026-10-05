@@ -98,7 +98,7 @@ def fetch(source: str, workdir: Path) -> Path:
     with urllib.request.urlopen(source, timeout=120) as resp:
         out.write_bytes(resp.read())
     if out.suffix in (".yaml", ".yml"):
-        doc = yaml.safe_load(out.read_text()) or {}
+        doc = yaml.safe_load(out.read_text(encoding="utf-8")) or {}
         base = source.rsplit("/", 1)[0]
         for imp in doc.get("imports") or []:
             if ":" in str(imp):
@@ -128,7 +128,7 @@ def source_docs(path: Path) -> list[tuple[Path, dict]]:
     def visit(p: Path) -> None:
         if p in seen:
             return
-        doc = yaml.safe_load(p.read_text()) or {}
+        doc = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
         seen[p] = doc
         for imp in doc.get("imports") or []:
             if ":" not in str(imp):
@@ -367,7 +367,7 @@ def check(schema_text: str, extra_files: list[tuple[Path, str]]) -> list[str]:
         for src, name in extra_files:
             (d / name).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy(src, d / name)
-        (d / SCHEMA_PATH.name).write_text(schema_text)
+        (d / SCHEMA_PATH.name).write_text(schema_text, encoding="utf-8")
         try:
             sv = SchemaView(str(d / SCHEMA_PATH.name))
             sv.merge_imports()
@@ -408,7 +408,7 @@ def main(argv: list[str] | None = None) -> int:
                     report.append("note: a converted schema is a snapshot; copy mode usually suits it better")
             docs = source_docs(path)
             y = _yaml()
-            schema = y.load(SCHEMA_PATH.read_text())
+            schema = y.load(SCHEMA_PATH.read_text(encoding="utf-8"))
             mech = mech_names()
             files: list[tuple[Path, str]] = []
             if args.mode == "copy":
@@ -446,7 +446,7 @@ def main(argv: list[str] | None = None) -> int:
         for src, name in files:
             (SCHEMA_DIR / name).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy(src, SCHEMA_DIR / name)
-        SCHEMA_PATH.write_text(text)
+        SCHEMA_PATH.write_text(text, encoding="utf-8")
     print(f"\nWrote {SCHEMA_PATH.name}" + (f" and {', '.join(n for _, n in files)}" if files else "")
           + ". Next: update tests/data/example_record.yaml and docs/DOMAIN.md, then run just qc.")
     return 0

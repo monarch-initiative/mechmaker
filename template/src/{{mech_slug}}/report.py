@@ -39,6 +39,8 @@ def compute() -> dict:
     counts: Counter = Counter()
     for p in paths:
         data = load(p) or {}
+        if not isinstance(data, dict):  # not a record; just validate reports it
+            continue
         status[data.get("status", "UNSET")] += 1
         counts["mechanism_nodes"] += len(data.get("mechanisms") or [])
         counts["discussions"] += len(data.get("discussions") or [])

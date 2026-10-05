@@ -23,7 +23,9 @@ from linkml.validator import Validator
 from linkml.validator.plugins import JsonschemaValidationPlugin
 from linkml.validator.report import Severity
 
-from .paths import RECORD_CLASS, RECORDS_DIR, REFERENCES_DIR, REPO_ROOT, SCHEMA_PATH
+from .paths import RECORD_CLASS, RECORDS_DIR, REPO_ROOT, SCHEMA_PATH
+
+REF_CONFIG = REPO_ROOT / ".linkml-reference-validator.yaml"
 
 # How alike an evidence item's reference_title must be to the cached title.
 TITLE_SIMILARITY = 0.85
@@ -108,10 +110,27 @@ def _norm(text: str) -> str:
     return " ".join(re.sub(r"[^a-z0-9]+", " ", str(text).lower()).split())
 
 
+@cache
+def _fetcher():
+    """linkml-reference-validator's fetcher, configured as `just validate-references` runs it.
+
+    Used only for its cache paths, which never touch the network.
+    """
+    from linkml_reference_validator.cli.shared import load_validation_config
+    from linkml_reference_validator.etl.reference_fetcher import ReferenceFetcher
+
+    config = load_validation_config(REF_CONFIG if REF_CONFIG.exists() else None, load_custom_sources=False)
+    config.cache_dir = REPO_ROOT / config.cache_dir  # relative to the repository, not the working directory
+    return ReferenceFetcher(config)
+
+
 def cached_title(reference: str) -> str | None:
-    """The title linkml-reference-validator cached for a reference, if any."""
-    safe = reference.replace(":", "_").replace("/", "_").replace("?", "_").replace("=", "_")
-    path = REFERENCES_DIR / f"{safe}.md"
+    """The title linkml-reference-validator cached for a reference, if any.
+
+    The validator's own normalization finds the file: pmid:1 is cached as PMID_1.md.
+    """
+    fetcher = _fetcher()
+    path = fetcher.get_cache_path(fetcher.normalize_reference_id(reference))
     if not path.is_file():
         return None
     text = path.read_text(encoding="utf-8", errors="replace")
@@ -165,7 +184,7 @@ def evidence_errors(data: dict) -> list[str]:
 
 
 def load(path: Path) -> object:
-    return loads(path.read_text())
+    return loads(path.read_text(encoding="utf-8"))
 
 
 def iter_records(root: Path = RECORDS_DIR) -> list[Path]:
@@ -175,6 +194,7 @@ def iter_records(root: Path = RECORDS_DIR) -> list[Path]:
 def validate_paths(paths: Iterable[Path]) -> dict[Path, list[str]]:
     failures: dict[Path, list[str]] = {}
     ids: dict[str, Path] = {}
+    stems: dict[str, Path] = {}
     for path in paths:
         try:
             data = load(path)
@@ -189,6 +209,11 @@ def validate_paths(paths: Iterable[Path]) -> dict[Path, list[str]]:
             errors.append(f"id {rid} is also used by {ids[rid]}")
         elif rid:
             ids[rid] = path
+        # The record browser, history and research name a record by its stem alone.
+        if path.stem in stems:
+            errors.append(f"filename stem {path.stem!r} is also used by {stems[path.stem]}")
+        else:
+            stems[path.stem] = path
         if errors:
             failures[path] = errors
     return failures

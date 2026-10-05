@@ -99,7 +99,7 @@ def convert(
     report = Report()
     seen: dict[Path, str] = {}
     for entry in entries:
-        if only and entry.key not in only:
+        if only and str(entry.key) not in only:
             continue
         if limit is not None and len(report.written) >= limit:
             break
@@ -185,6 +185,7 @@ def run(entries: Iterable[Entry | Skip], *, source: str, script: str | Path,
             print("ERROR: the history record is invalid: " + "; ".join(errors))
             return 1
         out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(yaml.safe_dump(record, sort_keys=False, allow_unicode=True, width=100))
+        out.write_text(yaml.safe_dump(record, sort_keys=False, allow_unicode=True, width=100),
+                       encoding="utf-8")
         print(f"History: {_rel(out)}")
     return 1 if report.skipped else 0
