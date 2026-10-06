@@ -120,6 +120,42 @@ def test_requests_are_checked_or_left_to_judge(mech, tmp_path):
     assert status(items, "Seed records marked PROPOSED") == "done"
 
 
+def converted(name: str, status: str) -> str:
+    return yaml.safe_dump({"name": name, "status": status, "curation_history": [
+        {"action": "CREATE", "description": f"Converted from Old KB, entry {name}."}]})
+
+
+def test_converted_drafts_are_work_left_not_missing(mech):
+    records = mech / "data" / "habitats"
+    for stem in ("hot_spring", "soil"):
+        (records / f"{stem}.yaml").write_text(converted(stem, "DRAFT"))
+    (records / "gut.yaml").write_text(converted("gut", "PROPOSED"))
+    _, items = audit(mech)
+    seeds = items["Seed records marked PROPOSED until a person reviews them"]
+    assert (seeds["status"], seeds["found"]) == ("done", "1 PROPOSED")
+    found = items["Converted records curated to PROPOSED"]
+    assert found["status"] == "check"
+    assert found["found"] == "2 of 3 converted record(s) still DRAFT"
+    assert "curate-record" in found["fix"]
+
+    (records / "hot_spring.yaml").write_text(converted("hot_spring", "PROPOSED"))
+    (records / "soil.yaml").write_text(converted("soil", "REVIEWED"))
+    _, items = audit(mech)
+    assert status(items, "Converted records curated to PROPOSED") == "done"
+
+
+def test_a_draft_not_converted_is_still_missing(mech):
+    records = mech / "data" / "habitats"
+    (records / "hot_spring.yaml").write_text(converted("hot_spring", "DRAFT"))
+    (records / "soil.yaml").write_text("name: soil\nstatus: DRAFT\n")
+    (records / "gut.yaml").write_text(converted("gut", "unset-ish"))
+    _, items = audit(mech)
+    seeds = items["Seed records marked PROPOSED until a person reviews them"]
+    assert seeds["status"] == "missing"
+    assert seeds["found"] == "1 DRAFT, 1 unset-ish"
+    assert status(items, "Converted records curated to PROPOSED") == "check"
+
+
 def test_markdown_lists_what_is_missing(fresh):
     out = subprocess.run([sys.executable, str(SCRIPT), str(fresh)], capture_output=True, text=True)
     assert out.stdout.startswith("# Audit: SampleHabitatMech")

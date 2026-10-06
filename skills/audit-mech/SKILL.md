@@ -109,6 +109,9 @@ Resolve every `[?]` to done or missing. Read the thing itself.
   Ask whether that was the person's choice, or find the commit that did it.
 - A request with no `check`: find the evidence. Name the file, the slot or
   the record that shows it, or say it is absent.
+- Converted records still `DRAFT` are not a fault: `convert-knowledge-base`
+  writes them so, and they become `PROPOSED` as they are curated. This
+  `[?]` stays open until the last one is. Report the count as work left.
 - A `[x]` can be hollow. A slot that exists but that no seed record fills
   is present in the schema and absent from the data. Spot-check two `[x]`
   items that matter most to the person against the records.
