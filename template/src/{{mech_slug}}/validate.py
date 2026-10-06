@@ -23,7 +23,7 @@ from linkml.validator import Validator
 from linkml.validator.plugins import JsonschemaValidationPlugin
 from linkml.validator.report import Severity
 
-from .paths import RECORD_CLASS, RECORDS_DIR, REPO_ROOT, SCHEMA_PATH
+from .paths import IDENTITY_PREFIX, RECORD_CLASS, RECORDS_DIR, REPO_ROOT, SCHEMA_PATH
 
 REF_CONFIG = REPO_ROOT / ".linkml-reference-validator.yaml"
 
@@ -59,6 +59,18 @@ def rule_errors(data: dict, path: Path | None = None) -> list[str]:
     name = data.get("name")
     if path is not None and isinstance(name, str) and path.stem != slugify(name):
         errors.append(f"filename stem {path.stem!r} should be {slugify(name)!r}, derived from name")
+
+    # The term check reaches the identity root through record_term only, so a
+    # record keyed by an ontology term must name that term there too.
+    rid = str(data.get("id", ""))
+    if IDENTITY_PREFIX and rid.startswith(f"{IDENTITY_PREFIX}:"):
+        term = data.get("record_term")
+        term_id = term.get("id") if isinstance(term, dict) else None
+        if term_id is None:
+            errors.append(f"id {rid} has the {IDENTITY_PREFIX} prefix, so record_term must name it, "
+                          "with the ontology's label")
+        elif term_id != rid:
+            errors.append(f"record_term.id {term_id} is not the record's id {rid}")
 
     nodes = data.get("mechanisms") or []
     names = [n.get("name") for n in nodes if isinstance(n, dict)]

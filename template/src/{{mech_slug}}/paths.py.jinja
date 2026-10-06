@@ -6,8 +6,10 @@ SLUG = "{{ mech_slug }}"
 MECH_NAME = "{{ mech_name }}"
 RECORD_CLASS = "{{ record_class }}"
 RECORD_NOUN = "{{ record_noun }}"
-# Whether records are keyed to an ontology term in `record_term`.
-HAS_RECORD_TERM = {{ "True" if identity_prefix else "False" }}
+# The prefix of the ontology that keys records, or "" when every id is minted.
+# A record whose id has it names the same term in `record_term`.
+IDENTITY_PREFIX = "{{ identity_prefix }}"
+HAS_RECORD_TERM = bool(IDENTITY_PREFIX)
 REPO_URL = "https://github.com/{{ github_org }}/{{ repo_name }}"
 
 PACKAGE_DIR = Path(__file__).resolve().parent
