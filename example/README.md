@@ -33,3 +33,23 @@ Site and record browser: https://monarch-initiative.github.io/mechmaker/example/
 
 Both are examples. Neither is a published knowledge base, and their records
 are not surveys of goat breeds or of Monarch's ingests.
+
+## Keeping them in step with the template
+
+The examples show what a Mech made today looks like, so they follow the
+template. Every file the template writes is in each example byte for byte,
+except the files the Mech owns: its schema, `docs/DOMAIN.md`, its links into
+this repository, and a few settings. `scripts/sync_examples.py` lists them,
+with the reason for each.
+
+After a template change:
+
+```bash
+just sync-examples                 # render each example's answers, copy the template's files in
+cd example/goatmech && just qc     # and the same in example/ingestmech
+```
+
+`just test` fails while an example has drifted. A change the template makes
+to a file an example owns is not copied; the sync lists those files, to merge
+by hand when the change applies. `_commit` in each `.copier-answers.yml` is
+the template commit at the last sync.
