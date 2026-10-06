@@ -12,9 +12,10 @@ EXAMPLE = load(Path(__file__).parent / "data" / "example_record.yaml")
 
 
 def entry(key, name, **extra):
+    # The example's own id: it fits the Mech's id pattern, and its record_term
+    # when the example is keyed by an ontology term. The key is the source's.
     record = {k: v for k, v in EXAMPLE.items() if k not in ("curation_history", "status")}
-    prefix = str(EXAMPLE["id"]).split(":", 1)[0]
-    return Entry(key, {**record, "id": f"{prefix}:{key}", "name": name, **extra})
+    return Entry(key, {**record, "name": name, **extra})
 
 
 def test_dry_run_writes_nothing(tmp_path):
@@ -45,10 +46,10 @@ def test_skips_invalid_and_reports_why(tmp_path):
 
 
 def test_never_overwrites(tmp_path):
-    (tmp_path / "alpha.yaml").write_text("keep: me\n")
+    (tmp_path / "alpha.yaml").write_text("keep: me\n", encoding="utf-8")
     report = convert([entry("a1", "Alpha")], source="Old KB", apply=True, records_dir=tmp_path)
     assert [k for k, _ in report.exists] == ["a1"]
-    assert (tmp_path / "alpha.yaml").read_text() == "keep: me\n"
+    assert (tmp_path / "alpha.yaml").read_text(encoding="utf-8") == "keep: me\n"
 
 
 def test_two_entries_one_file(tmp_path):
@@ -78,4 +79,4 @@ def test_long_lines_are_not_folded(tmp_path):
     long = "word " * 40
     report = convert([entry("a1", "Alpha", description=long.strip())], source="Old KB",
                      apply=True, records_dir=tmp_path)
-    assert f"description: {long.strip()}\n" in report.written[0][1].read_text()
+    assert f"description: {long.strip()}\n" in report.written[0][1].read_text(encoding="utf-8")

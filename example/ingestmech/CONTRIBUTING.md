@@ -14,9 +14,7 @@ reviewed by people. Contributions from people are the review, and more.
 
 ## Pull requests
 
-Push a branch to this repository and open the pull request from it. Pull
-requests from forks are not accepted: automated review cannot run on them,
-and they are a way to inject instructions into the agent workflows. Ask in
+Push a branch to this repository and open the pull request from it. Ask in
 an issue to be given access to push branches.
 
 Before opening a pull request:
@@ -28,8 +26,3 @@ just validate data/ingests/<record>.yaml   # for each record you changed
 
 Keep a pull request to one purpose. A pull request that changes records
 should change only records and their history and caches.
-
-## Agents
-
-Mention `@claude` in an issue or pull request to ask the agent for help, if
-that workflow is on. Only people with write access can summon it.

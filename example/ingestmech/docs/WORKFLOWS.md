@@ -2,9 +2,9 @@
 
 Every workflow mechmaker knows is listed here, on or off. The set that is on
 was chosen when this repository was made. To change it, run
-`just update-template` and answer the `workflows` question again, or
-`uvx copier update --data 'workflows=[...]' --skip-answered`. Copier adds and
-removes the files; your edits to the ones you keep are merged.
+`uvx copier update --skip-answered --defaults --data 'workflows=[...]'` with
+the whole new list. Copier adds and removes the files; your edits to the
+ones you keep are merged.
 
 The `github-workflows` skill walks an agent through turning one on, setting
 its secrets, and adapting its prompt.
@@ -39,12 +39,12 @@ until `agent_schedules` is turned on.
 | Key | State | File | What it does | Writes | Needs |
 |---|---|---|---|---|---|
 | `claude` | off | `claude.yaml` | Answers `@claude` from people with write access, in issues and PRs. | branches, PRs, comments | Claude GitHub App installed |
-| `review` | off | `review.yaml` | Reviews each same-repo PR with the `review-record` skill and approves or requests changes. `/review` re-runs it. | reviews | reviewer App, or Actions allowed to approve PRs |
-| `triage` | off | `triage.yaml` | Labels new issues. The agent only reads; a step with no model applies labels that exist. | labels | `just labels` run once |
+| `review` | off | `review.yaml` | Reviews each same-repo PR with the `review-record` skill. The agent reads the PR as data with a read-only token; a step with no model approves or requests changes. `/review` re-runs it. Refuses PRs from forks, however started. | reviews | reviewer App, or Actions allowed to approve PRs |
+| `triage` | off | `triage.yaml` | Labels new issues. The agent only reads; a step with no model applies labels from a fixed list. `curation` goes on only when the author can write to the repository. | labels | `just labels` run once |
 | `dedupe` | off | `dedupe.yaml`, `auto-close-duplicates.yaml` | Flags likely duplicates; closes them after three days unless a person objects. | one comment, a label, closure | nothing more |
-| `pr-shepherd` | off | `pr-shepherd.yaml` | Comments on the most stuck PR, saying why and what would unstick it. Never pushes or approves. | one comment | nothing more |
+| `pr-shepherd` | off | `pr-shepherd.yaml` | Comments on the most stuck PR, saying why and what would unstick it. The agent only reads; a step with no model posts. Never pushes or approves. | one comment | nothing more |
 | `curation-scanner` | off | `curation-scanner.yaml` | Picks one unassigned `curation` issue or PR per effort tier and advances it. | branches, PRs, comments | agent App |
-| `literature-scan` | off | `literature-scan.yaml` | Finds recent papers (PubMed or preprints) that match records and files a few `curation` issues. Tune `conf/literature_scan.yaml`. | issues | nothing more |
+| `literature-scan` | off | `literature-scan.yaml` | Finds recent papers (PubMed or preprints) that match records and files a few `curation` issues. The agent only reads; a step with no model files them. Tune `conf/literature_scan.yaml`. | issues | nothing more |
 | `compliance` | off | `compliance.yaml` | Improves the least complete records by `just compliance`, one PR each. | branches, PRs | agent App |
 | `post-review` | off | `post-review.yaml` | Proposes a suggestion, reply or `Editorial:` issue for each unanswered human review comment; a step with no model posts them. | suggestions, replies, issues | nothing more |
 
@@ -73,9 +73,13 @@ Off. Answer `langfuse` in Copier to add tracing to every agent workflow.
 
 ### Safety
 
-- Agents that read text anyone can write (issues, comments) have no write
-  access. They return structured results, and a step with no model checks
-  and posts them: `triage`, `dedupe`, `post-review`.
+- Agents that read text anyone can write (issues, comments, PR bodies,
+  abstracts) have no write access. They return structured results, and a
+  step with no model checks and posts them: `review`, `triage`, `dedupe`,
+  `post-review`, `pr-shepherd`, `literature-scan`.
+- Triage adds `curation` only to issues whose author can write to the
+  repository. The curation scanner can push, so a stranger's issue reaches
+  it only after a person has read it and added the label.
 - Prompts and helper scripts load from the default branch, so a PR cannot
   change the instructions it is reviewed under.
 - Tool lists are explicit. No workflow runs with permissions bypassed.
@@ -94,7 +98,7 @@ DisMech has more workflows. These were left out, and why:
 | `dragon-ai.yml` | A second write-capable agent that duplicates `@claude`. |
 | `claude-issue-summarize.yml` | Posts on every new issue from untrusted text; overlaps triage and dedupe. |
 | `discussion-scanner.yml` | Needs GitHub Discussions and a large trust gate. Worth adding once a Mech has discussion traffic. |
-| `generate-pages.yaml`, `deploy-docs.yaml` | Solve 30-minute site builds at DisMech's scale. Here the record browser is rendered and committed with the records, the docs are built fresh by `docs`, and `just qc` builds both. |
+| `generate-pages.yaml`, `deploy-docs.yaml` | Solve 30-minute site builds at DisMech's scale. Here the docs and the record browser are built fresh by `docs`, and `just qc` builds the same site. |
 | `jev-recuration.yml` | Reads DisMech's own evaluation pipeline. |
 | `reference-title-baseline.yaml`, `title-snippet-baseline.yaml` | Maintain lists of old failures. A new Mech starts at zero, so both checks are hard errors in `just validate-all` instead. |
 | `verify-merge-integrity.yaml` | Guards against merge-queue failures at dozens of merges a day. |

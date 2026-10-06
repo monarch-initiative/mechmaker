@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from ingestmech import titles
+from ingestmech import titles, validate
 from ingestmech.evidence import _yaml
 from ingestmech.validate import load, slugify
 
@@ -22,7 +22,7 @@ def record(tmp_path, monkeypatch):
     monkeypatch.setattr(titles, "cached_title", CACHE.get)
     path = tmp_path / f"{slugify(load(EXAMPLE)['name'])}.yaml"
     y = _yaml()
-    data = y.load(EXAMPLE.read_text())
+    data = y.load(EXAMPLE.read_text(encoding="utf-8"))
     data["evidence"] = [
         {"reference": "PMID:1", "supports": "SUPPORT", "snippet": "A quote."},
         {"reference": "PMID:2", "supports": "SUPPORT", "snippet": "Another quote."},
@@ -30,7 +30,7 @@ def record(tmp_path, monkeypatch):
         {"reference": "PMID:1", "reference_title": "Kept As Given", "supports": "SUPPORT",
          "snippet": "More."},
     ]
-    with path.open("w") as fh:
+    with path.open("w", encoding="utf-8") as fh:
         y.dump(data, fh)
     return path
 
@@ -38,7 +38,7 @@ def record(tmp_path, monkeypatch):
 def test_fills_from_cache_and_lists_what_is_missing(record):
     old, new, filled, uncached, problems = titles.fill(record, dict(EVENT))
     assert (filled, uncached, problems) == (1, ["PMID:2"], [])
-    record.write_text(new)
+    record.write_text(new, encoding="utf-8")
     ev = load(record)["evidence"]
     assert ev[0]["reference_title"] == "A Paper About Things"
     assert list(ev[0])[:2] == ["reference", "reference_title"]
@@ -56,6 +56,16 @@ def test_only_additions_in_the_diff(record):
 
 def test_nothing_to_fill_changes_nothing(record):
     _, new, *_ = titles.fill(record, dict(EVENT))
-    record.write_text(new)
+    record.write_text(new, encoding="utf-8")
     old, again, filled, _, _ = titles.fill(record, dict(EVENT))
     assert filled == 0 and again == old
+
+
+def test_cached_title_finds_the_validators_file(tmp_path, monkeypatch):
+    # pmid:1 is cached as PMID_1.md, in the cache_dir the validator's config names.
+    fetcher = validate._fetcher()
+    monkeypatch.setattr(fetcher.config, "cache_dir", tmp_path)
+    (tmp_path / "PMID_1.md").write_text("---\nreference_id: PMID:1\ntitle: A Paper About Things\n---\n",
+                                        encoding="utf-8")
+    assert validate.cached_title("pmid:1") == "A Paper About Things"
+    assert validate.cached_title("PMID:2") is None

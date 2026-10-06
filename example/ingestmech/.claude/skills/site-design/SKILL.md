@@ -21,7 +21,7 @@ templates only for what the settings cannot do.
 | `palette` | Main color: docs header, browser header band, links | red, pink, purple, deep-purple, indigo, blue, light-blue, cyan, teal, green, light-green, lime, yellow, amber, orange, deep-orange, brown, grey, blue-grey |
 | `accent` | Hover and focus color | the palette names except brown, grey, blue-grey |
 | `theme` | Light or dark pages, for both sites | `auto` (follows the visitor's system), `light`, `dark` |
-| `index_columns` | Columns of the browser's front-page table, in order; the first links to the record | record field names, e.g. `name`, `id`, `status`, `record_term` |
+| `index_columns` | Columns of the browser's front-page table, in order; the first links to the record | record field names, e.g. `name`, `id`, `status` |
 | `hidden_sections` | Record sections left off browser record pages; the data keeps them | record field names |
 | `footer` | Footer on every browser page | text |
 
@@ -31,12 +31,8 @@ After any change:
 
 ```bash
 just site-check     # validates the file and reports contrast
-just render         # rebuilds pages/; commit the result
 just docs-serve     # look at both sites at http://127.0.0.1:8000
 ```
-
-`just qc` fails if `pages/` is stale, so always run `just render` and commit
-`pages/` with the settings change.
 
 ## Choosing colors
 
@@ -81,11 +77,9 @@ Rules:
   names, never a new literal color.
 - Keep every link relative. The site is hosted under a path, and the
   record browser sits inside the docs site at `/records/`.
-- Keep output deterministic: no dates or random values in templates, or
-  `just render-check` will always fail.
-- After editing a template or `render.py`, `just render`, look at the
-  result with `just docs-serve` at desktop and phone widths, and commit
-  `pages/` with the change.
+- After editing a template or `render.py`, look at the result with
+  `just docs-serve` at desktop and phone widths. `pages/` is not committed;
+  the docs build renders the browser fresh.
 
 The docs site's layout is `mkdocs.yml`; its pages are `docs/`. Never edit
 `.mkdocs.site.yml`, `site/`, or `docs/records/`: they are generated.

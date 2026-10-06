@@ -43,6 +43,15 @@ def ancestors(curie: str, ontology: str | None = None, hierarchical: bool = Fals
     return out
 
 
+def parents(curie: str, ontology: str | None = None) -> list[tuple[str, str]]:
+    """Direct is-a parents."""
+    ontology = ontology or curie.split(":", 1)[0].lower()
+    iri = urllib.parse.quote(urllib.parse.quote(_iri(curie), safe=""), safe="")
+    data = _get(f"{OLS}/ontologies/{ontology}/terms/{iri}/parents?size=500")
+    found = data.get("_embedded", {}).get("terms", [])
+    return [(t.get("obo_id") or t.get("iri"), t.get("label")) for t in found]
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="cmd", required=True)

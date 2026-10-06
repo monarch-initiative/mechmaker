@@ -1,5 +1,5 @@
 # Changes here will be overwritten by Copier. Do not edit by hand.
-_commit: d04762c
+_commit: 0.1.2-15-g9d13e2d
 _src_path: gh:monarch-initiative/mechmaker
 agent_schedules: false
 author_email: jhc@lbl.gov
@@ -9,13 +9,14 @@ causal_graphs: false
 code_license: BSD-3-Clause
 collection: none
 copyright_year: '2026'
-deep_research: true
 data_license: CC-BY-4.0
+deep_research: true
 description: 'GoatMech records goat breeds: where each comes from, what it is kept
     for, and the features that tell it apart, with every claim quoted from its source.'
 domains:
 - organisms
 - phenotype
+extra_ontologies: []
 full_title: Goat Breed Knowledge Base
 github_org: monarch-initiative
 github_user: caufieldjh
@@ -27,11 +28,20 @@ identity_uri: http://purl.obolibrary.org/obo/VBO_
 include_claude_hook: true
 include_site: true
 langfuse: false
+load_targets: []
 mech_name: GoatMech
 mech_slug: goatmech
 ontologies:
 - NCBITaxon
 - UO
+output_formats:
+- yaml
+- json
+- jsonld
+- ttl
+- sqlite
+- sql
+- csv
 python_min: '3.11'
 record_class: GoatBreed
 record_noun: goat breed
@@ -40,7 +50,9 @@ repo_name: goatmech
 site_accent: amber
 site_palette: brown
 site_theme: auto
+tabular_layout: per_class
 taxon_scope: NCBITaxon:9925
+term_backend: ols
 workflows:
 - sweep
 - docs

@@ -16,7 +16,7 @@ def records(tmp_path):
         paths = []
         for i, rid in enumerate(ids):
             p = tmp_path / f"r{i}.yaml"
-            p.write_text(yaml.safe_dump({"id": rid}))
+            p.write_text(yaml.safe_dump({"id": rid}), encoding="utf-8")
             paths.append(str(p))  # as the command line gives them
         return paths
     return make

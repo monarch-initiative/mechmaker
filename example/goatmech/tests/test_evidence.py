@@ -37,7 +37,7 @@ def item(snippet="Colons: they need quoting."):
 def test_adds_item_with_title_and_event(record):
     old, new, problems = evidence.add(record, "record", item(), dict(EVENT), check=found)
     assert problems == []
-    record.write_text(new)
+    record.write_text(new, encoding="utf-8")
     data = load(record)
     added = data["evidence"][-1]
     assert added["reference_title"] == "A Source Title"
@@ -59,7 +59,7 @@ def test_quote_not_found_writes_nothing(record):
 
 def test_duplicate_is_refused(record):
     _, new, _ = evidence.add(record, "record", item(), dict(EVENT), check=found)
-    record.write_text(new)
+    record.write_text(new, encoding="utf-8")
     _, again, problems = evidence.add(record, "record", item(), dict(EVENT), check=found)
     assert any("already" in p for p in problems)
 
@@ -86,7 +86,7 @@ def test_url_title_that_is_only_the_url_is_not_kept(record):
 def test_description_evidence_follows_the_description(record):
     _, new, problems = evidence.add(record, "description", item(), dict(EVENT), check=found)
     assert problems == []
-    record.write_text(new)
+    record.write_text(new, encoding="utf-8")
     data = load(record)
     assert data["description_evidence"][0]["snippet"] == "Colons: they need quoting."
     keys = list(data)
@@ -96,6 +96,6 @@ def test_description_evidence_follows_the_description(record):
 def test_description_evidence_needs_a_description(record):
     data = load(record)
     data.pop("description", None)
-    record.write_text(yaml.safe_dump(data, sort_keys=False))
+    record.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
     with pytest.raises(ValueError):
         evidence.add(record, "description", item(), dict(EVENT), check=found)

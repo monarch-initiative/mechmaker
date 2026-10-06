@@ -87,6 +87,7 @@ def test_both_formats_from_the_example_record(tmp_path):
     assert problems == []
     names = sorted(p.name for p in written)
     assert len(names) == 8
-    maximal = [json.loads(line) for line in (tmp_path / f"{kgx.SLUG}-kgx_maximal_nodes.jsonl").open()]
+    nodes = (tmp_path / f"{kgx.SLUG}-kgx_maximal_nodes.jsonl").read_text(encoding="utf-8")
+    maximal = [json.loads(line) for line in nodes.split("\n") if line]
     record = next(n for n in maximal if n["id"] == EXAMPLE["id"])
     assert f"{kgx.SLUG}:{kgx.RECORD_CLASS}" in record["category"]

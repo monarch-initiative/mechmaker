@@ -36,11 +36,11 @@ validate-schema file:
 
 # Every bound CURIE exists, sits under its enum root, and carries its real label.
 validate-terms *files:
-    uv run linkml-term-validator validate-data "$@" -s {{schema}} -t {{record_class}} --labels -c {{oak_config}}
+    uv run python -m {{slug}}.termcheck validate-data "$@" -s {{schema}} -t {{record_class}} --labels -c {{oak_config}}
 
 # Same, from the term cache only. Never touches the network.
 validate-terms-offline *files:
-    uv run linkml-term-validator validate-data "$@" -s {{schema}} -t {{record_class}} --labels -c {{oak_config}} --offline
+    uv run python -m {{slug}}.termcheck validate-data "$@" -s {{schema}} -t {{record_class}} --labels -c {{oak_config}} --offline
 
 # Every snippet appears verbatim in its cited source.
 validate-references *files:
@@ -54,17 +54,25 @@ validate-all:
 validate-terms-all:
     #!/usr/bin/env bash
     set -euo pipefail
-    shopt -s nullglob globstar
-    files=({{records}}/**/*.yaml)
+    # find, not the ** glob: globstar needs bash 4, and macOS ships bash 3.2.
+    files=()
+    while IFS= read -r f; do files+=("$f"); done < <(find {{records}} -name '*.yaml' | sort)
     if [ ${#files[@]} -eq 0 ]; then echo "No records under {{records}}."; exit 0; fi
-    uv run linkml-term-validator validate-data "${files[@]}" -s {{schema}} -t {{record_class}} --labels -c {{oak_config}}
+    uv run python -m {{slug}}.termcheck validate-data "${files[@]}" -s {{schema}} -t {{record_class}} --labels -c {{oak_config}}
+
+# Record ids follow the identity enum's rule: direct children only, or not
+# the root itself, when the schema says so. linkml-term-validator ignores
+# is_direct, so this asks the ontology for each id's parents (network).
+check-identity *files:
+    uv run python -m {{slug}}.terms check-identity "$@"
 
 # Reference validation of every record (network on first run).
 validate-references-all:
     #!/usr/bin/env bash
     set -euo pipefail
-    shopt -s nullglob globstar
-    files=({{records}}/**/*.yaml)
+    # find, not the ** glob: globstar needs bash 4, and macOS ships bash 3.2.
+    files=()
+    while IFS= read -r f; do files+=("$f"); done < <(find {{records}} -name '*.yaml' | sort)
     if [ ${#files[@]} -eq 0 ]; then echo "No records under {{records}}."; exit 0; fi
     uv run linkml-reference-validator validate data "${files[@]}" --schema {{schema}} --target-class {{record_class}} --config {{ref_config}}
 
@@ -74,11 +82,11 @@ validate-references-all:
 validate-changed *files:
     #!/usr/bin/env bash
     set -uo pipefail
-    uv run linkml-term-validator validate-data "$@" -s {{schema}} -t {{record_class}} --labels -c {{oak_config}}
+    uv run python -m {{slug}}.termcheck validate-data "$@" -s {{schema}} -t {{record_class}} --labels -c {{oak_config}}
     rc=$?
     if [ "$rc" -eq 2 ]; then
         echo "::warning title=Ontology service unreachable::Checking terms against the committed cache only."
-        uv run linkml-term-validator validate-data "$@" -s {{schema}} -t {{record_class}} --labels -c {{oak_config}} --offline
+        uv run python -m {{slug}}.termcheck validate-data "$@" -s {{schema}} -t {{record_class}} --labels -c {{oak_config}} --offline
         rc=$?
         if [ "$rc" -ne 0 ]; then
             echo "::error title=Terms not checked::The ontology service is down and some terms are not in cache/. Run 'just validate FILE' locally and commit cache/, or re-run this job later."
@@ -98,23 +106,26 @@ validate-changed *files:
 fetch-reference ref:
     uv run linkml-reference-validator lookup "$1" --config {{ref_config}}
 
-# Search an ontology: `just search-term ols:go "cell wall organization"`
+# Search an ontology. Give an OAK adapter, or a prefix to use the one
+# conf/oak_config.yaml gives it: `just search-term GO "cell wall organization"`
 search-term adapter query:
-    uv run runoak -i "$1" search "$2"
+    #!/usr/bin/env bash
+    set -euo pipefail
+    a="$1"; [[ "$a" == *:* ]] || a="$(uv run python -m {{slug}}.terms adapter "$a")"
+    # A failed BioPortal request prints its URL, which holds the API key.
+    uv run runoak -i "$a" search "$2" 2>&1 | sed -E 's/(apikey=)[^&[:space:]]+/\1***/g'
 
-# Show one term: `just term-info ols:go GO:0071555`
+# Show one term: `just term-info GO GO:0071555` (a prefix or an OAK adapter)
 term-info adapter curie:
-    uv run runoak -i "$1" info "$2"
+    #!/usr/bin/env bash
+    set -euo pipefail
+    a="$1"; [[ "$a" == *:* ]] || a="$(uv run python -m {{slug}}.terms adapter "$a")"
+    # A failed BioPortal request prints its URL, which holds the API key.
+    uv run runoak -i "$a" info "$2" 2>&1 | sed -E 's/(apikey=)[^&[:space:]]+/\1***/g'
 
-# is-a ancestors of a term, from OLS: `just term-ancestors ENVO:00000051`
+# is-a ancestors of a term, through its prefix's adapter: `just term-ancestors ENVO:00000051`
 term-ancestors curie:
-    uv run python -m {{slug}}.ols ancestors "$1"
-
-# Record ids follow the identity enum's rule: direct children only, or not
-# the root itself, when the schema says so. linkml-term-validator ignores
-# is_direct, so this asks the ontology for each id's parents (network).
-check-identity *files:
-    uv run python -m {{slug}}.terms check-identity "$@"
+    uv run python -m {{slug}}.terms ancestors "$1"
 
 # Direct is-a parents of a term: `just term-parents VBO:0009093`
 term-parents curie:
@@ -122,7 +133,7 @@ term-parents curie:
 
 # Does a term sit under a root? `just term-under GO:0015979 GO:0008150`
 term-under curie root:
-    uv run python -m {{slug}}.ols check "$1" --root "$2"
+    uv run python -m {{slug}}.terms check "$1" --root "$2"
 
 # ---------------------------------------------------------------- curation
 
@@ -148,6 +159,12 @@ fill-titles *args:
 # `just import-schema https://.../schema.yaml --record-class Sample`
 import-schema *args:
     uv run python -m {{slug}}.schema_import "$@"
+
+# Run a conversion script, which reads an existing knowledge base and writes
+# DRAFT records through validation. Dry run unless --apply; --limit 5 for a trial.
+# `just convert scripts/convert_old_kb.py --limit 5`
+convert script *args:
+    uv run python "$@"
 
 # Scaffold a repository-level history record under history/. Dry-run unless --apply.
 # `just new-history --kind record --slug example --event CREATE --outcome changed --summary "..." --details "..."`
@@ -192,7 +209,7 @@ research-providers:
     uv run python -m {{slug}}.research providers
 
 # Research one record (its filename stem) or a new name. Costs a provider run.
-# `just research claude_code saanen`, or `just research falcon saanen -- --fallback`
+# `just research claude_code <record stem>`, or `just research falcon <record stem> -- --fallback`
 research provider target *args:
     uv run python -m {{slug}}.research run "$@"
 
@@ -224,13 +241,10 @@ site-check:
 
 # ---------------------------------------------------------------- site
 
-# Render the static browser into pages/.
+# Render the record browser into pages/ to look at locally. Not committed:
+# `just docs-build` renders it fresh into the site.
 render:
     uv run python -m {{slug}}.render
-
-# Fail if pages/ is out of step with the records.
-render-check:
-    uv run python -m {{slug}}.render --check
 
 # ---------------------------------------------------------------- code
 

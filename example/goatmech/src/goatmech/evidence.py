@@ -92,7 +92,7 @@ def fetch_and_check(reference: str, snippet: str) -> tuple[bool, str, str | None
 def add(path: Path, place: str, item: dict, event: dict, check=fetch_and_check) -> tuple[str, str, list[str]]:
     """(old text, new text, problems). Writes nothing."""
     y = _yaml()
-    old = path.read_text()
+    old = path.read_text(encoding="utf-8")
     data = y.load(old)
     if place == "description":
         if not data.get("description"):
@@ -181,7 +181,7 @@ def main(argv: list[str] | None = None) -> int:
             old.splitlines(keepends=True), new.splitlines(keepends=True), f"{rel}", f"{rel} (with evidence)"))
         print(f"\n# dry run; the quote was found. Pass --apply to write {rel}.")
         return 0
-    path.write_text(new)
+    path.write_text(new, encoding="utf-8")
     print(f"Added evidence from {args.ref} to {args.at} in {rel}.")
     return 0
 

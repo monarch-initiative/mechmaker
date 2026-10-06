@@ -84,7 +84,10 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     rows = []
     for p in args.paths or iter_records():
-        s, missing = score(load(p) or {})
+        data = load(p) or {}
+        if not isinstance(data, dict):  # not a record; just validate reports it
+            continue
+        s, missing = score(data)
         full = Path(p).resolve()
         shown = full.relative_to(REPO_ROOT) if full.is_relative_to(REPO_ROOT) else full
         rows.append({"path": str(shown), "score": s, "missing": missing})

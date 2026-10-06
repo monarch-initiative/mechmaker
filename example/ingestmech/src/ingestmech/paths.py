@@ -6,8 +6,10 @@ SLUG = "ingestmech"
 MECH_NAME = "IngestMech"
 RECORD_CLASS = "Ingest"
 RECORD_NOUN = "ingest"
-# Whether records are keyed to an ontology term in `record_term`.
-HAS_RECORD_TERM = False
+# The prefix of the ontology that keys records, or "" when every id is minted.
+# A record whose id has it names the same term in `record_term`.
+IDENTITY_PREFIX = ""
+HAS_RECORD_TERM = bool(IDENTITY_PREFIX)
 # IngestMech is an example inside mechmaker; issues and links go there.
 REPO_URL = "https://github.com/monarch-initiative/mechmaker"
 

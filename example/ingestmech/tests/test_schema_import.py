@@ -35,16 +35,16 @@ def record(**extra):
 
 
 def test_a_clash_stops_copy_until_renamed(schema_dir, capsys):
-    before = (schema_dir / SCHEMA_PATH.name).read_text()
+    before = (schema_dir / SCHEMA_PATH.name).read_text(encoding="utf-8")
     assert run("--apply") == 1
     assert "'status'" in capsys.readouterr().out
-    assert (schema_dir / SCHEMA_PATH.name).read_text() == before
+    assert (schema_dir / SCHEMA_PATH.name).read_text(encoding="utf-8") == before
 
 
 def test_copy_folds_the_class_in_and_keeps_its_rules(schema_dir):
     assert run("--rename", "status=sample_status", "--apply") == 0
     path = schema_dir / SCHEMA_PATH.name
-    schema = yaml.safe_load(path.read_text())
+    schema = yaml.safe_load(path.read_text(encoding="utf-8"))
     rc = schema["classes"][RECORD_CLASS]
     assert {"sample_weight", "collection_site", "sample_status"} <= set(rc["slots"])
     assert rc["class_uri"] == "fieldwork:Sample"  # the source's meaning, kept
@@ -58,9 +58,9 @@ def test_copy_folds_the_class_in_and_keeps_its_rules(schema_dir):
 
 
 def test_dry_run_writes_nothing(schema_dir):
-    before = (schema_dir / SCHEMA_PATH.name).read_text()
+    before = (schema_dir / SCHEMA_PATH.name).read_text(encoding="utf-8")
     assert run("--rename", "status=sample_status") == 0
-    assert (schema_dir / SCHEMA_PATH.name).read_text() == before
+    assert (schema_dir / SCHEMA_PATH.name).read_text(encoding="utf-8") == before
 
 
 def test_reference_refuses_a_name_the_checks_depend_on(schema_dir, capsys):
@@ -69,17 +69,17 @@ def test_reference_refuses_a_name_the_checks_depend_on(schema_dir, capsys):
 
 
 def test_reference_imports_the_source_unchanged(schema_dir, tmp_path, monkeypatch):
-    source = yaml.safe_load(SOURCE.read_text())
+    source = yaml.safe_load(SOURCE.read_text(encoding="utf-8"))
     source["classes"]["Sample"]["slots"].remove("status")
     del source["slots"]["status"]
     del source["enums"]
     variant = tmp_path / "fieldwork.yaml"
-    variant.write_text(yaml.safe_dump(source, sort_keys=False))
+    variant.write_text(yaml.safe_dump(source, sort_keys=False), encoding="utf-8")
     args = [str(variant), "--record-class", "Sample", "--mode", "reference", "--apply"]
     assert schema_import.main(args) == 0
     stored = schema_dir / "fieldwork.yaml"
-    assert yaml.safe_load(stored.read_text()) == source  # unchanged
-    schema = yaml.safe_load((schema_dir / SCHEMA_PATH.name).read_text())
+    assert yaml.safe_load(stored.read_text(encoding="utf-8")) == source  # unchanged
+    schema = yaml.safe_load((schema_dir / SCHEMA_PATH.name).read_text(encoding="utf-8"))
     assert "fieldwork" in schema["imports"]
     assert schema["classes"][RECORD_CLASS]["is_a"] == "Sample"
     path = schema_dir / SCHEMA_PATH.name
@@ -92,3 +92,97 @@ def test_reference_imports_the_source_unchanged(schema_dir, tmp_path, monkeypatc
 def test_unknown_record_class(schema_dir, capsys):
     assert schema_import.main([str(SOURCE), "--record-class", "Nope"]) == 1
     assert "no class 'Nope'" in capsys.readouterr().out
+
+
+def split_source(root: Path, *, status: bool = True) -> Path:
+    """The source schema in three files: Sample, then CollectionSite beside it, then the
+    status enum one folder up, so imports nest and one leaves the source's folder."""
+    source = yaml.safe_load(SOURCE.read_text(encoding="utf-8"))
+    head = {k: source[k] for k in ("id", "name", "prefixes", "default_prefix", "default_range")}
+    site = {**head, "id": f"{head['id']}/site", "name": "site", "imports": ["linkml:types"],
+            "classes": {"CollectionSite": source["classes"].pop("CollectionSite")}}
+    if status:
+        site["imports"].append("../common/status")
+        common = {**head, "id": f"{head['id']}/status", "name": "status", "imports": ["linkml:types"],
+                  "enums": source.pop("enums")}
+        (root / "common").mkdir(parents=True)
+        (root / "common" / "status.yaml").write_text(yaml.safe_dump(common), encoding="utf-8")
+    else:
+        source["classes"]["Sample"]["slots"].remove("status")
+        del source["slots"]["status"]
+        del source["enums"]
+        site["imports"].append("../common/site")
+        (root / "common").mkdir(parents=True)
+        (root / "common" / "site.yaml").write_text(yaml.safe_dump(
+            {**head, "id": f"{head['id']}/common", "name": "common_site", "imports": ["linkml:types"],
+             "classes": site.pop("classes")}), encoding="utf-8")
+    source["imports"].append("site")
+    (root / "fieldwork").mkdir(parents=True)
+    (root / "fieldwork" / "site.yaml").write_text(yaml.safe_dump(site), encoding="utf-8")
+    main = root / "fieldwork" / "fieldwork.yaml"
+    main.write_text(yaml.safe_dump(source, sort_keys=False), encoding="utf-8")
+    return main
+
+
+@pytest.fixture
+def served(tmp_path, monkeypatch):
+    """tmp_path/www as if on a web site, so the URL tests need no network."""
+    import urllib.parse
+
+    www = tmp_path / "www"
+    www.mkdir()
+    site = "https://schemas.example.org"
+
+    def download(url):
+        found = urllib.parse.urlparse(url)
+        path = www / found.path.lstrip("/")
+        if found.netloc != "schemas.example.org" or not path.is_file():
+            raise schema_import.Problem(f"could not fetch {url}: HTTP Error 404: Not Found")
+        return path.read_bytes()
+
+    monkeypatch.setattr(schema_import, "download", download)
+    return www, site
+
+
+def test_a_failed_download_is_a_problem():
+    with pytest.raises(schema_import.Problem, match="could not fetch"):
+        schema_import.download("http:///no-host")  # fails at once, without the network
+
+
+def test_a_url_brings_its_imports_at_any_depth(schema_dir, served):
+    www, url = served
+    split_source(www / "schemas")
+    args = [f"{url}/schemas/fieldwork/fieldwork.yaml", "--record-class", "Sample",
+            "--rename", "status=sample_status", "--apply"]
+    assert schema_import.main(args) == 0
+    path = schema_dir / SCHEMA_PATH.name
+    schema = yaml.safe_load(path.read_text(encoding="utf-8"))
+    assert "CollectionSite" in schema["classes"]  # an import
+    assert "SampleStatus" in schema["enums"]  # an import's import, from ../common
+    assert schema_errors(record(sample_status="MELTED"), schema=path)
+    assert sorted(p.name for p in schema_dir.rglob("*.yaml")) == sorted(
+        p.name for p in SCHEMA_DIR.rglob("*.yaml"))  # nothing written but the schema
+
+
+def test_a_missing_import_is_a_problem(schema_dir, tmp_path, served, capsys):
+    main = split_source(tmp_path / "local")
+    (tmp_path / "local" / "common" / "status.yaml").unlink()
+    assert schema_import.main([str(main), "--record-class", "Sample"]) == 1
+    out = capsys.readouterr().out
+    assert "imports ../common/status" in out and "Nothing was written." in out
+
+    www, url = served
+    split_source(www / "schemas")
+    (www / "schemas" / "common" / "status.yaml").unlink()
+    assert schema_import.main([f"{url}/schemas/fieldwork/fieldwork.yaml", "--record-class", "Sample"]) == 1
+    out = capsys.readouterr().out
+    assert "could not fetch" in out and "Nothing was written." in out
+
+
+def test_reference_refuses_an_import_from_a_parent_folder(schema_dir, tmp_path, capsys):
+    main = split_source(tmp_path / "local", status=False)
+    before = sorted(schema_dir.rglob("*"))
+    assert schema_import.main([str(main), "--record-class", "Sample", "--mode", "reference", "--apply"]) == 1
+    out = capsys.readouterr().out
+    assert "outside its folder" in out and "use --mode copy" in out
+    assert sorted(schema_dir.rglob("*")) == before

@@ -31,12 +31,8 @@ After any change:
 
 ```bash
 just site-check     # validates the file and reports contrast
-just render         # rebuilds pages/; commit the result
 just docs-serve     # look at both sites at http://127.0.0.1:8000
 ```
-
-`just qc` fails if `pages/` is stale, so always run `just render` and commit
-`pages/` with the settings change.
 
 ## Choosing colors
 
@@ -81,11 +77,9 @@ Rules:
   names, never a new literal color.
 - Keep every link relative. The site is hosted under a path, and the
   record browser sits inside the docs site at `/records/`.
-- Keep output deterministic: no dates or random values in templates, or
-  `just render-check` will always fail.
-- After editing a template or `render.py`, `just render`, look at the
-  result with `just docs-serve` at desktop and phone widths, and commit
-  `pages/` with the change.
+- After editing a template or `render.py`, look at the result with
+  `just docs-serve` at desktop and phone widths. `pages/` is not committed;
+  the docs build renders the browser fresh.
 
 The docs site's layout is `mkdocs.yml`; its pages are `docs/`. Never edit
 `.mkdocs.site.yml`, `site/`, or `docs/records/`: they are generated.

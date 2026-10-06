@@ -12,9 +12,10 @@ EXAMPLE = load(Path(__file__).parent / "data" / "example_record.yaml")
 
 
 def entry(key, name, **extra):
+    # The example's own id: it fits the Mech's id pattern, and its record_term
+    # when the example is keyed by an ontology term. The key is the source's.
     record = {k: v for k, v in EXAMPLE.items() if k not in ("curation_history", "status")}
-    prefix = str(EXAMPLE["id"]).split(":", 1)[0]
-    return Entry(key, {**record, "id": f"{prefix}:{key}", "name": name, **extra})
+    return Entry(key, {**record, "name": name, **extra})
 
 
 def test_dry_run_writes_nothing(tmp_path):

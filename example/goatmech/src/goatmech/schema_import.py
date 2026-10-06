@@ -6,7 +6,9 @@
     ... --rename SourceName=NewName ... --apply
 
 SOURCE is a LinkML schema, as a path or a URL; its local imports come with
-it. Other formats go through schema-automator first (--from), run by uvx in
+it, at any depth. Reference mode stores them beside the Mech's schema, so
+there an import from outside the source's folder stops the import.
+Other formats go through schema-automator first (--from), run by uvx in
 its own environment, so the Mech never carries its dependencies.
 
 CLASS is the source's class for one record. It becomes the Mech's record
@@ -40,6 +42,7 @@ import argparse
 import copy
 import hashlib
 import io
+import posixpath
 import re
 import shutil
 import subprocess
@@ -86,28 +89,58 @@ class Problem(Exception):
 # ---------------------------------------------------------------- reading
 
 
+def local_imports(doc: dict) -> list[str]:
+    """A schema's imports that are files beside it; linkml:types and other prefixed ones resolve alone."""
+    return [str(i) for i in doc.get("imports") or [] if ":" not in str(i)]
+
+
+def download(url: str) -> bytes:
+    try:
+        with urllib.request.urlopen(url, timeout=120) as resp:
+            return resp.read()
+    except (OSError, ValueError) as exc:  # URLError and HTTPError are OSErrors
+        raise Problem(f"could not fetch {url}: {exc}") from exc
+
+
 def fetch(source: str, workdir: Path) -> Path:
-    """A local copy of SOURCE, and of any local schemas it imports beside it."""
+    """A local copy of SOURCE, and of every local schema it imports, at any depth."""
     if not re.match(r"^https?://", source):
         path = Path(source).resolve()
         if not path.exists():
             raise Problem(f"{source} does not exist")
         return path
-    name = Path(urllib.parse.urlparse(source).path).name or "source.yaml"
-    out = workdir / name
-    with urllib.request.urlopen(source, timeout=120) as resp:
-        out.write_bytes(resp.read())
-    if out.suffix in (".yaml", ".yml"):
-        doc = yaml.safe_load(out.read_text()) or {}
-        base = source.rsplit("/", 1)[0]
-        for imp in doc.get("imports") or []:
-            if ":" in str(imp):
-                continue  # linkml:types and other prefixed imports resolve on their own
-            target = workdir / f"{imp}.yaml"
-            target.parent.mkdir(parents=True, exist_ok=True)
-            with urllib.request.urlopen(f"{base}/{imp}.yaml", timeout=120) as resp:
-                target.write_bytes(resp.read())
-    return out
+    if not source.endswith((".yaml", ".yml")):
+        name = Path(urllib.parse.urlparse(source).path).name or "source.yaml"
+        (workdir / name).write_bytes(download(source))
+        return workdir / name
+    # Imports are relative to the importing file, as LinkML reads them.
+    # urljoin settles any ../ in them.
+    got: dict[str, bytes] = {}
+    todo = [source]
+    while todo:
+        url = todo.pop()
+        if url in got:
+            continue
+        got[url] = download(url)
+        try:
+            doc = yaml.safe_load(got[url]) or {}
+        except yaml.YAMLError as exc:
+            raise Problem(f"{url} is not valid YAML: {exc}") from exc
+        if not isinstance(doc, dict):
+            raise Problem(f"{url} is not a LinkML schema")
+        todo += [urllib.parse.urljoin(url, f"{imp}.yaml") for imp in local_imports(doc)]
+    # Lay the files out under their shared folder, so an import from a
+    # parent folder (../common) still lands inside workdir.
+    paths = {u: urllib.parse.urlparse(u) for u in got}
+    hosts = {(p.scheme, p.netloc) for p in paths.values()}
+    if len(hosts) > 1:
+        raise Problem(f"{source} imports schemas from another site; download them and import the local copy")
+    top = posixpath.commonpath([posixpath.dirname(p.path) for p in paths.values()])
+    for url, body in got.items():
+        out = workdir / posixpath.relpath(paths[url].path, top)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_bytes(body)
+    return workdir / posixpath.relpath(paths[source].path, top)
 
 
 def convert(path: Path, fmt: str, workdir: Path, extra: list[str]) -> Path:
@@ -128,11 +161,13 @@ def source_docs(path: Path) -> list[tuple[Path, dict]]:
     def visit(p: Path) -> None:
         if p in seen:
             return
-        doc = yaml.safe_load(p.read_text()) or {}
+        doc = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
         seen[p] = doc
-        for imp in doc.get("imports") or []:
-            if ":" not in str(imp):
-                visit((p.parent / f"{imp}.yaml").resolve())
+        for imp in local_imports(doc):
+            target = (p.parent / f"{imp}.yaml").resolve()
+            if not target.exists():
+                raise Problem(f"{p.name} imports {imp}, but {target} does not exist")
+            visit(target)
 
     visit(path.resolve())
     return list(seen.items())
@@ -348,6 +383,9 @@ def apply_reference(schema, docs: list[tuple[Path, dict]], record_class: str, me
     files = [(docs[0][0], f"{main['name']}.yaml")]
     base = docs[0][0].parent
     for p, _ in docs[1:]:
+        if not p.is_relative_to(base):
+            raise Problem(f"the source imports {p.name} from outside its folder ({p.parent}); reference "
+                          "mode stores imports beside the Mech's schema, so use --mode copy")
         files.append((p, str(p.relative_to(base))))
     return files
 
@@ -367,7 +405,7 @@ def check(schema_text: str, extra_files: list[tuple[Path, str]]) -> list[str]:
         for src, name in extra_files:
             (d / name).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy(src, d / name)
-        (d / SCHEMA_PATH.name).write_text(schema_text)
+        (d / SCHEMA_PATH.name).write_text(schema_text, encoding="utf-8")
         try:
             sv = SchemaView(str(d / SCHEMA_PATH.name))
             sv.merge_imports()
@@ -408,7 +446,7 @@ def main(argv: list[str] | None = None) -> int:
                     report.append("note: a converted schema is a snapshot; copy mode usually suits it better")
             docs = source_docs(path)
             y = _yaml()
-            schema = y.load(SCHEMA_PATH.read_text())
+            schema = y.load(SCHEMA_PATH.read_text(encoding="utf-8"))
             mech = mech_names()
             files: list[tuple[Path, str]] = []
             if args.mode == "copy":
@@ -446,7 +484,7 @@ def main(argv: list[str] | None = None) -> int:
         for src, name in files:
             (SCHEMA_DIR / name).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy(src, SCHEMA_DIR / name)
-        SCHEMA_PATH.write_text(text)
+        SCHEMA_PATH.write_text(text, encoding="utf-8")
     print(f"\nWrote {SCHEMA_PATH.name}" + (f" and {', '.join(n for _, n in files)}" if files else "")
           + ". Next: update tests/data/example_record.yaml and docs/DOMAIN.md, then run just qc.")
     return 0

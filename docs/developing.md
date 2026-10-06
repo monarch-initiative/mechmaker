@@ -35,6 +35,11 @@ dependencies and builds its own documentation.
 
 - **A fresh Mech must pass `just qc`.** Run `just test-generated` after any
   change under `template/`.
+- **The examples follow the template.** After a change under `template/`,
+  run `just sync-examples` and each changed example's `just qc`. `just test`
+  fails while an example's template files differ from a fresh render. The
+  files each example owns, its design and its links, are listed in
+  `scripts/sync_examples.py` and left alone.
 - **Shared files stay unchanged.** `mech_shared.yaml` and `history.yaml`
   come from [culturebotai-claw](https://github.com/CultureBotAI/culturebotai-claw)
   byte for byte. A test checks their hashes. To update them, copy the new

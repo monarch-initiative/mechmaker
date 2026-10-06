@@ -1,7 +1,7 @@
 """Export the records in the formats conf/export.yaml names, and check each one.
 
     python -m <slug>.export            # write build/export/ and check every file
-    python -m <slug>.export --list     # the formats this Mech exports, and the files
+    python -m <slug>.export --list     # the configured formats and table layout
 
 Every format comes from LinkML or the libraries it brings:
 
@@ -61,7 +61,7 @@ DEFAULTS = {"formats": ["yaml", "json"], "tabular_layout": "per_class"}
 
 
 def settings() -> dict:
-    data = yaml.safe_load(SETTINGS.read_text()) if SETTINGS.exists() else {}
+    data = yaml.safe_load(SETTINGS.read_text(encoding="utf-8")) if SETTINGS.exists() else {}
     out = {**DEFAULTS, **(data or {})}
     bad = [f for f in out["formats"] if f not in FORMATS]
     if bad:
@@ -345,11 +345,16 @@ def export(
 
     if "json" in fmts:
         out = out_dir / f"{SLUG}-records.json"
-        out.write_text(json.dumps([d for _, d in records], ensure_ascii=False, indent=1) + "\n")
+        out.write_text(json.dumps([d for _, d in records], ensure_ascii=False, indent=1) + "\n",
+                       encoding="utf-8")
         lines = out_dir / f"{SLUG}-records.jsonl"
-        lines.write_text("".join(json.dumps(d, ensure_ascii=False) + "\n" for _, d in records))
+        lines.write_text("".join(json.dumps(d, ensure_ascii=False) + "\n" for _, d in records),
+                         encoding="utf-8")
         written += [out, lines]
-        if len(json.loads(out.read_text())) != n or len(lines.read_text().splitlines()) != n:
+        # Count "\n" only: splitlines() also splits on U+2028, U+2029 and U+0085,
+        # which json.dumps(ensure_ascii=False) leaves raw inside a string.
+        jsonl_rows = lines.read_text(encoding="utf-8").count("\n")
+        if len(json.loads(out.read_text(encoding="utf-8"))) != n or jsonl_rows != n:
             problems.append(f"{out.name}: wrong number of records")
 
     if fmts & {"ttl", "jsonld"} and n:
@@ -409,15 +414,15 @@ def export(
             from linkml.generators.sqltablegen import SQLTableGenerator
 
             ddl = out_dir / f"{SLUG}-schema.sql"
-            ddl.write_text(SQLTableGenerator(sv.schema, dialect="sqlite").generate_ddl())
+            ddl.write_text(SQLTableGenerator(sv.schema, dialect="sqlite").generate_ddl(), encoding="utf-8")
             dump = out_dir / f"{SLUG}-records.sql"
-            dump.write_text("\n".join(con.iterdump()) + "\n")
+            dump.write_text("\n".join(con.iterdump()) + "\n", encoding="utf-8")
             written += [ddl, dump]
             probe = sqlite3.connect(":memory:")
-            probe.executescript(ddl.read_text())
+            probe.executescript(ddl.read_text(encoding="utf-8"))
             probe.close()
             probe = sqlite3.connect(":memory:")
-            probe.executescript(dump.read_text())
+            probe.executescript(dump.read_text(encoding="utf-8"))
             if probe.execute(f'SELECT count(*) FROM "{RECORD_CLASS}"').fetchone()[0] != n:
                 problems.append(f"{dump.name}: does not load back to {n} records")
             probe.close()

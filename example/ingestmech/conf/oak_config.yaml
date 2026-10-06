@@ -1,8 +1,15 @@
 # OAK adapters for linkml-term-validator, keyed by CURIE prefix.
 #
-#   ols:<name>         EBI Ontology Lookup Service. Online, nothing to download.
-#   sqlite:obo:<name>  Prebuilt SQLite. Offline and fast after a large download.
-#   ""                 Skip this prefix on purpose.
+# Any adapter OAK accepts works here:
+#
+#   ols:<name>                   EBI Ontology Lookup Service. Online, nothing to download.
+#   sqlite:obo:<name>            Prebuilt SQLite from OBO Foundry sources. Offline after one download.
+#   bioportal:<name>             BioPortal. Needs BIOPORTAL_API_KEY in the environment.
+#   simpleobo:ontologies/x.obo   A local OBO file in the repository. Also pronto:<file>
+#                                (OBO or OWL) and sqlite:<file>.db.
+#   ""                           Skip this prefix on purpose.
+#
+# One prefix, one adapter. If two sections bind the same prefix, they share it.
 #
 # Only prefixes listed here are checked. An unlisted prefix is skipped with a
 # warning, which means its CURIEs are never checked at all. Add every prefix a
