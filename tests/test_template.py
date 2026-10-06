@@ -282,6 +282,14 @@ def test_optional_parts(generated):
     assert ("hooks" in settings) == answers["include_claude_hook"]
 
 
+def test_the_browser_is_rendered_not_committed(generated):
+    """The docs build renders the browser fresh; a committed pages/ would only go stale (#44)."""
+    _, answers, dest = generated
+    assert "pages/" in (dest / ".gitignore").read_text().splitlines()
+    assert "render-check" not in (dest / "justfile").read_text()
+    assert "render-check" not in (dest / "src" / answers["mech_slug"] / "qc.py").read_text()
+
+
 def test_oak_config_covers_every_prefix(generated):
     _, answers, dest = generated
     slug = answers["mech_slug"]

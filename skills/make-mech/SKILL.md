@@ -243,8 +243,8 @@ shown on record pages are in `conf/site.yaml`. Once the schema is settled,
 choose `index_columns` that help someone scan the corpus (for example
 `name`, `record_term`, `status`), and hide sections that are noise to a
 reader (`curation_history` is hidden by default). The Mech's `site-design`
-skill covers each setting; run `just site-check`, then `just render` if the
-Mech has a record browser, and look with `just docs-serve`.
+skill covers each setting; run `just site-check`, and look with
+`just docs-serve`.
 
 ## 5. Seed
 

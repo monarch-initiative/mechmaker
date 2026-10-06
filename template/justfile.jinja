@@ -245,13 +245,10 @@ site-check:
 {% endraw %}{% if include_site %}{% raw %}
 # ---------------------------------------------------------------- site
 
-# Render the static browser into pages/.
+# Render the record browser into pages/ to look at locally. Not committed:
+# `just docs-build` renders it fresh into the site.
 render:
     uv run python -m {{slug}}.render
-
-# Fail if pages/ is out of step with the records.
-render-check:
-    uv run python -m {{slug}}.render --check
 {% endraw %}{% endif %}{% raw %}
 # ---------------------------------------------------------------- code
 

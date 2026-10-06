@@ -118,7 +118,7 @@ DisMech has more workflows. These were left out, and why:
 | `dragon-ai.yml` | A second write-capable agent that duplicates `@claude`. |
 | `claude-issue-summarize.yml` | Posts on every new issue from untrusted text; overlaps triage and dedupe. |
 | `discussion-scanner.yml` | Needs GitHub Discussions and a large trust gate. Worth adding once a Mech has discussion traffic. |
-| `generate-pages.yaml`, `deploy-docs.yaml` | Solve 30-minute site builds at DisMech's scale. Here {% if include_site %}the record browser is rendered and committed with the records, {% endif %}the docs are built fresh by `docs`, and `just qc` builds {% if include_site %}both{% else %}them{% endif %}. |
+| `generate-pages.yaml`, `deploy-docs.yaml` | Solve 30-minute site builds at DisMech's scale. Here the docs{% if include_site %} and the record browser{% endif %} are built fresh by `docs`, and `just qc` builds the same site. |
 | `jev-recuration.yml` | Reads DisMech's own evaluation pipeline. |
 | `reference-title-baseline.yaml`, `title-snippet-baseline.yaml` | Maintain lists of old failures. A new Mech starts at zero, so both checks are hard errors in `just validate-all` instead. |
 | `verify-merge-integrity.yaml` | Guards against merge-queue failures at dozens of merges a day. |

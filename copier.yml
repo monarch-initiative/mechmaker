@@ -571,7 +571,7 @@ copyright_year:
 
 include_site:
   type: bool
-  help: Render a static record browser under pages/ with `just render`
+  help: Add a static record browser, published at /records/ on the documentation site
   default: true
 
 site_palette:
