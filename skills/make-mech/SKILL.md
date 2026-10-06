@@ -190,7 +190,8 @@ just install
 just qc
 ```
 
-Use a local path instead of `gh:...` when working from a checkout. Copier
+Use an absolute local path instead of `gh:...` when working from a
+checkout; Copier records it, and a relative one breaks `copier update`. Copier
 then copies the latest release tag; add `--vcs-ref HEAD` to use the
 checkout as it is. `just qc`
 must pass on the fresh copy. If it does not, the template is broken: stop
@@ -241,7 +242,8 @@ those, or you do them only after they say so.
 Optional. Colors, mode, the browser's front-page columns and the sections
 shown on record pages are in `conf/site.yaml`. Once the schema is settled,
 choose `index_columns` that help someone scan the corpus (for example
-`name`, `record_term`, `status`), and hide sections that are noise to a
+`name`, `status`, and `record_term` when records are keyed by an
+ontology), and hide sections that are noise to a
 reader (`curation_history` is hidden by default). The Mech's `site-design`
 skill covers each setting; run `just site-check`, and look with
 `just docs-serve`.

@@ -29,8 +29,7 @@ In the Mech repository:
   published. `causal_mechanism_graphs` only if records carry graphs.
 - `collection`: the registry's `CollectionEnum` value for the Copier
   `collection` answer. `monarch` is `monarch`. `xmech` is `x-mech-suite`.
-  `none` has no field. The draft may lack an `xmech` Mech's collection; add
-  it.
+  `none` has no field. The generated draft writes it; check it is there.
 - `homepage_url`: the published site if there is one, else the repository.
 - `cross_references`: the neighbors named in the domain survey, with
   relations from the registry's `MechRelationEnum`: `follows_pattern_of`,
