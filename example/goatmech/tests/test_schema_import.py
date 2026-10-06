@@ -125,20 +125,28 @@ def split_source(root: Path, *, status: bool = True) -> Path:
 
 
 @pytest.fixture
-def served(tmp_path):
-    """tmp_path/www over HTTP, at a URL ending in /schemas/."""
-    import functools
-    import http.server
-    import threading
+def served(tmp_path, monkeypatch):
+    """tmp_path/www as if on a web site, so the URL tests need no network."""
+    import urllib.parse
 
     www = tmp_path / "www"
     www.mkdir()
-    handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(www))
-    handler.log_message = lambda *a: None
-    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
-    threading.Thread(target=server.serve_forever, daemon=True).start()
-    yield www, f"http://127.0.0.1:{server.server_port}"
-    server.shutdown()
+    site = "https://schemas.example.org"
+
+    def download(url):
+        found = urllib.parse.urlparse(url)
+        path = www / found.path.lstrip("/")
+        if found.netloc != "schemas.example.org" or not path.is_file():
+            raise schema_import.Problem(f"could not fetch {url}: HTTP Error 404: Not Found")
+        return path.read_bytes()
+
+    monkeypatch.setattr(schema_import, "download", download)
+    return www, site
+
+
+def test_a_failed_download_is_a_problem():
+    with pytest.raises(schema_import.Problem, match="could not fetch"):
+        schema_import.download("http:///no-host")  # fails at once, without the network
 
 
 def test_a_url_brings_its_imports_at_any_depth(schema_dir, served):
