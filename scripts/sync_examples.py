@@ -7,7 +7,8 @@ Each example's answers are rendered with the template as it is in the
 working tree. Every file the render writes is copied into the example,
 except the files the Mech owns (OWN below), which are left alone. Those the
 template changed since the last sync (_commit) are listed, to merge by hand
-where the change applies. The answers file takes the render's answers, so a new
+where the change applies. A file the template wrote at the last sync and no
+longer writes is removed. The answers file takes the render's answers, so a new
 question gets its default, and _commit becomes the template commit at the
 sync (HEAD; commit the template change first for an exact record).
 tests/test_examples.py fails until this has run.
@@ -75,14 +76,21 @@ def render(name: str, dest: Path, ref: str = "HEAD") -> Path:
     return dest
 
 
-def changed_since(name: str, ref: str, fresh: Path, rels: list[str], tmp: Path) -> list[str] | None:
-    """Which of RELS the template has changed since REF, or None if REF cannot be rendered."""
+def files(root: Path) -> set[str]:
+    return {p.relative_to(root).as_posix() for p in root.rglob("*") if p.is_file()} - {ANSWERS}
+
+
+def since(name: str, ref: str, fresh: Path, owned: list[str],
+          tmp: Path) -> tuple[list[str], list[str]] | None:
+    """(Owned files the template changed since REF, files it wrote then and writes no
+    longer), or None if REF cannot be rendered."""
     try:
         before = render(name, tmp / "before", ref)
     except Exception:  # an unknown ref, or a template too old for today's answers
         return None
-    return [rel for rel in rels
-            if not (before / rel).is_file() or (before / rel).read_bytes() != (fresh / rel).read_bytes()]
+    changed = [rel for rel in owned
+               if not (before / rel).is_file() or (before / rel).read_bytes() != (fresh / rel).read_bytes()]
+    return changed, sorted(files(before) - files(fresh) - set(OWN[name]))
 
 
 def compare(name: str, fresh: Path) -> tuple[list[str], list[str]]:
@@ -105,7 +113,11 @@ def sync(name: str) -> None:
         fresh = render(name, Path(tmp) / name)
         drifted, owned = compare(name, fresh)
         last = yaml.safe_load((mech / ANSWERS).read_text(encoding="utf-8"))["_commit"]
-        touched = changed_since(name, str(last), fresh, owned, Path(tmp))
+        found = since(name, str(last), fresh, owned, Path(tmp))
+        touched, dropped = found if found else (None, [])
+        dropped = [rel for rel in dropped if (mech / rel).is_file()]
+        for rel in dropped:
+            (mech / rel).unlink()
         for rel in drifted:
             (mech / rel).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(fresh / rel, mech / rel)
@@ -120,6 +132,8 @@ def sync(name: str) -> None:
         (mech / ANSWERS).write_text(text, encoding="utf-8")
     print(f"example/{name}: {len(drifted)} file(s) copied from the template" +
           "".join(f"\n  {rel}" for rel in drifted))
+    if dropped:
+        print(f"  removed, no longer written by the template: {', '.join(dropped)}")
     if touched is None:
         print(f"  could not render the last sync ({last}); check the owned files by hand: {', '.join(owned)}")
     elif touched:

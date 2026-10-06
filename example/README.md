@@ -14,7 +14,7 @@ Site and record browser: https://monarch-initiative.github.io/mechmaker/example/
 | Path | What it is |
 |---|---|
 | `survey-brief.md` | The domain survey, from the `survey-domain` skill |
-| `answers.yml` | The Copier answers the Mech was generated from |
+| `answers.yml` | The Copier answers the Mech was first generated from; its current answers are in `goatmech/.copier-answers.yml` |
 | `goatmech/` | The Mech: template output, then the design, then three curated records |
 
 ## IngestMech: a Mech converted from a knowledge base
@@ -28,7 +28,7 @@ Site and record browser: https://monarch-initiative.github.io/mechmaker/example/
 | Path | What it is |
 |---|---|
 | `ingest-survey-brief.md` | The survey of the existing knowledge base and the domain |
-| `ingest-answers.yml` | The Copier answers the Mech was generated from |
+| `ingest-answers.yml` | The Copier answers the Mech was first generated from; its current answers are in `ingestmech/.copier-answers.yml` |
 | `ingestmech/` | The Mech: template output, the design, the conversion script, three converted and curated records |
 
 Both are examples. Neither is a published knowledge base, and their records
