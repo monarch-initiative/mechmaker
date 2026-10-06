@@ -319,7 +319,9 @@ def export(
     for old in out_dir.iterdir():
         if old.is_file():
             old.unlink()
-    records = [(p, load(p) or {}) for p in (iter_records() if paths is None else paths)]
+    # A file that is not a mapping is not a record; just validate reports it.
+    loaded = [(p, load(p)) for p in (iter_records() if paths is None else paths)]
+    records = [(p, d) for p, d in loaded if isinstance(d, dict)]
     n = len(records)
     seen: dict[str, Path] = {}
     for p, d in records:

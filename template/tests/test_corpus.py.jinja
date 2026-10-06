@@ -14,6 +14,11 @@ def test_record_is_valid(path):
     assert validate.validate_paths([path]) == {}
 
 
+def test_records_do_not_clash():
+    """Ids and filenames across records: checks no single record can fail."""
+    assert validate.validate_paths(RECORDS) == {}
+
+
 def test_history_is_valid():
     if not paths.HISTORY_DIR.exists():
         pytest.skip("no history/")
