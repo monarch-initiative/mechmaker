@@ -5,9 +5,9 @@
 
 Each example's answers are rendered with the template as it is in the
 working tree. Every file the render writes is copied into the example,
-except the files the Mech owns (OWN below), which are left alone and listed
-when the template's version differs: merge those by hand if the template
-change touched them. The answers file takes the render's answers, so a new
+except the files the Mech owns (OWN below), which are left alone. Those the
+template changed since the last sync (_commit) are listed, to merge by hand
+where the change applies. The answers file takes the render's answers, so a new
 question gets its default, and _commit becomes the template commit at the
 sync (HEAD; commit the template change first for an exact record).
 tests/test_examples.py fails until this has run.
@@ -67,12 +67,22 @@ def answers(path: Path) -> dict:
     return {k: v for k, v in data.items() if not k.startswith("_")}
 
 
-def render(name: str, dest: Path) -> Path:
-    """The example's answers, rendered with the working tree's template."""
+def render(name: str, dest: Path, ref: str = "HEAD") -> Path:
+    """The example's answers, rendered with the template at REF (HEAD: the working tree)."""
     # vcs_ref="HEAD" with a dirty tree renders the working tree, not a release tag.
     copier.run_copy(str(ROOT), str(dest), data=answers(EXAMPLES / name / ANSWERS), defaults=True,
-                    unsafe=True, quiet=True, vcs_ref="HEAD")
+                    unsafe=True, quiet=True, vcs_ref=ref)
     return dest
+
+
+def changed_since(name: str, ref: str, fresh: Path, rels: list[str], tmp: Path) -> list[str] | None:
+    """Which of RELS the template has changed since REF, or None if REF cannot be rendered."""
+    try:
+        before = render(name, tmp / "before", ref)
+    except Exception:  # an unknown ref, or a template too old for today's answers
+        return None
+    return [rel for rel in rels
+            if not (before / rel).is_file() or (before / rel).read_bytes() != (fresh / rel).read_bytes()]
 
 
 def compare(name: str, fresh: Path) -> tuple[list[str], list[str]]:
@@ -94,6 +104,8 @@ def sync(name: str) -> None:
     with tempfile.TemporaryDirectory() as tmp:
         fresh = render(name, Path(tmp) / name)
         drifted, owned = compare(name, fresh)
+        last = yaml.safe_load((mech / ANSWERS).read_text(encoding="utf-8"))["_commit"]
+        touched = changed_since(name, str(last), fresh, owned, Path(tmp))
         for rel in drifted:
             (mech / rel).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(fresh / rel, mech / rel)
@@ -108,9 +120,11 @@ def sync(name: str) -> None:
         (mech / ANSWERS).write_text(text, encoding="utf-8")
     print(f"example/{name}: {len(drifted)} file(s) copied from the template" +
           "".join(f"\n  {rel}" for rel in drifted))
-    if owned:
-        print(f"  owned, left alone (the template's version differs; merge by hand if needed): "
-              f"{', '.join(owned)}")
+    if touched is None:
+        print(f"  could not render the last sync ({last}); check the owned files by hand: {', '.join(owned)}")
+    elif touched:
+        print(f"  owned files the template changed since {last}; merge by hand where it applies: "
+              f"{', '.join(touched)}")
 
 
 def main(argv: list[str] | None = None) -> int:
