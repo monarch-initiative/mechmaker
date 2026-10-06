@@ -613,7 +613,8 @@ def test_mock_research_run(tmp_path):
     env = {k: v for k, v in os.environ.items() if k != "VIRTUAL_ENV"}
     subprocess.run(["git", "init", "-q"], cwd=dest, check=True)
     subprocess.run(["just", "install"], cwd=dest, check=True, env=env, capture_output=True)
-    subprocess.run(["just", "new-record", "--id", "ENVO:00000051", "--name", "Hot spring", "--apply"],
+    subprocess.run(["just", "new-record", "--id", "ENVO:00000051", "--name", "Hot spring",
+                    "--term-label", "hot spring", "--apply"],
                    cwd=dest, check=True, env=env, capture_output=True)
     run = subprocess.run(["just", "research", "mock", "hot_spring"], cwd=dest, capture_output=True, text=True,
                          env={**env, "ENABLE_MOCK_PROVIDER": "true"})

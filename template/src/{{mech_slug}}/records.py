@@ -16,7 +16,7 @@ from pathlib import Path
 
 import yaml
 
-from .paths import RECORD_NOUN, RECORDS_DIR, REPO_ROOT
+from .paths import IDENTITY_PREFIX, RECORD_NOUN, RECORDS_DIR, REPO_ROOT
 from .validate import evidence_errors, rule_errors, schema_errors, slugify
 
 
@@ -90,6 +90,8 @@ def main(argv: list[str] | None = None) -> int:
     new.add_argument("--id", required=True, help="CURIE for the record")
     new.add_argument("--name", required=True)
     new.add_argument("--description")
+    new.add_argument("--term-label", help="the ontology's label for --id, from `just term-info`; "
+                     "required when --id is an ontology term")
     new.add_argument("--curator", default="claude-code")
     new.add_argument("--model", help="model id when an agent drafts the record")
     new.add_argument("--human", action="store_true", help="a person, not a model, wrote it")
@@ -100,6 +102,12 @@ def main(argv: list[str] | None = None) -> int:
     data: dict = {"id": args.id, "name": args.name}
     if args.description:
         data["description"] = args.description
+    if IDENTITY_PREFIX and args.id.startswith(f"{IDENTITY_PREFIX}:"):
+        if not args.term_label:
+            print(f"ERROR: {args.id} has the {IDENTITY_PREFIX} prefix. Pass --term-label with its label: "
+                  f"`just term-info {IDENTITY_PREFIX} {args.id}`")
+            return 1
+        data["record_term"] = {"id": args.id, "label": args.term_label}
     data["status"] = "DRAFT"
     data["creation_date"] = today
     data["updated_date"] = today

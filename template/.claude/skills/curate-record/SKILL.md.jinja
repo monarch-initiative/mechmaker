@@ -29,6 +29,16 @@ never guess it:
 just search-term {{ identity_adapter }} "<name>"
 just term-info {{ identity_adapter }} <CURIE>
 ```
+
+A record keyed by a term names it again in `record_term`, with the
+ontology's label. `new-record` writes it from `--term-label`, and
+`just validate` refuses a {{ identity_prefix }} id without it. The term
+check reaches `{{ identity_root }}` through `record_term`, so this is what
+holds the id to the root:
+
+```bash
+just new-record --id <CURIE> --name "<name>" --term-label "<label from term-info>" --apply
+```
 {%- if identity_direct_only %}
 
 A record's term is a direct child of `{{ identity_root }}`: not the root,

@@ -66,7 +66,9 @@ Run `survey-domain` with the knowledge base as the main source. Decide:
 - **The id.** An ontology CURIE if one keys the entity, else minted in the
   Mech's namespace. The source's own identifier is kept: as the minted id
   when it is stable and unique, or in a slot the schema adds for it.
-  Never as a synonym. Synonyms are names.
+  Never as a synonym. Synonyms are names. A record keyed by an ontology
+  CURIE names it again in `record_term`, with the ontology's label; the
+  Mech refuses the record without it.
 - **Field by field.** Each source field goes to a section, a slot, or
   nowhere, and the brief says which. A field with no
   home is a design question now, and costly later.

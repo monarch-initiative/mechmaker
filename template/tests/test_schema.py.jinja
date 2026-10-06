@@ -102,6 +102,20 @@ def test_edge_to_missing_node_is_caught(example):
     assert any("nowhere" in e for e in rule_errors(bad))
 
 {% endif %}
+{% if identity_prefix %}
+def test_an_ontology_id_names_its_term_in_record_term(example):
+    """The term check reaches the identity root through record_term only."""
+    keyed = copy.deepcopy(example)
+    keyed["id"] = "{{ identity_root }}"
+    assert any("record_term must name it" in e for e in rule_errors(keyed))
+    keyed["record_term"] = {"id": "{{ identity_prefix }}:0", "label": "another term"}
+    assert any("is not the record's id" in e for e in rule_errors(keyed))
+    keyed["record_term"]["id"] = keyed["id"]
+    assert rule_errors(keyed) == []
+    assert rule_errors(example) == []  # a minted id needs no record_term
+
+
+{% endif %}
 def test_malformed_items_are_reported_not_crashed_on(example):
     bad = copy.deepcopy(example)
     bad["status"] = "REVIEWED"

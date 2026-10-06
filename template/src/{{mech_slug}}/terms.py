@@ -101,7 +101,10 @@ def check_identity(paths: list) -> int:
         return 0
     root, direct, include_self = rule
     if not direct and include_self:
-        print(f"{IDENTITY_ENUM} admits {root} and everything under it; the term check covers that.")
+        # validate.py requires record_term.id to equal an id with the root's
+        # prefix, and the term check holds record_term to the enum.
+        print(f"{IDENTITY_ENUM} admits {root} and everything under it; the term check covers that "
+              "through record_term, which must name the record's id.")
         return 0
     prefix = root.split(":", 1)[0] + ":"
     bad = checked = 0
