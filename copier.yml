@@ -114,6 +114,8 @@ identity_prefix:
   validator: >-
     {% if identity_prefix and not (identity_prefix | regex_search('^[A-Za-z][A-Za-z0-9_]*$')) %}
     A prefix is letters, digits and underscores, e.g. MONDO.
+    {% elif identity_prefix == mech_slug %}
+    {{ mech_slug }} is the Mech's own namespace. Leave this empty to mint every id in it.
     {% endif %}
 
 identity_root:
@@ -468,6 +470,8 @@ extra_ontologies:
     Item {{ loop.index }}: the root {{ x.root }} must carry the prefix {{ x.prefix }}.
     {%- elif not ((x.noun | string) | regex_search('^[A-Za-z][A-Za-z0-9 ]*$')) -%}
     Item {{ loop.index }}: the noun is letters, digits and spaces, e.g. "trait".
+    {%- elif (x.prefix | string) == mech_slug -%}
+    Item {{ loop.index }}: {{ mech_slug }} is the Mech's own namespace, not an ontology.
     {%- elif (x.prefix | string) in seen.prefixes -%}
     Item {{ loop.index }}: the prefix {{ x.prefix }} is already bound by a picked ontology or an earlier extra.
     {%- elif slot in seen.slots -%}

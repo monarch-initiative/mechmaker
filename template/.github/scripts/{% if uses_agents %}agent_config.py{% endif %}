@@ -7,6 +7,7 @@ up running a model nobody chose.
 """
 
 import argparse
+import re
 import sys
 from pathlib import Path
 
@@ -28,6 +29,10 @@ def main() -> int:
     turns = wf.get("max_turns") or cfg.get("default_max_turns") or 40
     if not model:
         print(f"{CONFIG} names no model for {args.workflow} and has no default_model", file=sys.stderr)
+        return 1
+    # The model goes into the action's command line and $GITHUB_OUTPUT: one word, no spaces or newlines.
+    if not re.fullmatch(r"[A-Za-z0-9._:@/\[\]-]+", str(model)):
+        print(f"not a model id: {model!r}", file=sys.stderr)
         return 1
     print(f"model={model}")
     print(f"max-turns={int(turns)}")
