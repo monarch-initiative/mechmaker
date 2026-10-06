@@ -701,6 +701,17 @@ def registry_front_matter(text: str) -> dict:
         return {}
 
 
+def is_converted(record: dict) -> bool:
+    """Whether the record was made by the Mech's conversion helper (`just convert`)."""
+    history = record.get("curation_history")
+    first = history[0] if isinstance(history, list) and history else {}
+    return (
+        isinstance(first, dict)
+        and first.get("action") == "CREATE"
+        and str(first.get("description", "")).startswith("Converted from ")
+    )
+
+
 def from_steps(m: Mech) -> list[Item]:
     """What make-mech promises beyond the answers: a design, seeds, a registry entry."""
     out: list[Item] = []
@@ -765,11 +776,19 @@ def from_steps(m: Mech) -> list[Item]:
             "curate seeds with the Mech's curate-record skill: one typical, one hard, one at the edge",
         )
     )
-    if recs:
-        statuses = {}
-        for r in recs:
-            data = m._yaml(r) or {}
-            statuses[data.get("status", "unset")] = statuses.get(data.get("status", "unset"), 0) + 1
+    # A converted record starts DRAFT on purpose and becomes PROPOSED once
+    # curated (convert-knowledge-base step 6). That DRAFT is work left, not a fault.
+    statuses: dict[str, int] = {}
+    converted: dict[str, int] = {}
+    for r in recs:
+        data = m._yaml(r) or {}
+        status = data.get("status", "unset")
+        tally = converted if is_converted(data) else statuses
+        tally[status] = tally.get(status, 0) + 1
+    drafts = converted.pop("DRAFT", 0)
+    for k, v in converted.items():
+        statuses[k] = statuses.get(k, 0) + v
+    if statuses:
         bad = {k: v for k, v in statuses.items() if k not in ("PROPOSED", "REVIEWED")}
         out.append(
             item(
@@ -778,6 +797,19 @@ def from_steps(m: Mech) -> list[Item]:
                 not bad,
                 ", ".join(f"{v} {k}" for k, v in sorted(statuses.items())),
                 "an agent-drafted record is PROPOSED",
+            )
+        )
+    if drafts or converted:
+        total = drafts + sum(converted.values())
+        out.append(
+            item(
+                "Converted records curated to PROPOSED",
+                "convert-knowledge-base step 6",
+                not drafts,
+                f"{drafts} of {total} converted record(s) still DRAFT",
+                "curate each with the Mech's curate-record; a record whose sections are filled "
+                "or explained is PROPOSED",
+                status=CHECK if drafts else None,
             )
         )
 
