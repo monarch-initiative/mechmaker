@@ -51,7 +51,7 @@ def title_for(reference: str) -> str | None:
 def fill(path: Path, event: dict) -> tuple[str, str, int, list[str], list[str]]:
     """(old text, new text, titles filled, references not cached, problems). Writes nothing."""
     y = _yaml()
-    old = path.read_text()
+    old = path.read_text(encoding="utf-8")
     data = y.load(old)
     filled, uncached = 0, []
     for _, item in _items(data):
@@ -109,7 +109,7 @@ def main(argv: list[str] | None = None) -> int:
             continue
         total += filled
         if args.apply:
-            path.write_text(new)
+            path.write_text(new, encoding="utf-8")
             print(f"{rel}: filled {filled} title(s)")
         else:
             sys.stdout.writelines(difflib.unified_diff(

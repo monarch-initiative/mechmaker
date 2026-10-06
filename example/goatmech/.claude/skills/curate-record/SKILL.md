@@ -29,6 +29,16 @@ just search-term ols:vbo "<name>"
 just term-info ols:vbo <CURIE>
 ```
 
+A record keyed by a term names it again in `record_term`, with the
+ontology's label. `new-record` writes it from `--term-label`, and
+`just validate` refuses a VBO id without it. The term
+check reaches `VBO:0400025` through `record_term`, so this is what
+holds the id to the root:
+
+```bash
+just new-record --id <CURIE> --name "<name>" --term-label "<label from term-info>" --apply
+```
+
 A record's term is a direct child of `VBO:0400025`: not the root,
 and not a term below a child. Check it before scaffolding:
 

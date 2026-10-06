@@ -2,9 +2,9 @@
 
 from pathlib import Path
 
-from ingestmech.convert import Entry, Skip, convert, history_record
-from ingestmech.history import HISTORY_SCHEMA_PATH
-from ingestmech.validate import load, schema_errors
+from goatmech.convert import Entry, Skip, convert, history_record
+from goatmech.history import HISTORY_SCHEMA_PATH
+from goatmech.validate import load, schema_errors
 
 # Entries start from the Mech's own example record, so the tests keep passing
 # when the schema gains required fields.

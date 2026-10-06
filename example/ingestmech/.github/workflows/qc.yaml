@@ -64,7 +64,7 @@ jobs:
             echo "scope-override label present."
             exit 0
           fi
-          allowed="^(${RECORDS_DIR}/|history/|cache/|references_cache/|pages/|curation/)"
+          allowed="^(${RECORDS_DIR}/|history/|cache/|references_cache/|curation/|research/)"
           outside=$(grep -Ev "$allowed" <<<"$files" || true)
           if [ -n "$outside" ]; then
             echo "::error title=Curation PR touches other files::Split these into another PR, or add the scope-override label:"

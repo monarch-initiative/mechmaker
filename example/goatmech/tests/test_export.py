@@ -64,7 +64,7 @@ def test_nested_rows_name_their_field(tmp_path):
 
 def test_flat_rows_keep_nested_values_as_json(tmp_path):
     export.export({"formats": ["tsv"], "tabular_layout": "flat"}, [EXAMPLE], tmp_path)
-    text = (tmp_path / f"{SLUG}-records.tsv").read_text()
+    text = (tmp_path / f"{SLUG}-records.tsv").read_text(encoding="utf-8")
     rows = list(csv.DictReader(io.StringIO(text), delimiter="\t"))
     assert len(rows) == 1
     assert rows[0]["curation_history"].startswith("[{")
@@ -84,7 +84,7 @@ def test_undeclared_prefix_is_reported(tmp_path):
 
 def test_settings_are_checked(tmp_path, monkeypatch):
     bad = tmp_path / "export.yaml"
-    bad.write_text("formats: [parquet]\n")
+    bad.write_text("formats: [parquet]\n", encoding="utf-8")
     monkeypatch.setattr(export, "SETTINGS", bad)
     with pytest.raises(SystemExit):
         export.settings()
@@ -145,7 +145,7 @@ def reference_schema(tmp_path):
             "parent": {"range": RECORD_CLASS}, "kin": {"range": RECORD_CLASS, "multivalued": True}}}},
     }
     path = tmp_path / "refs.yaml"
-    path.write_text(_yaml.safe_dump(schema))
+    path.write_text(_yaml.safe_dump(schema), encoding="utf-8")
     return SchemaView(str(path))
 
 
@@ -163,9 +163,22 @@ def test_references_by_id_go_in_their_columns(tmp_path):
 
 def test_two_records_with_one_id_are_refused(tmp_path):
     twin = tmp_path / "twin.yaml"
-    twin.write_text(EXAMPLE.read_text())
+    twin.write_text(EXAMPLE.read_text(encoding="utf-8"), encoding="utf-8")
     with pytest.raises(SystemExit, match="have the same id"):
         export.export({"formats": ["json"], "tabular_layout": "per_class"}, [EXAMPLE, twin], tmp_path / "out")
+
+
+def test_unicode_line_separators_keep_one_record_per_line(tmp_path):
+    # json.dumps leaves U+2028, U+2029 and U+0085 raw; they are not line breaks in JSON Lines.
+    import yaml as _yaml
+
+    data = _yaml.safe_load(EXAMPLE.read_text(encoding="utf-8"))
+    data["description"] = "one\u2028two\u2029three\u0085four"
+    record = tmp_path / "sep.yaml"
+    record.write_text(_yaml.safe_dump(data, sort_keys=False, allow_unicode=True), encoding="utf-8")
+    fmts = ["json"] + [f for f in INSTALLED if f.startswith("kgx")]
+    _, problems = export.export({"formats": fmts, "tabular_layout": "per_class"}, [record], tmp_path / "out")
+    assert problems == []
 
 
 def test_kgx_without_biolink_model_says_what_to_install(tmp_path, monkeypatch):

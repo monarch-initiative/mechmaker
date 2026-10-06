@@ -6,7 +6,7 @@ from goatmech import research
 
 
 def test_shipped_prompt_is_fillable():
-    errors, _ = research.template_problems(research.TEMPLATE.read_text())
+    errors, _ = research.template_problems(research.TEMPLATE.read_text(encoding="utf-8"))
     assert errors == []
 
 

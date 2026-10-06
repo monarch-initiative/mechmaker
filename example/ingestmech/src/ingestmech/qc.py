@@ -23,6 +23,7 @@ OFFLINE = [
 ]
 NETWORK = [
     ("records: ontology terms", ["just", "validate-terms-all"]),
+    ("records: identity", ["just", "check-identity"]),
     ("records: verbatim quotes", ["just", "validate-references-all"]),
 ]
 
@@ -46,8 +47,6 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     steps = list(OFFLINE)
-    if (PACKAGE_DIR / "render.py").exists():
-        steps.append(("site is current", ["just", "render-check"]))
     steps.append(("site settings", ["just", "site-check"]))
     if (PACKAGE_DIR / "research.py").exists():
         steps.append(("research prompt", ["just", "research-check"]))

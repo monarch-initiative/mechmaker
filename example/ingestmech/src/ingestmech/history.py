@@ -178,7 +178,7 @@ def main(argv: list[str] | None = None) -> int:
     if out.exists():
         print(f"ERROR: {out} exists; history records are never overwritten")
         return 1
-    out.write_text(text)
+    out.write_text(text, encoding="utf-8")
     print(out.relative_to(REPO_ROOT))
     return 0
 

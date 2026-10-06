@@ -58,7 +58,7 @@ def test_passwords_are_masked_and_variables_required(monkeypatch):
 
 def test_unknown_target_is_rejected(tmp_path, monkeypatch):
     bad = tmp_path / "load.yaml"
-    bad.write_text("targets:\n  solr: http://localhost:8983/solr\n")
+    bad.write_text("targets:\n  solr: http://localhost:8983/solr\n", encoding="utf-8")
     monkeypatch.setattr(load, "SETTINGS", bad)
     with pytest.raises(SystemExit):
         load.settings()
@@ -87,7 +87,7 @@ def reference_schema(tmp_path):
             "parent": {"range": RECORD_CLASS}, "kin": {"range": RECORD_CLASS, "multivalued": True}}}},
     }
     path = tmp_path / "refs.yaml"
-    path.write_text(_yaml.safe_dump(schema))
+    path.write_text(_yaml.safe_dump(schema), encoding="utf-8")
     return SchemaView(str(path))
 
 
@@ -101,6 +101,60 @@ def test_references_by_id_become_edges(tmp_path):
     assert {(e["subject"], e["predicate"], e["object"]) for e in edges} == {
         ("ex:b", "parent", "ex:a"), ("ex:b", "kin", "ex:a")}
     assert next(n for n in nodes if n["id"] == "ex:a")["name"] == "A"  # the stub became the record
+
+
+def term_schema(tmp_path):
+    """A record class that holds a Term nested (`term`) or refers to one by id (`see`)."""
+    import yaml as _yaml
+    from linkml_runtime.utils.schemaview import SchemaView
+
+    schema = {
+        "id": "https://example.org/terms", "name": "terms", "default_prefix": "ex", "default_range": "string",
+        "prefixes": {"linkml": "https://w3id.org/linkml/", "ex": "https://example.org/terms/"},
+        "imports": ["linkml:types"],
+        "classes": {
+            RECORD_CLASS: {"tree_root": True, "attributes": {
+                "id": {"identifier": True}, "name": {},
+                "term": {"range": "Term", "inlined": True}, "see": {"range": "Term"}}},
+            "Term": {"attributes": {"id": {"identifier": True}, "label": {}}},
+        },
+    }
+    path = tmp_path / "terms.yaml"
+    path.write_text(_yaml.safe_dump(schema), encoding="utf-8")
+    return SchemaView(str(path))
+
+
+def both_orders(sv, records):
+    """The graph from the records as given and reversed, sorted so they compare."""
+    out = []
+    for order in (records, records[::-1]):
+        nodes, edges = load.graph(sv, order)
+        out.append((sorted(nodes, key=lambda n: n["id"]),
+                    sorted((e["subject"], e["predicate"], e["object"]) for e in edges)))
+    return out
+
+
+def test_a_record_id_bound_as_a_term_elsewhere_does_not_depend_on_file_order(tmp_path):
+    a = {"id": "ex:1", "name": "A"}
+    b = {"id": "ex:2", "name": "B", "term": {"id": "ex:1", "label": "one"}}
+    first, second = both_orders(term_schema(tmp_path), [a, b])
+    assert first == second
+    nodes, edges = first
+    by_id = {n["id"]: n for n in nodes}
+    assert by_id["ex:1"][load.LABEL] == RECORD_CLASS
+    assert by_id["ex:1"]["name"] == "A"
+    assert by_id["ex:1 (Term)"] == {"id": "ex:1 (Term)", load.LABEL: "Term", "curie": "ex:1", "label": "one"}
+    assert ("ex:2", "term", "ex:1 (Term)") in edges
+
+
+def test_a_stub_is_filled_when_its_object_is_met_later(tmp_path):
+    a = {"id": "ex:a", "name": "A", "see": "T:1"}
+    b = {"id": "ex:b", "name": "B", "term": {"id": "T:1", "label": "the term"}}
+    first, second = both_orders(term_schema(tmp_path), [a, b])
+    assert first == second
+    nodes, edges = first
+    assert [n for n in nodes if n["id"] == "T:1"] == [{"id": "T:1", load.LABEL: "Term", "label": "the term"}]
+    assert {("ex:a", "see", "T:1"), ("ex:b", "term", "T:1")} <= set(edges)
 
 
 def test_two_records_with_one_id_are_refused():

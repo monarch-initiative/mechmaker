@@ -57,7 +57,7 @@ EDGE_FIELDS = ["id", "subject", "predicate", "object", "primary_knowledge_source
 
 
 def settings() -> dict:
-    return resolve((yaml.safe_load(SETTINGS.read_text()) if SETTINGS.exists() else {}) or {})
+    return resolve((yaml.safe_load(SETTINGS.read_text(encoding="utf-8")) if SETTINGS.exists() else {}) or {})
 
 
 def resolve(data: dict) -> dict:
@@ -248,7 +248,7 @@ def write(nodes: list[dict], edges: list[dict], out_dir: Path, stem: str) -> lis
     for kind, rows, first in (("nodes", nodes, node_first), ("edges", edges, EDGE_FIELDS)):
         jl = out_dir / f"{stem}_{kind}.jsonl"
         jl.write_text("".join(json.dumps({k: v for k, v in r.items() if v not in (None, [], "")},
-                                         ensure_ascii=False) + "\n" for r in rows))
+                                         ensure_ascii=False) + "\n" for r in rows), encoding="utf-8")
         cols = first + sorted({k for r in rows for k in r} - set(first))
         tsv = out_dir / f"{stem}_{kind}.tsv"
         with tsv.open("w", newline="", encoding="utf-8") as fh:
@@ -319,6 +319,7 @@ def export(fmt: str, sv, records: list[dict], out_dir: Path) -> tuple[list[Path]
     stem = f"{SLUG}-{fmt}"
     files = write(nodes, edges, out_dir, stem)
     for f, want in ((files[0], len(nodes)), (files[2], len(edges))):
-        if len(f.read_text().splitlines()) != want:
+        # Count "\n" only: splitlines() also splits on U+2028 and kin, left raw by json.dumps.
+        if f.read_text(encoding="utf-8").count("\n") != want:
             problems.append(f"{f.name}: does not hold {want} line(s)")
     return files, problems, [f"{fmt} (Biolink {biolink.version}): {w}" for w in warnings] if biolink else []

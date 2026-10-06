@@ -31,5 +31,5 @@ should change only records and their history and caches.
 
 ## Agents
 
-Mention `@claude` in an issue or pull request to ask the agent for help, if
-that workflow is on. Only people with write access can summon it.
+Mention `@claude` in an issue or pull request to ask the agent for help.
+Only people with write access can summon it.

@@ -19,7 +19,7 @@ off, with what it needs. Read it first.
 Workflows are Copier answers, so their files stay in step with the template:
 
 ```bash
-uvx copier update --skip-answered --data 'workflows=["sweep","docs","comment-guard","review"]'
+uvx copier update --skip-answered --defaults --data 'workflows=["sweep","docs","comment-guard","review"]'
 ```
 
 List every workflow to keep; the list replaces the old one. Copier writes
@@ -54,29 +54,16 @@ repository. Ask the person before doing any of them.
 
 ## Adapting to the domain
 
-- **Prompts** are `.github/prompts/<workflow>.md`. Put the domain's rules
-  there: what counts as a record, what a good source is, what reviewers
-  should look for. Keep the "untrusted content" paragraph.
-- **Models and turn budgets** are `.github/agent-config.yaml`.
-- **Literature scan** terms are `conf/literature_scan.yaml`. Run
-  `just literature-scan --days 30` and read `build/literature/packet.md`:
-  most hits should be about the domain. Tighten `context_terms` until they
-  are.
+- **Prompts and models** come with the first agent workflow: turning one on
+  adds `.github/prompts/` and `.github/agent-config.yaml`.
+- **Literature scan** is off for this Mech. Turning on the `literature-scan`
+  workflow adds its terms file, `conf/literature_scan.yaml`, and its recipe.
 - **Compliance weights** are `WEIGHTS` in `src/ingestmech/compliance.py`.
 
 Changes to prompts take effect from the default branch, so merge them before
 judging a run.
 
 ## When a workflow fails
-
-The last step of every agent run, `Check the agent run`, names the cause:
-
-| It says | Do |
-|---|---|
-| ran out of turns | raise `max_turns` in `.github/agent-config.yaml`, or narrow the prompt |
-| account out of credit | top up the account behind `ANTHROPIC_API_KEY` |
-| usage limit reached | the subscription token is spent; set `ANTHROPIC_API_KEY` |
-| did not run / errored | read the log; common causes are a retired model name or a missing secret |
 
 For `qc.yaml`, run the failing recipe locally: `just qc`, or
 `just validate-changed <files>`. A term check that says the service is

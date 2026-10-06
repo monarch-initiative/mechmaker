@@ -3,11 +3,11 @@
 import pytest
 import yaml
 
-from goatmech import terms
+from ingestmech import terms
 
 
 def test_the_rule_comes_from_the_schema():
-    assert terms.identity_rule() == ("VBO:0400025", True, False)
+    assert terms.identity_rule() is None  # records mint their ids
 
 
 @pytest.fixture
@@ -29,7 +29,7 @@ def direct_only(monkeypatch, tree):
 
 def test_direct_children_pass_and_deeper_terms_fail(monkeypatch, records, capsys):
     direct_only(monkeypatch, {"X:2": ["X:1"], "X:3": ["X:2"]})
-    assert terms.check_identity(records("X:2", "goatmech:minted")) == 0
+    assert terms.check_identity(records("X:2", "ingestmech:minted")) == 0
     assert terms.check_identity(records("X:3")) == 1
     assert "not a direct child of X:1; its parents: X:2" in capsys.readouterr().out
 
