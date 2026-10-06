@@ -47,15 +47,16 @@ Then, in the Mech:
 
 ```bash
 just site-check     # validates the file and reports contrast
-just render         # rebuilds the browser in pages/; commit it
 just docs-serve     # look at both at http://127.0.0.1:8000
 ```
 
-`just qc` runs `site-check`, and fails if `pages/` is stale.
+`just qc` runs `site-check` and builds the site. The browser is rendered
+fresh on every docs build; `pages/`, from `just render`, is a local copy and
+is not committed.
 
 A Mech made with `include_site: false` has no browser. Its
-`conf/site.yaml` holds only `palette`, `accent` and `theme`, and it has no
-`just render`: run `just site-check`, then `just docs-serve`.
+`conf/site.yaml` holds only `palette`, `accent` and `theme`. Run
+`just site-check`, then `just docs-serve`.
 
 ## How a record page is laid out
 

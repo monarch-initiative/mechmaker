@@ -110,8 +110,8 @@ def generate() -> None:
     records = DOCS / "records"
     shutil.rmtree(records, ignore_errors=True)
     if (PACKAGE_DIR / "render.py").exists():
-        # Render the browser here rather than copy pages/: it then exists
-        # even before the first record, and always matches the records.
+        # pages/ is a local preview and not committed. Rendering here means the
+        # browser exists even before the first record, and always matches them.
         from .render import build as render_browser
 
         for path, text in render_browser().items():
