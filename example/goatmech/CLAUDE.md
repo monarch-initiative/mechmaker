@@ -29,7 +29,7 @@ just install           # uv sync
 just qc                # the offline gate CI blocks on
 just qc-full           # qc plus terms and quotes for every record (network)
 just validate FILE     # closed schema, ontology terms, verbatim quotes
-just new-record ...    # scaffold a record (dry-run unless --apply); a VBO id needs --term-label
+just new-record ...    # scaffold a record (dry-run unless --apply); an id with the VBO prefix needs --term-label
 just import-schema SRC --record-class C   # start the schema from an existing one (dry-run unless --apply)
 just new-history ...   # scaffold a history record (dry-run unless --apply)
 just add-evidence FILE --at PLACE --ref REF --snippet "..."   # checked evidence (dry-run unless --apply)
@@ -75,8 +75,9 @@ Quote counts from `just report` or a live command, never from prose.
 - **Closed schema.** An unknown field is an error. If the schema lacks a
   place for something real, use the `extend-schema` skill. Do not stuff it
   into `notes`.
-- **An agent-drafted record is `PROPOSED`, never `REVIEWED`.** Promotion to
-  `REVIEWED` is a human decision, recorded as a human `REVIEW` event.
+- **An agent takes a record no further than `PROPOSED`.** It starts `DRAFT`
+  and becomes `PROPOSED` when complete and valid. Promotion to `REVIEWED`
+  is a human decision, recorded as a human `REVIEW` event.
 - **Record what you did.** Every change appends a `curation_history` event
   to the record, and every session adds a history record with
   `just new-history ... --apply`. Fill `--details`.

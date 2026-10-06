@@ -161,7 +161,12 @@ def source_docs(path: Path) -> list[tuple[Path, dict]]:
     def visit(p: Path) -> None:
         if p in seen:
             return
-        doc = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+        try:
+            doc = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+        except yaml.YAMLError as exc:
+            raise Problem(f"{p.name} is not valid YAML: {exc}") from exc
+        if not isinstance(doc, dict):
+            raise Problem(f"{p.name} is not a LinkML schema")
         seen[p] = doc
         for imp in local_imports(doc):
             target = (p.parent / f"{imp}.yaml").resolve()
@@ -357,6 +362,8 @@ def apply_reference(schema, docs: list[tuple[Path, dict]], record_class: str, me
     if unknown:
         raise Problem(f"the source redefines slots the Mech imports: {', '.join(unknown)}; use --mode copy")
     main = docs[0][1]
+    if not main.get("name"):
+        raise Problem(f"{docs[0][0].name} has no name, which reference mode imports it by; give it one")
     imports = schema.setdefault("imports", [])
     if main["name"] in (str(i) for i in imports):
         raise Problem(f"the Mech already imports {main['name']}")
@@ -387,6 +394,12 @@ def apply_reference(schema, docs: list[tuple[Path, dict]], record_class: str, me
             raise Problem(f"the source imports {p.name} from outside its folder ({p.parent}); reference "
                           "mode stores imports beside the Mech's schema, so use --mode copy")
         files.append((p, str(p.relative_to(base))))
+    # Stored beside the Mech's schema, a source file must not replace one of
+    # its files: the schema itself, or the vendored mech_shared and history.
+    taken = sorted(name for _, name in files if (SCHEMA_DIR / name).exists())
+    if taken:
+        raise Problem(f"the source would replace {', '.join(taken)} beside the Mech's schema; "
+                      "rename the source schema, or use --mode copy")
     return files
 
 
