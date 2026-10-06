@@ -268,6 +268,24 @@ def item(feature, asked, ok, found, fix="", status=None) -> Item:
     return Item(feature, asked, status or (DONE if ok else MISSING), found, "" if ok else fix)
 
 
+def local_file(adapter: str) -> str | None:
+    """The repository file an OAK adapter reads, or None for a service or a downloaded sqlite:obo."""
+    kind, _, path = adapter.partition(":")
+    if kind in ("simpleobo", "pronto", "obograph", "sqlite") and not adapter.startswith("sqlite:obo:"):
+        return path
+    return None
+
+
+def local_file_item(m: Mech, prefix: str, path: str, asked: str) -> Item:
+    return item(
+        f"{prefix} ontology file `{path}`",
+        asked,
+        m.exists(path),
+        "present" if m.exists(path) else "not in the repository",
+        f"copy the file to `{path}` and commit it",
+    )
+
+
 def from_answers(m: Mech) -> list[Item]:
     a = m.answers
     out: list[Item] = []
@@ -315,10 +333,13 @@ def from_answers(m: Mech) -> list[Item]:
     if prefix:
         roots = m.enum_roots("IdentityTerm") or []
         prefixes = m.schema.get("prefixes") or {}
-        ok = root in roots and prefix in prefixes
+        # validate.py and the term check reach the root through record_term (#45).
+        bound = "record_term" in m.enum_users("IdentityTerm")
+        ok = root in roots and prefix in prefixes and bound
         found = (
             f"`IdentityTerm` descends from {roots or 'nothing'}; prefix {prefix} "
-            f"{'declared' if prefix in prefixes else 'not declared'}"
+            f"{'declared' if prefix in prefixes else 'not declared'}; "
+            f"`record_term` {'binds' if bound else 'does not bind'} it"
         )
         out.append(
             item(
@@ -326,7 +347,7 @@ def from_answers(m: Mech) -> list[Item]:
                 "identity_prefix, identity_root",
                 ok,
                 found,
-                "restore the `IdentityTerm` enum and the prefix in the schema",
+                "restore the `IdentityTerm` enum, the prefix, and `record_term`'s binding in the schema",
             )
         )
         if a.get("identity_direct_only"):
@@ -386,20 +407,14 @@ def from_answers(m: Mech) -> list[Item]:
                 fix,
             )
         )
-        local = o["adapter"].split(":", 1)
-        if local[0] in ("simpleobo", "pronto", "obograph", "sqlite") and not o["adapter"].startswith(
-            "sqlite:obo:"
-        ):
-            path = local[1]
-            out.append(
-                item(
-                    f"{o['prefix']} ontology file `{path}`",
-                    f"extra_ontologies: {o['key']}",
-                    m.exists(path),
-                    "present" if m.exists(path) else "not in the repository",
-                    f"copy the file to `{path}` and commit it",
-                )
-            )
+        path = local_file(o["adapter"])
+        if path:
+            out.append(local_file_item(m, o["prefix"], path, f"extra_ontologies: {o['key']}"))
+
+    ident = local_file(str(a.get("identity_adapter") or ""))
+    picked = {local_file(o["adapter"]) for o in ontology_selection(a)}
+    if a.get("identity_prefix") and ident and ident not in picked:
+        out.append(local_file_item(m, a["identity_prefix"], ident, "identity_adapter"))
 
     if a.get("causal_graphs"):
         ok = "MechanismNode" in classes and "mechanisms" in slots
@@ -848,9 +863,11 @@ class RequestsError(ValueError):
 def load_requests(path: Path) -> list[dict]:
     """The requests file as a list of mappings, or a RequestsError that says what is wrong."""
     try:
-        data = yaml.safe_load(path.read_text())
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
     except yaml.YAMLError as exc:
         raise RequestsError(f"not valid YAML: {exc}") from exc
+    except (OSError, UnicodeDecodeError) as exc:
+        raise RequestsError(f"cannot be read: {exc}") from exc
     if isinstance(data, dict):
         if "requests" not in data:
             raise RequestsError(

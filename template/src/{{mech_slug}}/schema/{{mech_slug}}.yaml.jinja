@@ -201,7 +201,7 @@ slots:
     description: Other names in use.
   status:
     range: CurationStatusEnum
-    description: Review state. An agent-drafted record is PROPOSED, never REVIEWED.
+    description: Review state. DRAFT, then PROPOSED when complete and valid; only a person sets REVIEWED.
 {%- if identity_prefix %}
   record_term:
     range: Term

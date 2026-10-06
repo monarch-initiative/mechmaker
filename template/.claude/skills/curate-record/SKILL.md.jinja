@@ -20,6 +20,11 @@ ls {{ records_dir }}/ | grep -i <word>
 just new-record --id <CURIE> --name "<name>"            # dry run
 just new-record --id <CURIE> --name "<name>" --model <model-id> --apply
 ```
+{%- if identity_prefix %}
+
+Find the id first, below. An id with the {{ identity_prefix }} prefix also
+takes `--term-label "<its label>"`; `new-record` refuses it without one.
+{%- endif %}
 
 {% if identity_prefix -%}
 The id is the {{ identity_prefix }} CURIE when a term exists. Look it up;
@@ -32,7 +37,7 @@ just term-info {{ identity_adapter }} <CURIE>
 
 A record keyed by a term names it again in `record_term`, with the
 ontology's label. `new-record` writes it from `--term-label`, and
-`just validate` refuses a {{ identity_prefix }} id without it. The term
+`just validate` refuses an id with the {{ identity_prefix }} prefix without it. The term
 check reaches `{{ identity_root }}` through `record_term`, so this is what
 holds the id to the root:
 

@@ -186,3 +186,45 @@ def test_reference_refuses_an_import_from_a_parent_folder(schema_dir, tmp_path, 
     out = capsys.readouterr().out
     assert "outside its folder" in out and "use --mode copy" in out
     assert sorted(schema_dir.rglob("*")) == before
+
+
+def referenceable() -> dict:
+    """The source without the status slot, which reference mode refuses."""
+    source = yaml.safe_load(SOURCE.read_text(encoding="utf-8"))
+    source["classes"]["Sample"]["slots"].remove("status")
+    del source["slots"]["status"]
+    del source["enums"]
+    return source
+
+
+def test_reference_never_replaces_a_file_beside_the_schema(schema_dir, tmp_path, capsys):
+    vendored = (schema_dir / "history.yaml").read_bytes()
+    source = referenceable()
+    source["imports"].append("history")  # its own history.yaml, beside it
+    (tmp_path / "fieldwork.yaml").write_text(yaml.safe_dump(source, sort_keys=False), encoding="utf-8")
+    own = {"id": "https://example.org/history", "name": "history", "imports": ["linkml:types"]}
+    (tmp_path / "history.yaml").write_text(yaml.safe_dump(own), encoding="utf-8")
+    args = [str(tmp_path / "fieldwork.yaml"), "--record-class", "Sample",
+            "--mode", "reference", "--apply"]
+    assert schema_import.main(args) == 1
+    assert "would replace history.yaml" in capsys.readouterr().out
+    assert (schema_dir / "history.yaml").read_bytes() == vendored
+
+
+@pytest.mark.parametrize("text, said", [("classes: [", "not valid YAML"),
+                                        ("- a list\n", "not a LinkML schema")])
+def test_a_malformed_local_source_is_a_problem(schema_dir, tmp_path, capsys, text, said):
+    bad = tmp_path / "bad.yaml"
+    bad.write_text(text, encoding="utf-8")
+    assert schema_import.main([str(bad), "--record-class", "Sample"]) == 1
+    out = capsys.readouterr().out
+    assert said in out and "Nothing was written." in out
+
+
+def test_reference_needs_a_source_name(schema_dir, tmp_path, capsys):
+    source = referenceable()
+    del source["name"]
+    nameless = tmp_path / "nameless.yaml"
+    nameless.write_text(yaml.safe_dump(source, sort_keys=False), encoding="utf-8")
+    assert schema_import.main([str(nameless), "--record-class", "Sample", "--mode", "reference"]) == 1
+    assert "has no name" in capsys.readouterr().out

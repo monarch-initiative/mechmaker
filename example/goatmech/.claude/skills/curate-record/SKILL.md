@@ -21,6 +21,9 @@ just new-record --id <CURIE> --name "<name>"            # dry run
 just new-record --id <CURIE> --name "<name>" --model <model-id> --apply
 ```
 
+Find the id first, below. An id with the VBO prefix also
+takes `--term-label "<its label>"`; `new-record` refuses it without one.
+
 The id is the VBO CURIE when a term exists. Look it up;
 never guess it:
 
@@ -31,7 +34,7 @@ just term-info ols:vbo <CURIE>
 
 A record keyed by a term names it again in `record_term`, with the
 ontology's label. `new-record` writes it from `--term-label`, and
-`just validate` refuses a VBO id without it. The term
+`just validate` refuses an id with the VBO prefix without it. The term
 check reaches `VBO:0400025` through `record_term`, so this is what
 holds the id to the root:
 

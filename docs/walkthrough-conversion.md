@@ -113,7 +113,8 @@ History: history/other/convert-monarch-ingest-repositories/2026-09-30T221900Z-cl
 `just qc-full` then fetched every quoted file and checked every quote and
 term. Those checks passed. Two others failed: lint, on the new script, and
 the check that the record browser is current. Tidying the script and
-running `just render` fixed both.
+running `just render` fixed both. (Since 0.1.3 the browser is not committed
+and that check is gone; the docs build renders it fresh.)
 
 A dry run over the whole organization shows what a full conversion would
 do. Nothing was written:

@@ -232,3 +232,22 @@ def test_requests_under_a_key_and_strings_still_read(tmp_path):
     assert [r["feature"] for r in audit_mech.load_requests(requests)] == ["A plain ask", "Seeds"]
     requests.write_text("")
     assert audit_mech.load_requests(requests) == []
+
+
+def test_a_local_identity_ontology_file_is_checked(mech):
+    answers = mech / ".copier-answers.yml"
+    text = answers.read_text()
+    local = text.replace("identity_adapter: ols:envo", "identity_adapter: simpleobo:ontologies/envo.obo")
+    assert local != text
+    answers.write_text(local)
+    _, items = audit(mech)
+    assert status(items, "ENVO ontology file `ontologies/envo.obo`") == "missing"
+    (mech / "ontologies").mkdir(exist_ok=True)
+    (mech / "ontologies" / "envo.obo").write_text("format-version: 1.2\n")
+    _, items = audit(mech)
+    assert status(items, "ENVO ontology file `ontologies/envo.obo`") == "done"
+
+
+def test_an_unreadable_requests_file_is_a_usage_error(mech, tmp_path):
+    code, _ = audit(mech, "--requests", str(tmp_path))  # a folder, not a file
+    assert code == 64

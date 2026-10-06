@@ -202,12 +202,13 @@ the template during the run.
 ## 5. Curate
 
 Curation uses the Mech's own skills. For Saanen, with
-[`curate-record`](reference/mech-skills.md):
+[`curate-record`](reference/mech-skills.md). (`--term-label` is needed since
+0.1.3, when a record keyed by a term gained `record_term`.)
 
 ```console
 $ just term-info ols:vbo VBO:0000827
 VBO:0000827 ! Saanen (Goat)
-$ just new-record --id VBO:0000827 --name "Saanen" --apply
+$ just new-record --id VBO:0000827 --name "Saanen" --term-label "Saanen (Goat)" --apply
 data/goat_breeds/saanen.yaml
 $ just fetch-reference WIKIPEDIA:Saanen_goat
 $ just fetch-reference PMID:35034210

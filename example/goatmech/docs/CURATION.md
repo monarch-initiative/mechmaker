@@ -4,7 +4,7 @@
 
 1. Pick a target. From the source queue, an issue, or a gap in `just report`.
 2. Scaffold or open the record. `just new-record --id ... --name ... --apply`.
-   An id that is a VBO term also goes in `record_term`, with
+   An id with the VBO prefix also goes in `record_term`, with
    the ontology's label: add `--term-label "<label>"`.
 3. Research. Fetch every source you cite: `just fetch-reference PMID:NNN`.
    Read what came back. For a thin record in a large literature,
@@ -15,7 +15,8 @@
    checks each quote against its source before writing it.
 5. Validate. `just fill-titles data/goat_breeds/<stem>.yaml --apply` fills
    any missing `reference_title` from the cache. Then
-   `just validate data/goat_breeds/<stem>.yaml` until clean.
+   `just validate data/goat_breeds/<stem>.yaml` until clean. Then set
+   `status: PROPOSED`, never `REVIEWED`.
 6. Record. Append a `curation_history` event to the record. Add a history
    record with `just new-history ... --apply`.
 7. Open a pull request. A person reviews it.

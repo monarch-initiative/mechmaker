@@ -11,7 +11,8 @@
    checks each quote against its source before writing it.
 5. Validate. `just fill-titles data/ingests/<stem>.yaml --apply` fills
    any missing `reference_title` from the cache. Then
-   `just validate data/ingests/<stem>.yaml` until clean.
+   `just validate data/ingests/<stem>.yaml` until clean. Then set
+   `status: PROPOSED`, never `REVIEWED`.
 6. Record. Append a `curation_history` event to the record. Add a history
    record with `just new-history ... --apply`.
 7. Open a pull request. A person reviews it.

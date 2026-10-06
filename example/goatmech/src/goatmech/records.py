@@ -1,6 +1,7 @@
 """Writing records. Every write goes through validation first.
 
     python -m <slug>.records new --id <CURIE> --name "..." [--description "..."] [--apply]
+    python -m <slug>.records new --id <TERM> --name "..." --term-label "<the ontology's label>" [--apply]
 
 Code that changes records should call `write_validated_record`, which refuses
 to write an invalid record, and `append_curation_event`, which records the

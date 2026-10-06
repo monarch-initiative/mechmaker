@@ -59,7 +59,9 @@ For each section a record will carry, write in `docs/DOMAIN.md`:
 | Who fills it, from what, by what rule? | A slot nobody can fill reliably is noise. |
 | One worked example | Tests that the rule is followable. |
 
-Cut scaffold sections the domain does not need. Rename them to the domain's
+Cut scaffold sections the domain does not need. Keep `record_term` and its
+binding to `IdentityTerm` when records are keyed by an ontology: validation
+and `check-identity` depend on them. Rename sections to the domain's
 words (`chemical_entities` may really be `metabolites_produced`). Split one
 when the domain distinguishes two roles for the same ontology (`substrates`
 and `products`, both CHEBI).
@@ -87,7 +89,7 @@ MetaboliteDescriptor:
 ```yaml
 MetaboliteTerm:
   reachable_from:
-    source_nodes: [CHEBI:25212]   # metabolite; check it with check_terms.py
+    source_nodes: [CHEBI:25212]   # metabolite; check a term under it: just term-under <CURIE> CHEBI:25212
     is_direct: false
     include_self: true
     relationship_types: [rdfs:subClassOf]
