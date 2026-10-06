@@ -202,15 +202,17 @@ def test_reference_never_replaces_a_file_beside_the_schema(schema_dir, tmp_path,
     source = referenceable()
     source["imports"].append("history")  # its own history.yaml, beside it
     (tmp_path / "fieldwork.yaml").write_text(yaml.safe_dump(source, sort_keys=False), encoding="utf-8")
-    (tmp_path / "history.yaml").write_text(yaml.safe_dump(
-        {"id": "https://example.org/history", "name": "history", "imports": ["linkml:types"]}), encoding="utf-8")
-    args = [str(tmp_path / "fieldwork.yaml"), "--record-class", "Sample", "--mode", "reference", "--apply"]
+    own = {"id": "https://example.org/history", "name": "history", "imports": ["linkml:types"]}
+    (tmp_path / "history.yaml").write_text(yaml.safe_dump(own), encoding="utf-8")
+    args = [str(tmp_path / "fieldwork.yaml"), "--record-class", "Sample",
+            "--mode", "reference", "--apply"]
     assert schema_import.main(args) == 1
     assert "would replace history.yaml" in capsys.readouterr().out
     assert (schema_dir / "history.yaml").read_bytes() == vendored
 
 
-@pytest.mark.parametrize("text, said", [("classes: [", "not valid YAML"), ("- a list\n", "not a LinkML schema")])
+@pytest.mark.parametrize("text, said", [("classes: [", "not valid YAML"),
+                                        ("- a list\n", "not a LinkML schema")])
 def test_a_malformed_local_source_is_a_problem(schema_dir, tmp_path, capsys, text, said):
     bad = tmp_path / "bad.yaml"
     bad.write_text(text, encoding="utf-8")
