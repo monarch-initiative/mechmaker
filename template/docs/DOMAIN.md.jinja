@@ -17,11 +17,16 @@ here, and where they go instead (a field on a record, another Mech, nowhere).
 {% if identity_prefix -%}
 Records are keyed by {{ identity_prefix }} CURIEs where a term exists
 {%- if identity_root %}, descending from `{{ identity_root }}`{% endif %}.
-Where none exists, the record mints `{{ mech_slug }}:<slug>` and can be
-re-grounded later.
+Where none exists, the record gets a minted id, `{{ mech_slug }}:<uuid>`
+(`just new-record` mints one when given no `--id`), and can be re-grounded
+later.
 {%- else -%}
-Records mint `{{ mech_slug }}:<slug>` identifiers. No ontology keys them.
+No ontology keys records. A record takes a stable identifier from a source
+when one names it uniquely, else a minted id, `{{ mech_slug }}:<uuid>`
+(`just new-record` mints one when given no `--id`).
 {%- endif %}
+
+An id never changes when a record is renamed, and no two records share one.
 
 The filename stem is derived from `name`: lowercase, runs of non-alphanumerics
 become one underscore.

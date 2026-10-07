@@ -57,11 +57,17 @@ A term one level too deep is a variant of a record, not a record. Find its
 parent and curate that, or add the variant to the parent's record.
 {%- endif %}
 
-If no term fits, mint `{{ mech_slug }}:<slug>` and open a `CURATION_TODO`
-discussion that says a term is missing.
+If no term fits, leave out `--id`: the record gets a minted
+`{{ mech_slug }}:<uuid>`. Open a `CURATION_TODO` discussion that says a term
+is missing.
 {%- else -%}
-The id is minted: `{{ mech_slug }}:<slug>`, where the slug comes from the
-name.
+Leave out `--id` and the record gets a minted `{{ mech_slug }}:<uuid>`, which
+stays put when the record is renamed. Pass `--id` only for a stable
+identifier a source gives the thing.
+
+```bash
+just new-record --name "<name>" --apply
+```
 {%- endif %}
 
 Check for duplicates by id and by synonym before creating anything.
