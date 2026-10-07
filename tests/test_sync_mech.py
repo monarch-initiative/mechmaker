@@ -319,3 +319,8 @@ def test_upgrade_notes_are_well_formed():
         assert note["summary"].strip() and note["action"].strip(), note["id"]
         assert "pr" not in note or isinstance(note["pr"], int), note["id"]
         assert "when" not in note or note["when"] in questions, note["id"]
+
+
+def test_apply_on_a_folder_without_answers_says_so(tmp_path):
+    code, _, err = sync("apply", str(tmp_path), "--all")
+    assert code == 2 and ".copier-answers.yml" in err

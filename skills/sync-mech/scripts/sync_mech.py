@@ -507,12 +507,16 @@ def restore(mech: Path, path: str) -> None:
         (mech / path).unlink()
 
 
-def apply(mech: Path, plan: Plan, accepted: set[str], data: dict,
-          keep: list[str] | None = None) -> tuple[dict, int]:
+def require_clean(mech: Path) -> None:
     # Only the Mech's own folder counts: it may sit in a larger repository.
     if git(mech, "status", "--porcelain", "--", "."):
         raise Failure(f"{mech} has uncommitted changes. Commit or stash them first: "
                       "the update must be a diff you can read and undo.")
+
+
+def apply(mech: Path, plan: Plan, accepted: set[str], data: dict,
+          keep: list[str] | None = None) -> tuple[dict, int]:
+    require_clean(mech)
     if plan.uncommitted:
         raise Failure("The template checkout has uncommitted changes. Copier would record a temporary "
                       "commit as the Mech's _commit, and the next sync could not find it. Commit them "
@@ -639,6 +643,9 @@ def main(argv: list[str] | None = None) -> int:
         with tempfile.TemporaryDirectory() as tmp:
             if args.command == "check":
                 return check(mech, args.to, args.json, Path(tmp))
+            if args.command == "apply":
+                read_answers(mech)  # "not a Mech" before any git message
+                require_clean(mech)  # before the plan's renders, not after
             plan = make_plan(mech, args.to, data, Path(tmp))
             if args.command == "plan":
                 print(json.dumps(plan.to_dict(), indent=2) if args.json else plan_text(plan), end="")
