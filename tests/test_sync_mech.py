@@ -304,6 +304,20 @@ def test_areas():
     assert sync_mech.area("pyproject.toml", "m") == "dependencies"
 
 
+def test_data_is_typed_by_the_question():
+    questions = {"description": {"type": "str"}, "include_site": {"type": "bool"},
+                 "workflows": {"type": "str", "multiselect": True}, "extra": {"type": "yaml"}}
+    data = sync_mech.parse_data(["description=Goats: origin and use", "include_site=false",
+                                 "workflows=[docs, review]", "extra={a: 1}"])
+    sync_mech.type_data(data, questions)
+    assert data == {"description": "Goats: origin and use", "include_site": False,
+                    "workflows": ["docs", "review"], "extra": {"a": 1}}
+    with pytest.raises(sync_mech.UsageError, match="tabular_layot"):
+        sync_mech.type_data({"tabular_layot": "flat"}, questions)
+    with pytest.raises(sync_mech.UsageError, match="not valid YAML"):
+        sync_mech.type_data({"extra": "a: b: c"}, questions)
+
+
 def test_source_urls():
     assert sync_mech.source_url("gh:monarch-initiative/mechmaker") == \
         "https://github.com/monarch-initiative/mechmaker.git"

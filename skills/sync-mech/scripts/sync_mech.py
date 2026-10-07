@@ -335,6 +335,12 @@ def make_plan(mech: Path, target: str | None, data: dict, tmp: Path) -> Plan:
     local_head = ref == "HEAD" and source_url(src) is None
     # Copier renders a dirty checkout's working tree, untracked files included, as a temporary commit.
     uncommitted = local_head and bool(git(repo, "status", "--porcelain"))
+    if data:  # typed in place: apply passes the same answers to Copier
+        if local_head:
+            spec = (repo / "copier.yml").read_text()
+        else:
+            spec = git(repo, "show", f"{target_commit}:copier.yml")
+        type_data(data, yaml.safe_load(spec) or {})
 
     steps = commits_between(repo, base, target_commit)
     if uncommitted:
@@ -615,13 +621,34 @@ def apply_text(result: dict) -> str:
 
 
 def parse_data(items: list[str]) -> dict:
+    """KEY=VALUE pairs, the values as written; type_data reads them once the questions are known."""
     data = {}
     for item in items:
         key, sep, value = item.partition("=")
         if not sep or not key:
             raise ValueError(f"--data takes KEY=VALUE, not {item!r}")
-        data[key] = yaml.safe_load(value) if value else ""
+        data[key] = value
     return data
+
+
+class UsageError(ValueError):
+    pass
+
+
+def type_data(data: dict, questions: dict) -> None:
+    """Check each --data key is a question of the target template, and read a value as YAML
+    unless its question takes one piece of text, so `description=Goats: origin and use` stays a sentence."""
+    unknown = sorted(k for k in data if k.startswith("_") or not isinstance(questions.get(k), dict))
+    if unknown:
+        raise UsageError(f"--data names no question of the target template: {', '.join(unknown)}")
+    for key, value in data.items():
+        q = questions[key]
+        if (q.get("type", "str") == "str" and not q.get("multiselect")) or value == "":
+            continue
+        try:
+            data[key] = yaml.safe_load(value)
+        except yaml.YAMLError as err:
+            raise UsageError(f"--data {key}: not valid YAML: {err}") from err
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -657,7 +684,11 @@ def main(argv: list[str] | None = None) -> int:
             if args.command == "apply":
                 read_answers(mech)  # "not a Mech" before any git message
                 require_clean(mech)  # before the plan's renders, not after
-            plan = make_plan(mech, args.to, data, Path(tmp))
+            try:
+                plan = make_plan(mech, args.to, data, Path(tmp))
+            except UsageError as err:
+                print(err, file=sys.stderr)
+                return 64
             if args.command == "plan":
                 print(json.dumps(plan.to_dict(), indent=2) if args.json else plan_text(plan), end="")
                 return 1 if plan.updates or plan.questions else 0
