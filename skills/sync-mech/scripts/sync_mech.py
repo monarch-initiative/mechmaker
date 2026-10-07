@@ -197,6 +197,18 @@ def is_ancestor(repo: Path, a: str, b: str) -> bool:
     return run(["git", "-C", str(repo), "merge-base", "--is-ancestor", a, b], check=False).returncode == 0
 
 
+def endpoints(repo: Path, stored: dict, target: str | None) -> tuple[str, str, str]:
+    """(the Mech's commit, the target ref, the target's commit). The target is the latest release
+    tag unless named. A Mech already past it is an error, not "up to date": its updates are on main."""
+    base = resolve(repo, str(stored["_commit"]))
+    ref = target or latest_tag(repo) or "HEAD"
+    target_commit = resolve(repo, ref)
+    if base != target_commit and is_ancestor(repo, target_commit, base):
+        raise Failure(f"The Mech is at {stored['_commit']}, newer than {ref}. "
+                      "Use --to HEAD for mechmaker's main branch.")
+    return base, ref, target_commit
+
+
 def commits_between(repo: Path, base: str, target: str) -> list[tuple[str, str, str]]:
     """(sha, id, title) for each first-parent commit after base that touched the template, oldest first.
     A merged pull request is identified by its number, anything else by its short sha."""
@@ -307,12 +319,7 @@ def make_plan(mech: Path, target: str | None, data: dict, tmp: Path) -> Plan:
     slug = str(answers.get("mech_slug", ""))
     src = str(stored["_src_path"])
     repo = open_source(src, tmp)
-    base = resolve(repo, str(stored["_commit"]))
-    ref = target or latest_tag(repo) or "HEAD"
-    target_commit = resolve(repo, ref)
-    if base != target_commit and is_ancestor(repo, target_commit, base):
-        raise Failure(f"The Mech is at {stored['_commit']}, newer than {ref}. "
-                      "Use --to HEAD for mechmaker's main branch.")
+    base, ref, target_commit = endpoints(repo, stored, target)
     # HEAD on a local checkout renders its working tree, which may differ from the commit.
     local_head = ref == "HEAD" and source_url(src) is None
     # Copier renders a dirty checkout's working tree, untracked files included, as a temporary commit.
@@ -654,9 +661,8 @@ def check(mech: Path, target: str | None, as_json: bool, tmp: Path) -> int:
     reach this Mech (a workflow it does not use); `plan` renders and knows."""
     stored = read_answers(mech)
     repo = open_source(str(stored["_src_path"]), tmp)
-    base = resolve(repo, str(stored["_commit"]))
-    ref = target or latest_tag(repo) or "HEAD"
-    steps = commits_between(repo, base, resolve(repo, ref))
+    base, ref, target_commit = endpoints(repo, stored, target)
+    steps = commits_between(repo, base, target_commit)
     out = {"base": str(stored["_commit"]), "target": describe(repo, ref),
            "updates": [{"id": uid, "title": title} for _, uid, title in steps]}
     if as_json:

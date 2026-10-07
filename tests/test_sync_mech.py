@@ -266,6 +266,14 @@ def test_unknown_update_is_a_usage_error(mech):
     assert code == 64 and "no update named #99" in err
 
 
+def test_a_mech_past_the_target_is_told_so(mech):
+    answers = mech / ".copier-answers.yml"
+    answers.write_text(answers.read_text().replace("_commit: 0.1.0", "_commit: 0.2.0"))
+    for command in ("check", "plan"):
+        code, _, err = sync(command, str(mech), "--to", "0.1.0")
+        assert code == 2 and "newer than 0.1.0" in err, command
+
+
 def test_a_folder_without_answers_is_not_a_mech(tmp_path):
     code, _, err = sync("check", str(tmp_path))
     assert code == 2 and ".copier-answers.yml" in err
