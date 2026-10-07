@@ -58,6 +58,7 @@ import subprocess
 import sys
 import tempfile
 from collections.abc import Iterator
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -335,17 +336,6 @@ def make_plan(mech: Path, target: str | None, data: dict, tmp: Path) -> Plan:
     # Copier renders a dirty checkout's working tree, untracked files included, as a temporary commit.
     uncommitted = local_head and bool(git(repo, "status", "--porcelain"))
 
-    def render_at(r: str, name: str, with_data: bool = False) -> tuple[dict[str, bytes], dict]:
-        files = tree(render(repo, r, answers | data if with_data else answers, tmp / name))
-        written = yaml.safe_load(files.pop(ANSWERS, b"")) or {}
-        return files, written
-
-    try:
-        start, final_answers = render_at(base, "base")
-    except Failure as err:
-        raise Failure(f"The template at the Mech's _commit ({stored['_commit']}) does not render with its "
-                      f"answers, so there is nothing to compare against.\n{err}") from err
-
     steps = commits_between(repo, base, target_commit)
     if uncommitted:
         steps.append(("HEAD", WORKING_TREE, "Uncommitted changes in the template checkout"))
@@ -353,23 +343,44 @@ def make_plan(mech: Path, target: str | None, data: dict, tmp: Path) -> Plan:
     if changed:
         title = "Changed answers: " + ", ".join(f"{k}={json.dumps(data[k])}" for k in changed)
         steps.append(("HEAD" if uncommitted else target_commit, ANSWERS_UPDATE, title))
-    known_notes = set(notes_at(repo, base))
+
+    def render_at(job: tuple[int, str, bool]) -> tuple[dict[str, bytes], dict, dict] | Failure:
+        """One version's files, the answers Copier writes there, and its upgrade notes; or the failure."""
+        i, r, with_data = job
+        try:
+            files = tree(render(repo, r, answers | data if with_data else answers, tmp / f"render{i}"))
+        except Failure as err:
+            return err
+        written = yaml.safe_load(files.pop(ANSWERS, b"")) or {}
+        return files, written, notes_in_tree(repo) if r == "HEAD" else notes_at(repo, r)
+
+    # The renders do not depend on each other: each reads one commit and writes its own folder, and
+    # Copier clones the template for each. Run them together; read the results in order below.
+    jobs = [(0, base, False)] + [(i + 1, sha, uid == ANSWERS_UPDATE) for i, (sha, uid, _) in enumerate(steps)]
+    with ThreadPoolExecutor(max_workers=min(8, os.cpu_count() or 1)) as pool:
+        rendered = list(pool.map(render_at, jobs))
+
+    first = rendered[0]
+    if isinstance(first, Failure):
+        raise Failure(f"The template at the Mech's _commit ({stored['_commit']}) does not render with its "
+                      f"answers, so there is nothing to compare against.\n{first}") from first
+    start, final_answers, base_notes = first
+    known_notes = set(base_notes)
     updates: list[Update] = []
     touched: dict[str, list[str]] = {}
     note_owner: dict[str, str] = {}
     skipped: list[str] = []
     pending: list[tuple[str, str]] = []
     prev = start
-    for i, (sha, uid, title) in enumerate(steps):
-        try:
-            now, final_answers = render_at(sha, f"step{i}", with_data=uid == ANSWERS_UPDATE)
-        except Failure:
+    for i, ((sha, uid, title), result) in enumerate(zip(steps, rendered[1:], strict=True)):
+        if isinstance(result, Failure):
             if i == len(steps) - 1:
-                raise
+                raise result
             # This commit does not render with today's answers; its changes join the next one's.
             skipped.append(uid)
             pending.append((uid, title))
             continue
+        now, final_answers, step_notes = result
         update = Update(id=" + ".join([u for u, _ in pending] + [uid]),
                         title="; ".join([t for _, t in pending] + [title]), commit=sha)
         pending = []
@@ -377,7 +388,7 @@ def make_plan(mech: Path, target: str | None, data: dict, tmp: Path) -> Plan:
             if prev.get(path) != now.get(path):
                 update.files.append(path)
                 touched.setdefault(path, []).append(update.id)
-        for nid in notes_in_tree(repo) if sha == "HEAD" else notes_at(repo, sha):
+        for nid in step_notes:
             if nid not in known_notes and nid not in note_owner:
                 note_owner[nid] = update.id
         updates.append(update)

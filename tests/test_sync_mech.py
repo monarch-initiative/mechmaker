@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -324,3 +325,31 @@ def test_upgrade_notes_are_well_formed():
 def test_apply_on_a_folder_without_answers_says_so(tmp_path):
     code, _, err = sync("apply", str(tmp_path), "--all")
     assert code == 2 and ".copier-answers.yml" in err
+
+
+def test_a_commit_that_does_not_render_joins_the_next_update(made, tmp_path):
+    repo = tmp_path / "broken"
+    repo.mkdir()
+    shutil.copy(ROOT / "copier.yml", repo / "copier.yml")
+    shutil.copytree(ROOT / "template", repo / "template", symlinks=True)
+    git(repo, "init", "-q", "-b", "main")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-qm", "Initial")
+    git(repo, "tag", "0.1.0")
+    good = (repo / "copier.yml").read_text()
+    (repo / "copier.yml").write_text(good + "\n: this is not YAML: [\n")
+    git(repo, "commit", "-qam", "Break the questions (#20)")
+    (repo / "copier.yml").write_text(good)
+    with (repo / REPORT).open("a") as fh:
+        fh.write("# Fixed upstream.\n")
+    git(repo, "commit", "-qam", "Fix them, and count more (#21)")
+
+    mech = tmp_path / "minimalmech"
+    shutil.copytree(made, mech, symlinks=True)
+    answers = mech / ".copier-answers.yml"
+    answers.write_text(re.sub(r"(?m)^_src_path: .*$", f"_src_path: {repo}", answers.read_text()))
+    code, out, err = sync("plan", str(mech), "--to", "HEAD", "--json")
+    assert code == 1, err
+    plan = json.loads(out)
+    assert plan["skipped"] == ["#20"]
+    assert [(u["id"], u["files"]) for u in plan["updates"]] == [("#20 + #21", ["src/minimalmech/report.py"])]

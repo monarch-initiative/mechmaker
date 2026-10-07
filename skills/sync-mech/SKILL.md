@@ -74,9 +74,10 @@ uv run <scripts>/sync_mech.py plan <mech> [--to HEAD]
 ```
 
 It renders the Mech's own answers at its `_commit`, at each pull request
-since, and at the target. It takes a few seconds per pull request. Each
-pull request that changes this Mech's files is one **update**, named by its
-number (`#65`). Under each, every file it changes is marked:
+since, and at the target, all at once: a Mech two dozen pull requests
+behind takes about twenty seconds. Each pull request that changes this
+Mech's files is one **update**, named by its number (`#65`). Under each,
+every file it changes is marked:
 
 | Mark | Means | Usually |
 |---|---|---|
