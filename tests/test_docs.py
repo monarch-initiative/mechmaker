@@ -43,5 +43,8 @@ def test_llms_txt_links_every_page_and_skill():
             name = Path(path).stem
             assert f"{gen_docs.RAW}skills/{name}/SKILL.md" in text, name
             assert (ROOT / "skills" / name / "SKILL.md").exists()
+    pages = [p for _, p in gen_docs.nav_pages() if p.startswith("skills/") and p != "skills/index.md"]
+    in_nav = {Path(p).stem for p in pages}
+    assert in_nav == {p.parent.name for p in (ROOT / "skills").glob("*/SKILL.md")}  # every skill has a page
     for raw in re.findall(re.escape(gen_docs.RAW) + r"(\S+?)\)", text):
         assert (ROOT / raw).exists(), raw  # a raw link only to a file in git

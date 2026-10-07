@@ -236,7 +236,8 @@ The rest of this README is about working on mechmaker itself.
 |---|---|
 | `copier.yml` | The questions Copier asks, and a table of supported ontologies with their root terms |
 | `template/` | The files that become a new Mech. Files ending `.jinja` are filled in from the answers; the rest are copied as they are |
-| `skills/` | Skills for the agent that makes a Mech: `make-mech`, `survey-domain`, `design-mech-schema`, `convert-knowledge-base`, `register-mech`, `audit-mech` |
+| `skills/` | Skills for the agent that makes a Mech: `make-mech`, `survey-domain`, `design-mech-schema`, `convert-knowledge-base`, `register-mech`, `audit-mech`, `sync-mech` |
+| `upgrade-notes.yml` | What an existing Mech must do, beyond taking files, to follow a template change; `sync-mech` shows each note |
 | `.claude-plugin/` | Makes this repository installable as a Claude Code plugin |
 | `AGENTS.md` | Where an agent pointed at this repository starts |
 | `tests/` | Tests that generate sample Mechs and check them |

@@ -138,6 +138,11 @@ $ just qc             # 24 s
 QC passed: 6 gate(s).
 ```
 
+(That was before 0.1.3. Since then the browser is not committed, so the
+`render-check` gate is gone; the docs build renders it fresh. `just qc`
+now also checks the site settings and reads the exports back, so its
+count differs, as does `just qc-full`'s below.)
+
 For a real Mech, run `git init -b main` in the new directory. GoatMech
 lives inside the mechmaker repository, so it skipped that.
 
