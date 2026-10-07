@@ -1,0 +1,46 @@
+# What a Mech must do when it takes a template change, beyond taking files.
+#
+# The sync-mech skill shows each note to a Mech whose update reaches it. Add
+# one in the same pull request as any change that existing Mechs must act on
+# by hand: records to migrate, a field renamed or newly required, a file to
+# stop tracking, a command renamed. A change that only edits template files
+# needs no note; Copier carries it.
+#
+#   id:      stable and unique; never reuse one
+#   pr:      the pull request that made the change. The note reaches a Mech
+#            when that pull request is among its updates. Without pr, it
+#            reaches a Mech when the note is new since the Mech's commit.
+#   when:    optional: an answer that must be set (not false or empty)
+#   summary: one line, for the person choosing updates
+#   action:  what the agent does, step by step. Say how to tell whether the
+#            Mech needs it at all.
+#
+# Oldest first.
+
+- id: untrack-pages
+  pr: 53
+  when: include_site
+  summary: pages/ is no longer committed; the docs build renders the record browser.
+  action: |
+    If `git ls-files pages` lists anything, run `git rm -r --cached pages`
+    and commit. The new .gitignore keeps it out after that.
+
+- id: record-term-for-ontology-ids
+  pr: 55
+  when: identity_prefix
+  summary: A record whose id is an ontology term must name the same term in record_term.
+  action: |
+    Run `just qc`. Each record it reports with "record_term must name it"
+    needs `record_term: {id: <the record's id>, label: <the ontology's
+    label>}`. Look the label up with `just term-info <PREFIX> <id>`; never
+    type it from memory. A designed schema that dropped or renamed `record_term`
+    needs the slot back first (`extend-schema`).
+
+- id: minted-uuid-ids
+  pr: 65
+  summary: New records without an ontology term get a minted id, <slug>:<uuid>, not one made from the name.
+  action: |
+    Nothing to migrate. Existing ids stay as they are: an id never changes
+    once published, so do not rewrite name-style ids to uuids. If the
+    Mech's own docs or prompts tell curators to make ids from names, point
+    them at `just new-record` without --id instead.

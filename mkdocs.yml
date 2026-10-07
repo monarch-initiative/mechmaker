@@ -51,6 +51,7 @@ nav:
   - Already have a knowledge base?: existing-knowledge-base.md
   - Starting from an existing schema: existing-schema.md
   - What a Mech contains: what-you-get.md
+  - Updating a Mech: updating.md
   - Workflows: workflows.md
   - Site options: site-options.md
   - Output formats: output-formats.md
@@ -63,6 +64,7 @@ nav:
       - convert-knowledge-base: skills/convert-knowledge-base.md
       - register-mech: skills/register-mech.md
       - audit-mech: skills/audit-mech.md
+      - sync-mech: skills/sync-mech.md
   - Reference:
       - Copier questions: reference/questions.md
       - Ontology catalog: reference/ontologies.md

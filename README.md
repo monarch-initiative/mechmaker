@@ -176,6 +176,18 @@ there are five thousand. The
 [IngestMech walkthrough](https://monarch-initiative.github.io/mechmaker/walkthrough-conversion/)
 shows a real conversion.
 
+## Keeping a Mech up to date
+
+mechmaker keeps improving. To bring an existing Mech up to date, ask the
+agent in the Mech's folder:
+
+> Update this Mech to the latest mechmaker with the sync-mech skill. Show me
+> every update and what you recommend before you apply anything.
+
+It shows each change since the Mech was made, and you choose which to take.
+Your data model, records and settings stay yours: the agent merges the
+changes into them, and migrates records only where a change requires it.
+
 ## What you get
 
 A new Mech comes with:
@@ -258,11 +270,14 @@ edit them in this repository. A test checks they are unchanged.
 
 ### Updating an existing Mech from the template
 
-In the Mech's repository:
+Ask the agent, in the Mech's folder, to run the `sync-mech` skill. It lists
+each mechmaker change since the Mech's version, lets you choose which to
+take, merges them with the Mech's own edits, and follows the upgrade notes
+in `upgrade-notes.yml` where records must change. See
+[Updating a Mech](https://monarch-initiative.github.io/mechmaker/updating/).
 
-```bash
-just update-template
-```
+`just update-template` in the Mech takes every change at once, with
+Copier's own update.
 
 ### Working on mechmaker
 

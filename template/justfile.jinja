@@ -280,7 +280,8 @@ qc:
 qc-full:
     uv run python -m {{slug}}.qc --network
 
-# Pull template changes from mechmaker into this repository.
+# Pull every template change from mechmaker into this repository at once.
+# To see each change and choose, use mechmaker's sync-mech skill instead.
 update-template:
     uvx copier update --skip-answered
 {% endraw %}
