@@ -86,6 +86,19 @@ jobs:
           git config --global user.name "${SLUG}[bot]"
           git config --global user.email "${id}+${SLUG}[bot]@users.noreply.github.com"
           gh auth setup-git
+      # Anyone can comment on an open issue, and this agent can push. A step
+      # with no model writes the queue with only the comments of people with
+      # write access (and the repository's Apps); the agent reads that, never
+      # the thread on GitHub.
+      - name: Curation queue, trusted text only
+        id: queue
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          QUEUE_REPO: ${{ github.repository }}
+          QUEUE_SELECTOR: ${{ matrix.selector }}
+        run: |
+          echo ".curation-queue/" >> .git/info/exclude
+          python3 .github/scripts/curation_queue.py .curation-queue
       - name: Build prompt
         id: prompt
         env:
@@ -96,11 +109,13 @@ jobs:
           PROMPT_NOTE: ${{ inputs.note }}
         run: python3 .github/scripts/render_prompt.py curation-scanner
       - id: agent
+        if: steps.queue.outputs.count != '0'
         uses: ./.github/actions/setup-agent
         with:
           workflow: curation-scanner
           tier: ${{ matrix.effort }}
       - id: run
+        if: steps.agent.outcome == 'success'
         uses: anthropics/claude-code-action@fd1c128679612beff4ca259c78021c506e8aa7a7 # v1.0.237
         env:
           GH_TOKEN: ${{ steps.app.outputs.token }}
@@ -126,7 +141,8 @@ jobs:
 {% endif %}{% raw %}          claude_args: |
             --model ${{ steps.agent.outputs.model }}
             --max-turns ${{ steps.agent.outputs.max-turns }}
-            --allowedTools "Bash(just:*),Bash(uv run:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git add:*),Bash(git commit:*),Bash(git checkout:*),Bash(git switch:*),Bash(git fetch:*),Bash(git merge:*),Bash(git push:*),Bash(gh issue view:*),Bash(gh issue list:*),Bash(gh issue comment:*),Bash(gh issue close:*),Bash(gh pr list:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr checks:*),Bash(gh pr create:*),Bash(gh pr comment:*),Bash(gh search:*),Read,Edit,Write,Glob,Grep,WebFetch,WebSearch,TodoWrite,Task"
+            --allowedTools "Bash(just:*),Bash(uv run:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git add:*),Bash(git commit:*),Bash(git checkout:*),Bash(git switch:*),Bash(git fetch:*),Bash(git merge:*),Bash(git push:*),Bash(gh issue comment:*),Bash(gh issue close:*),Bash(gh pr diff:*),Bash(gh pr checks:*),Bash(gh pr create:*),Bash(gh pr comment:*),Read,Edit,Write,Glob,Grep,WebFetch,WebSearch,TodoWrite,Task"
+            --disallowedTools "WebFetch(domain:github.com),WebFetch(domain:api.github.com)"
       - name: Check the agent run
         if: always() && steps.agent.outcome == 'success'
         env:

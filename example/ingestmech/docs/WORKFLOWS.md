@@ -78,8 +78,13 @@ Off. Answer `langfuse` in Copier to add tracing to every agent workflow.
   step with no model checks and posts them: `review`, `triage`, `dedupe`,
   `post-review`, `pr-shepherd`, `literature-scan`.
 - Triage adds `curation` only to issues whose author can write to the
-  repository. The curation scanner can push, so a stranger's issue reaches
-  it only after a person has read it and added the label.
+  repository, so a stranger's issue reaches the curation scanner only after a
+  person has read it and added the label. Anyone can still comment on it
+  later, and the scanner can push, so it never reads the thread on GitHub: a
+  step with no model writes the queue with the title, the body, and only the
+  comments and reviews from people with write access (OWNER, MEMBER,
+  COLLABORATOR) or the repository's Apps. The agent has no `gh issue view`,
+  `gh pr view` or search, and no WebFetch on github.com.
 - Prompts and helper scripts load from the default branch, so a PR cannot
   change the instructions it is reviewed under.
 - Tool lists are explicit. No workflow runs with permissions bypassed.
