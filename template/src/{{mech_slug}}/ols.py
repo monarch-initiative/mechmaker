@@ -19,22 +19,27 @@ import urllib.request
 OLS = "https://www.ebi.ac.uk/ols4/api"
 
 
-def _iri(curie: str) -> str:
-    prefix, local = curie.split(":", 1)
-    return f"http://purl.obolibrary.org/obo/{prefix}_{local}"
-
-
 def _get(url: str) -> dict:
     with urllib.request.urlopen(url, timeout=60) as resp:
         return json.load(resp)
 
 
+def _term_url(curie: str, ontology: str) -> str:
+    """The OLS URL of a term. IRIs differ by ontology (EFO's are not OBO PURLs),
+    so the term is found by its CURIE and its URL built from the IRI OLS gives."""
+    q = urllib.parse.urlencode({"obo_id": curie})
+    terms = _get(f"{OLS}/ontologies/{ontology}/terms?{q}").get("_embedded", {}).get("terms", [])
+    if not terms:
+        raise LookupError(f"{curie} is not in the OLS ontology {ontology}")
+    iri = urllib.parse.quote(urllib.parse.quote(terms[0]["iri"], safe=""), safe="")
+    return f"{OLS}/ontologies/{ontology}/terms/{iri}"
+
+
 def ancestors(curie: str, ontology: str | None = None, hierarchical: bool = False) -> list[tuple[str, str]]:
     ontology = ontology or curie.split(":", 1)[0].lower()
-    iri = urllib.parse.quote(urllib.parse.quote(_iri(curie), safe=""), safe="")
     kind = "hierarchicalAncestors" if hierarchical else "ancestors"
     out: list[tuple[str, str]] = []
-    url = f"{OLS}/ontologies/{ontology}/terms/{iri}/{kind}?size=500"
+    url = f"{_term_url(curie, ontology)}/{kind}?size=500"
     while url:
         data = _get(url)
         for t in data.get("_embedded", {}).get("terms", []):
@@ -46,8 +51,7 @@ def ancestors(curie: str, ontology: str | None = None, hierarchical: bool = Fals
 def parents(curie: str, ontology: str | None = None) -> list[tuple[str, str]]:
     """Direct is-a parents."""
     ontology = ontology or curie.split(":", 1)[0].lower()
-    iri = urllib.parse.quote(urllib.parse.quote(_iri(curie), safe=""), safe="")
-    data = _get(f"{OLS}/ontologies/{ontology}/terms/{iri}/parents?size=500")
+    data = _get(f"{_term_url(curie, ontology)}/parents?size=500")
     found = data.get("_embedded", {}).get("terms", [])
     return [(t.get("obo_id") or t.get("iri"), t.get("label")) for t in found]
 

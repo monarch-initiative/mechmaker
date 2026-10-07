@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib.util
 import sys
 import urllib.error
+import urllib.parse
 from pathlib import Path
 
 import pytest
@@ -98,11 +99,39 @@ def test_search(mod, capsys):
     assert "TINY:0000002\tsmall widget" in capsys.readouterr().out
 
 
-def test_ols_adapter_names_the_ontology(mod):
+def _fake_ols(seen):
+    """A _get that knows one term per ontology, with the IRI that ontology gives it."""
+    iris = {"EFO:0004340": "http://www.ebi.ac.uk/efo/EFO_0004340",
+            "NCIT:C25464": "http://purl.obolibrary.org/obo/NCIT_C25464",
+            "GO:0008150": "http://purl.obolibrary.org/obo/GO_0008150"}
+
+    def get(url, tries=3):
+        seen.append(url)
+        curie = urllib.parse.parse_qs(urllib.parse.urlsplit(url).query).get("obo_id", [""])[0]
+        if curie not in iris:
+            raise urllib.error.HTTPError(url, 404, "x", {}, None)
+        return {"_embedded": {"terms": [{"iri": iris[curie], "label": "a label"}]}}
+    return get
+
+
+def test_ols_adapter_names_the_ontology(mod, monkeypatch):
+    monkeypatch.setattr(mod, "_get", _fake_ols([]))
     mod.ADAPTER = "ols:ncit"
     assert "/ontologies/ncit/terms/" in mod._term_url("NCIT:C25464")
     mod.ADAPTER = None
     assert "/ontologies/go/terms/" in mod._term_url("GO:0008150")
+
+
+def test_ols_term_url_uses_the_iri_ols_gives(mod, monkeypatch):
+    # EFO's IRIs are not OBO PURLs; building one from the CURIE finds nothing.
+    seen = []
+    monkeypatch.setattr(mod, "_get", _fake_ols(seen))
+    mod.ADAPTER = "ols:efo"
+    url = mod._term_url("EFO:0004340", "/parents")
+    assert seen[0].endswith("/ontologies/efo/terms?obo_id=EFO%3A0004340")
+    assert url.endswith("/terms/http%253A%252F%252Fwww.ebi.ac.uk%252Fefo%252FEFO_0004340/parents")
+    assert mod.label("EFO:0004340") == "a label" and len(seen) == 1  # looked up once
+    assert mod.label("EFO:9999999") is None and mod._term_url("EFO:9999999") is None
 
 
 def test_outage_and_failure_differ_and_hide_keys(mod, capsys):

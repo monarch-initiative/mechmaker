@@ -148,7 +148,8 @@ extra_ontologies:
 ```
 
 `adapter` defaults to `ols:<prefix>` and `uri` to the OBO PURL; give both for
-anything else. Check each root and two or three expected terms through the
+anything else. An OLS ontology with its own IRIs keeps the default adapter but
+needs `uri`: EFO's is `http://www.ebi.ac.uk/efo/EFO_`. Check each root and two or three expected terms through the
 same adapter before generating:
 
 ```bash

@@ -27,6 +27,7 @@ usage error, such as a missing argument or a CURIE with no colon. Ontology ids
 default to the lowercased prefix.
 """
 
+import functools
 import json
 import re
 import subprocess
@@ -73,11 +74,29 @@ def _get(url, tries=3):
         time.sleep(5 * attempt)
 
 
+def _term(curie):
+    """The OLS record of a term, or None if OLS does not have it. IRIs differ by
+    ontology (EFO's are not OBO PURLs), so the term is found by its CURIE."""
+    return _lookup(_ols_ontology() or curie.split(":", 1)[0].lower(), curie)
+
+
+@functools.cache
+def _lookup(onto, curie):
+    q = urllib.parse.urlencode({"obo_id": curie})
+    try:
+        terms = _get(f"{OLS}/ontologies/{onto}/terms?{q}").get("_embedded", {}).get("terms", [])
+    except urllib.error.HTTPError:
+        return None
+    return terms[0] if terms else None
+
+
 def _term_url(curie, suffix=""):
-    prefix, local = curie.split(":", 1)
-    iri = f"http://purl.obolibrary.org/obo/{prefix}_{local}"
-    enc = urllib.parse.quote(urllib.parse.quote(iri, safe=""), safe="")
-    onto = _ols_ontology() or prefix.lower()
+    """The OLS URL of a term, built from the IRI OLS gives it, or None if OLS does not have it."""
+    term = _term(curie)
+    if term is None:
+        return None
+    enc = urllib.parse.quote(urllib.parse.quote(term["iri"], safe=""), safe="")
+    onto = _ols_ontology() or curie.split(":", 1)[0].lower()
     return f"{OLS}/ontologies/{onto}/terms/{enc}{suffix}"
 
 
@@ -116,10 +135,8 @@ def label(curie):
     if _oak_mode():
         hits = [lab for c, lab in _oak("info", curie) if c == curie and lab]
         return hits[0] if hits else None
-    try:
-        return _get(_term_url(curie)).get("label")
-    except urllib.error.HTTPError:
-        return None
+    term = _term(curie)
+    return term.get("label") if term else None
 
 
 # `runoak ancestors` fails on BioPortal (OAK 0.7.4 passes arguments its
@@ -170,8 +187,11 @@ def parents(curie):
     """Direct is-a parents."""
     if _oak_mode():
         return _oak_py(PARENTS_PY, curie)
+    url = _term_url(curie, "/parents?size=500")
+    if url is None:
+        return set()
     try:
-        data = _get(_term_url(curie, "/parents?size=500"))
+        data = _get(url)
     except urllib.error.HTTPError:
         return set()
     return {t.get("obo_id") for t in data.get("_embedded", {}).get("terms", [])}
