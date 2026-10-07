@@ -384,6 +384,35 @@ def test_distinct_extra_ontologies_accepted(tmp_path):
     assert "PO" in yaml.safe_load((dest / "conf" / "oak_config.yaml").read_text())["ontology_adapters"]
 
 
+@pytest.mark.parametrize("adapter", ["simpleobo:ontologies/envo.obo", "bioportal:ENVO", ""])
+def test_identity_adapter_checks_a_picked_ontology_with_its_prefix(tmp_path, adapter):
+    # habitat keys records by ENVO and also picks ENVO: one prefix, one adapter (#58).
+    data = {**SCENARIOS["habitat"], "identity_adapter": adapter, "workflows": []}
+    dest = render(tmp_path / "out", data)
+    adapters = yaml.safe_load((dest / "conf" / "oak_config.yaml").read_text())["ontology_adapters"]
+    assert adapters["ENVO"] == adapter
+    assert f"checked with `{adapter}`" in (dest / "docs" / "DOMAIN.md").read_text()
+    readme = dest / "ontologies" / "README.md"
+    assert readme.exists() == adapter.startswith("simpleobo:")
+    if readme.exists():
+        assert readme.read_text().count("`ENVO`") == 1
+    assert ("BIOPORTAL_API_KEY" in (dest / ".github" / "workflows" / "qc.yaml").read_text()) == (
+        adapter.startswith("bioportal:"))
+
+
+def test_an_extra_cannot_name_another_adapter_for_the_identity_prefix(tmp_path):
+    extra = {"prefix": "PO", "root": "PO:0025131", "root_label": "plant anatomical entity",
+             "noun": "plant structure"}
+    data = {**BASE, "mech_name": "PlantKeyMech", "record_class": "Plant", "identity_prefix": "PO",
+            "identity_root": "PO:0025131", "identity_adapter": "simpleobo:ontologies/po.obo",
+            "ontologies": ["GO_BP"], "workflows": []}
+    with pytest.raises(Exception):  # noqa: B017  copier raises its own validation errors
+        render(tmp_path / "bad", {**data, "extra_ontologies": [{**extra, "adapter": "ols:po"}]})
+    dest = render(tmp_path / "ok", {**data, "extra_ontologies": [extra]})
+    adapters = yaml.safe_load((dest / "conf" / "oak_config.yaml").read_text())["ontology_adapters"]
+    assert adapters["PO"] == "simpleobo:ontologies/po.obo"
+
+
 @pytest.mark.parametrize("records_dir", ["", "  ", "data/widgets/", "/data/widgets", "../widgets",
                                          "data/../widgets", "data//widgets", "./data", "data/my widgets"])
 def test_bad_records_dir_rejected(tmp_path, records_dir):

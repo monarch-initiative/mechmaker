@@ -1,6 +1,6 @@
 {%- set adapters = {} -%}
 {%- for o in ontology_selection %}{% set _ = adapters.update({o.prefix: o.adapter}) %}{% endfor -%}
-{%- if identity_prefix and identity_prefix not in adapters %}{% set _ = adapters.update({identity_prefix: identity_adapter}) %}{% endif -%}
+{%- if identity_prefix %}{% set _ = adapters.update({identity_prefix: identity_adapter}) %}{% endif -%}
 # OAK adapters for linkml-term-validator, keyed by CURIE prefix.
 #
 # Any adapter OAK accepts works here:

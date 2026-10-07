@@ -261,6 +261,11 @@ def ontology_selection(a: dict) -> list[dict]:
                 "adapter": x.get("adapter") or "ols:" + str(x["prefix"]).lower(),
             }
         )
+    # One prefix, one adapter: identity_adapter checks a picked ontology that shares its prefix.
+    if a.get("identity_prefix") and "identity_adapter" in a:
+        for o in sel:
+            if o["prefix"] == a["identity_prefix"]:
+                o["adapter"] = a["identity_adapter"]
     return sel
 
 
@@ -409,7 +414,9 @@ def from_answers(m: Mech) -> list[Item]:
         )
         path = local_file(o["adapter"])
         if path:
-            out.append(local_file_item(m, o["prefix"], path, f"extra_ontologies: {o['key']}"))
+            ident_prefix = o["prefix"] == a.get("identity_prefix")
+            asked = "identity_adapter" if ident_prefix else f"extra_ontologies: {o['key']}"
+            out.append(local_file_item(m, o["prefix"], path, asked))
 
     ident = local_file(str(a.get("identity_adapter") or ""))
     picked = {local_file(o["adapter"]) for o in ontology_selection(a)}

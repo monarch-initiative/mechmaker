@@ -8,7 +8,7 @@ recipes read it from here.
 {% for o in ontology_selection if o.adapter.split(':')[0] in ['simpleobo', 'pronto', 'obograph', 'sqlite'] and not o.adapter.startswith('sqlite:obo:') -%}
 - `{{ o.prefix }}`: `{{ o.adapter }}`, root `{{ o.root }}` ({{ o.root_label }})
 {% endfor -%}
-{% if identity_prefix and identity_adapter.split(':')[0] in ['simpleobo', 'pronto', 'obograph', 'sqlite'] and not identity_adapter.startswith('sqlite:obo:') -%}
+{% if identity_prefix and identity_prefix not in ontology_selection | map(attribute='prefix') and identity_adapter.split(':')[0] in ['simpleobo', 'pronto', 'obograph', 'sqlite'] and not identity_adapter.startswith('sqlite:obo:') -%}
 - `{{ identity_prefix }}`, which keys records: `{{ identity_adapter }}`, root `{{ identity_root }}`
 {% endif %}
 Commit the files, so the checks give the same answers on every machine and
