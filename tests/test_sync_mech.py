@@ -1,9 +1,10 @@
 """sync_mech.py, on a Mech made from a small template history built here.
 
 The history: 0.1.0, then pull request #7 (merged) changes report.py, then
-#8 (squash-merged) adds a docs page, a justfile recipe and two upgrade
-notes, then a README-only commit, then 0.2.0. The Mech is rendered at 0.1.0
-and changes its own justfile.
+#8 (squash-merged) adds a docs page, a justfile recipe and upgrade notes,
+then #9 changes records.py and adds docs/TEMP.md and #10 undoes both, then a
+README-only commit, then 0.2.0. The Mech is rendered at 0.1.0 and changes its
+own justfile and records.py, and has a docs/TEMP.md of its own.
 """
 
 from __future__ import annotations
@@ -32,6 +33,7 @@ IDENTITY = {"GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@example.org",
             "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@example.org"}
 ENV = {**os.environ, **IDENTITY}
 REPORT = "template/src/{{mech_slug}}/report.py"
+RECORDS = "template/src/{{mech_slug}}/records.py"
 NOTES = [
     {"id": "new-page", "pr": 8, "summary": "A new page.", "action": "Read it."},
     {"id": "loose", "summary": "No pull request named.", "action": "Do the thing."},
@@ -76,6 +78,14 @@ def template(tmp_path_factory) -> Path:
     git(repo, "add", "-A")
     git(repo, "commit", "-qm", "Add a new page (#8)")
 
+    with (repo / RECORDS).open("a") as fh:
+        fh.write("# Tried upstream.\n")
+    (repo / "template" / "docs" / "TEMP.md").write_text("# Temporary\n")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-qm", "Try something (#9)")
+    git(repo, "revert", "--no-edit", "HEAD")
+    git(repo, "commit", "-q", "--amend", "-m", "Undo it (#10)")
+
     (repo / "README.md").write_text("mechmaker, again\n")
     git(repo, "commit", "-qam", "Touch only the README")
     git(repo, "tag", "0.2.0")
@@ -93,7 +103,11 @@ def made(template, tmp_path_factory) -> Path:
     git(dest, "commit", "-qm", "Copier output")
     justfile = dest / "justfile"
     justfile.write_text("# This Mech's own line.\n" + justfile.read_text())
-    git(dest, "commit", "-qam", "Local change")
+    records = dest / "src/minimalmech/records.py"
+    records.write_text("# This Mech's own records line.\n" + records.read_text())
+    (dest / "docs/TEMP.md").write_text("# This Mech's own page\n")
+    git(dest, "add", "-A")
+    git(dest, "commit", "-qm", "Local change")
     return dest
 
 
@@ -127,8 +141,8 @@ def test_check_lists_template_changes_only(made):
     assert code == 1
     data = json.loads(out)
     assert data["target"] == "0.2.0"
-    assert [u["id"] for u in data["updates"]] == ["#7", "#8"]
-    assert [u["title"] for u in data["updates"]] == ["Count more in the report", "Add a new page"]
+    assert [u["id"] for u in data["updates"]] == ["#7", "#8", "#9", "#10"]
+    assert [u["title"] for u in data["updates"]][:2] == ["Count more in the report", "Add a new page"]
 
 
 def test_plan_ties_each_file_to_its_pull_request(plan):
@@ -141,6 +155,7 @@ def test_plan_ties_each_file_to_its_pull_request(plan):
     assert files["docs/NEW.md"]["area"] == "documentation"
     # The Mech changed its justfile, so the new recipe must be merged in.
     assert files["justfile"]["status"] == "merge"
+    # #9 and #10 cancel out: nothing to merge into the Mech's records.py, no clash with its TEMP.md.
     assert set(files) == {"src/minimalmech/report.py", "docs/NEW.md", "justfile"}
     assert plan["questions"] == {} and plan["dropped_questions"] == []
 

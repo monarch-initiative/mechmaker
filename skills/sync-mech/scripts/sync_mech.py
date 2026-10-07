@@ -368,6 +368,9 @@ def make_plan(mech: Path, target: str | None, data: dict, tmp: Path) -> Plan:
 
     files = []
     for path, ids in touched.items():
+        # A change undone later in the range is no change: the template's file ends as it began.
+        if start.get(path) == prev.get(path):
+            continue
         st = status(path, start, prev, mech)
         if st:
             files.append(FileChange(path, st, area(path, slug), ids))
