@@ -526,6 +526,21 @@ def test_review_reads_the_pr_as_data_and_posts_without_a_model(tmp_path):
 WRITING_AGENTS = {"claude", "curation-scanner", "compliance"}
 
 
+def test_curation_scanner_reads_only_the_trusted_queue(tmp_path):
+    dest = render(tmp_path / "scanner", SCENARIOS["all-workflows"])
+    flow = yaml.safe_load((dest / ".github" / "workflows" / "curation-scanner.yaml").read_text())
+    steps = flow["jobs"]["scan"]["steps"]
+    names = [s.get("id") or s.get("name") for s in steps]
+    assert names.index("queue") < names.index("run")
+    assert "curation_queue.py .curation-queue" in steps[names.index("queue")]["run"]
+    assert (dest / ".github" / "scripts" / "curation_queue.py").exists()
+    args = steps[names.index("run")]["with"]["claude_args"]
+    for tool in ("gh issue view", "gh issue list", "gh pr view", "gh pr list", "gh search", "gh api"):
+        assert f"Bash({tool}" not in args, tool
+    assert "WebFetch(domain:github.com)" in args.split("--disallowedTools", 1)[1]
+    assert ".curation-queue/" in (dest / ".github" / "prompts" / "curation-scanner.md").read_text()
+
+
 def test_agents_that_read_untrusted_text_cannot_write(tmp_path):
     dest = render(tmp_path / "readers", SCENARIOS["all-workflows"])
     for key in AGENT_WORKFLOWS - WRITING_AGENTS:
