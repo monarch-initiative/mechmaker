@@ -399,7 +399,8 @@ def make_plan(mech: Path, target: str | None, data: dict, tmp: Path) -> Plan:
         pr = f"#{note['pr']}" if note.get("pr") else None
         if (pr not in in_range) if pr else (nid in known_notes):
             continue
-        if applies(note, answers | data):
+        # The answers the Mech will have: new questions at their defaults, and --data.
+        if applies(note, final_answers):
             notes.append({**note, "update": owner_of.get(pr, "") if pr else note_owner.get(nid, "")})
     for update in updates:
         update.notes = [n["id"] for n in notes if n["update"] == update.id]

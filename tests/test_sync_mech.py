@@ -39,6 +39,7 @@ NOTES = [
     {"id": "loose", "summary": "No pull request named.", "action": "Do the thing."},
     {"id": "old", "pr": 3, "summary": "Older than the Mech.", "action": "Never shown."},
     {"id": "site-only", "pr": 8, "when": "include_site", "summary": "Needs a site.", "action": "-"},
+    {"id": "year", "pr": 8, "when": "copyright_year", "summary": "Needs a year.", "action": "-"},
 ]
 
 
@@ -163,8 +164,21 @@ def test_plan_ties_each_file_to_its_pull_request(plan):
 def test_plan_shows_the_notes_that_reach_this_mech(plan):
     notes = {n["id"]: n["update"] for n in plan["notes"]}
     # "old" names a pull request outside the range; "site-only" needs a site the Mech lacks.
-    assert notes == {"new-page": "#8", "loose": "#8"}
-    assert next(u for u in plan["updates"] if u["id"] == "#8")["notes"] == ["new-page", "loose"]
+    assert notes == {"new-page": "#8", "loose": "#8", "year": "#8"}
+    assert next(u for u in plan["updates"] if u["id"] == "#8")["notes"] == ["new-page", "loose", "year"]
+
+
+def test_a_note_can_depend_on_a_new_question(mech):
+    # A Mech made before copyright_year was asked: the update gives it the default, and the note
+    # that needs it applies.
+    answers = mech / ".copier-answers.yml"
+    answers.write_text("".join(line for line in answers.read_text().splitlines(keepends=True)
+                               if not line.startswith("copyright_year:")))
+    code, out, err = sync("plan", str(mech), "--json")
+    assert code == 1, err
+    plan = json.loads(out)
+    assert "copyright_year" in plan["questions"]
+    assert "year" in {n["id"] for n in plan["notes"]}
 
 
 def test_plan_text_names_updates_files_and_notes(made):
@@ -208,7 +222,7 @@ def test_apply_takes_only_the_accepted_update(mech):
     assert result["accepted"] == ["#8"] and result["declined"] == ["#7"]
     assert result["restored"] == ["src/minimalmech/report.py"]
     assert result["conflicts"] == [] and result["partial"] == {} and result["unplanned"] == []
-    assert [n["id"] for n in result["notes"]] == ["new-page", "loose"]
+    assert [n["id"] for n in result["notes"]] == ["new-page", "loose", "year"]
     assert (mech / "src/minimalmech/report.py").read_text() == report
     assert (mech / "docs/NEW.md").is_file()
     justfile = (mech / "justfile").read_text()
