@@ -26,6 +26,9 @@ template then, the template now, and the Mech's own copy.
     edited    the template dropped the file, but the Mech changed it
     deleted   the template changed a file the Mech had deleted
 
+An answer changed with --data is rendered only at the end, as one more update
+named `answers`, which apply always takes.
+
 It also lists new Copier questions, with the defaults they would take, and the
 upgrade notes (mechmaker's `upgrade-notes.yml`) added since: changes a Mech
 must act on beyond taking files, such as records to migrate.
@@ -64,6 +67,8 @@ NOTES = "upgrade-notes.yml"
 # Paths in the template repository whose changes can reach a Mech.
 TEMPLATE_PATHS = ["template", "copier.yml", NOTES]
 WORKING_TREE = "working-tree"
+# The update that holds the effect of changed answers (--data). It is always taken.
+ANSWERS_UPDATE = "answers"
 STATUSES = ["take", "merge", "add", "clash", "remove", "edited", "deleted"]
 SAFE = {"take", "add", "remove"}
 
@@ -297,7 +302,8 @@ def status(path: str, before: dict[str, bytes], after: dict[str, bytes], mech: P
 
 def make_plan(mech: Path, target: str | None, data: dict, tmp: Path) -> Plan:
     stored = read_answers(mech)
-    answers = {k: v for k, v in stored.items() if not k.startswith("_")} | data
+    # The past is rendered with the answers the Mech was made with; --data enters only at the end.
+    answers = {k: v for k, v in stored.items() if not k.startswith("_")}
     slug = str(answers.get("mech_slug", ""))
     src = str(stored["_src_path"])
     repo = open_source(src, tmp)
@@ -312,8 +318,8 @@ def make_plan(mech: Path, target: str | None, data: dict, tmp: Path) -> Plan:
     # Copier renders a dirty checkout's working tree, untracked files included, as a temporary commit.
     uncommitted = local_head and bool(git(repo, "status", "--porcelain"))
 
-    def render_at(r: str, name: str) -> tuple[dict[str, bytes], dict]:
-        files = tree(render(repo, r, answers, tmp / name))
+    def render_at(r: str, name: str, with_data: bool = False) -> tuple[dict[str, bytes], dict]:
+        files = tree(render(repo, r, answers | data if with_data else answers, tmp / name))
         written = yaml.safe_load(files.pop(ANSWERS, b"")) or {}
         return files, written
 
@@ -326,6 +332,10 @@ def make_plan(mech: Path, target: str | None, data: dict, tmp: Path) -> Plan:
     steps = commits_between(repo, base, target_commit)
     if uncommitted:
         steps.append(("HEAD", WORKING_TREE, "Uncommitted changes in the template checkout"))
+    changed = [k for k in data if k not in answers or answers[k] != data[k]]
+    if changed:
+        title = "Changed answers: " + ", ".join(f"{k}={json.dumps(data[k])}" for k in changed)
+        steps.append(("HEAD" if uncommitted else target_commit, ANSWERS_UPDATE, title))
     known_notes = set(notes_at(repo, base))
     updates: list[Update] = []
     touched: dict[str, list[str]] = {}
@@ -335,7 +345,7 @@ def make_plan(mech: Path, target: str | None, data: dict, tmp: Path) -> Plan:
     prev = start
     for i, (sha, uid, title) in enumerate(steps):
         try:
-            now, final_answers = render_at(sha, f"step{i}")
+            now, final_answers = render_at(sha, f"step{i}", with_data=uid == ANSWERS_UPDATE)
         except Failure:
             if i == len(steps) - 1:
                 raise
@@ -379,7 +389,7 @@ def make_plan(mech: Path, target: str | None, data: dict, tmp: Path) -> Plan:
         pr = f"#{note['pr']}" if note.get("pr") else None
         if (pr not in in_range) if pr else (nid in known_notes):
             continue
-        if applies(note, answers):
+        if applies(note, answers | data):
             notes.append({**note, "update": owner_of.get(pr, "") if pr else note_owner.get(nid, "")})
     for update in updates:
         update.notes = [n["id"] for n in notes if n["update"] == update.id]
@@ -462,7 +472,9 @@ def chosen(plan: Plan, accept: list[str] | None, decline: list[str] | None) -> s
                          f"the updates are {', '.join(u.id for u in plan.updates) or 'none'}")
     picked = {uid for t in named for uid in match(t)}
     every = {u.id for u in plan.updates}
-    return picked if accept is not None else every - picked
+    taken = picked if accept is not None else every - picked
+    # The answers the person gave are not an update to decline: to undo one, drop its --data.
+    return taken | ({ANSWERS_UPDATE} & every)
 
 
 def restore(mech: Path, path: str) -> None:

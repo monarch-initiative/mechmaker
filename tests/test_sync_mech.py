@@ -161,6 +161,30 @@ def test_plan_text_names_updates_files_and_notes(made):
     assert "- new-page (#8): A new page." in out
 
 
+def test_a_changed_answer_is_its_own_update(made):
+    code, out, err = sync("plan", str(made), "--data", "include_site=true", "--json")
+    assert code == 1, err
+    plan = json.loads(out)
+    assert [u["id"] for u in plan["updates"]] == ["#7", "#8", "answers"]
+    site = next(u for u in plan["updates"] if u["id"] == "answers")
+    assert site["title"] == "Changed answers: include_site=true"
+    files = {f["path"]: f for f in plan["files"]}
+    # The site's files are new to this Mech, not files it deleted.
+    assert files["src/minimalmech/render.py"]["status"] == "add"
+    assert files["src/minimalmech/render.py"]["updates"] == ["answers"]
+    assert not [f for f in plan["files"] if f["status"] == "deleted"]
+    # The note that needs a site now reaches the Mech.
+    assert "site-only" in {n["id"] for n in plan["notes"]}
+
+
+def test_apply_always_takes_the_changed_answers(mech):
+    code, out, err = sync("apply", str(mech), "--accept", "#8", "--data", "include_site=true", "--json")
+    assert code == 0, err
+    assert json.loads(out)["accepted"] == ["#8", "answers"]
+    assert (mech / "src/minimalmech/render.py").is_file()
+    assert yaml.safe_load((mech / ".copier-answers.yml").read_text())["include_site"] is True
+
+
 def test_apply_takes_only_the_accepted_update(mech):
     report = (mech / "src/minimalmech/report.py").read_text()
     code, out, err = sync("apply", str(mech), "--accept", "#8", "--json")

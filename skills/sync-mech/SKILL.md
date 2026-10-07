@@ -92,6 +92,10 @@ Each file also has an **area**: data model, shared schema, site and
 browser, workflows, agent guidance, documentation, tools, tests,
 dependencies. `(also #N)` means another update changes the same file.
 
+An answer given with `--data` (a new question's answer, or a changed one)
+shows as one more update, `answers`, holding what that answer changes.
+`apply` always takes it: to undo it, leave the `--data` out.
+
 The plan also lists **new questions**, with the defaults they would take,
 and the **upgrade notes** that apply: changes the Mech must act on beyond
 taking files, from mechmaker's `upgrade-notes.yml`.
