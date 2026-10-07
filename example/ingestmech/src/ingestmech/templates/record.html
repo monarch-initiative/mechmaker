@@ -11,7 +11,8 @@
 <nav><a href="../index.html">{{ site.title }}</a></nav>
 <h1>{{ record.data.name }}</h1>
 <p class="meta">
-{%- if record.data.id %}<a class="id" href="{{ record.data.id | curie_url }}">{{ record.data.id }}</a>{% endif %}
+{%- if record.data.id and record.data.id | curie_url %}<a class="id" href="{{ record.data.id | curie_url }}">{{ record.data.id }}</a>
+{%- elif record.data.id %}<span class="id">{{ record.data.id }}</span>{% endif %}
 {%- if record.data.status %} {{ record.data.status | badge("status") }}{% endif %}
 {%- if record.data.record_term %} <span class="grounded">{{ record.data.record_term | term }}</span>{% endif %}
 </p>

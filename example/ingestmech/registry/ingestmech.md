@@ -23,7 +23,8 @@ record_type: an ingest repository in the Monarch koza template layout
 record_count: 0
 record_count_date: 2026-09-30
 record_identifier_policy: >-
-  Records are keyed by minted ingestmech: CURIEs.
+  Records are keyed by ingestmech: and the repository name, e.g.
+  ingestmech:omim-ingest.
 identifier_prefix: ingestmech
 ontologies:
   - NCBITaxon
