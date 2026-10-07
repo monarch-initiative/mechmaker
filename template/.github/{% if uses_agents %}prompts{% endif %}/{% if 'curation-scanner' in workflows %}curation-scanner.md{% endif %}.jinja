@@ -41,8 +41,8 @@ Begin whatever you post with one sentence saying why you picked this item.
 ## For a pull request
 
 Address clear review comments from the queue file with small commits. Ask on the PR when
-unsure. Refresh a stale branch with the update-branch API, never a local
-rebase or a force-push.
+unsure. Refresh a stale branch by merging its base in (`git fetch`, then
+`git merge origin/<base>`) and pushing; never rebase or force-push.
 
 ## Rules
 
