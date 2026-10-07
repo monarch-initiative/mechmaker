@@ -57,6 +57,8 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
@@ -229,18 +231,20 @@ def commits_between(repo: Path, base: str, target: str) -> list[tuple[str, str, 
     return found
 
 
+def parse_notes(text: str) -> dict[str, dict]:
+    """The upgrade notes in TEXT, by id."""
+    items = yaml.safe_load(text) or []
+    return {str(n["id"]): n for n in items if isinstance(n, dict) and n.get("id")}
+
+
 def notes_at(repo: Path, ref: str) -> dict[str, dict]:
     out = run(["git", "-C", str(repo), "show", f"{ref}:{NOTES}"], check=False)
-    if out.returncode != 0:
-        return {}
-    items = yaml.safe_load(out.stdout) or []
-    return {str(n["id"]): n for n in items if isinstance(n, dict) and n.get("id")}
+    return parse_notes(out.stdout) if out.returncode == 0 else {}
 
 
 def notes_in_tree(repo: Path) -> dict[str, dict]:
     path = repo / NOTES
-    items = yaml.safe_load(path.read_text(encoding="utf-8")) if path.is_file() else []
-    return {str(n["id"]): n for n in items or [] if isinstance(n, dict) and n.get("id")}
+    return parse_notes(path.read_text(encoding="utf-8")) if path.is_file() else {}
 
 
 def applies(note: dict, answers: dict) -> bool:
@@ -252,16 +256,22 @@ def applies(note: dict, answers: dict) -> bool:
 # ---------------------------------------------------------------- rendering
 
 
-def render(repo: Path, ref: str, data: dict, dest: Path) -> Path:
-    """The Mech's answers rendered with the template at REF ("HEAD" on a checkout: its working tree)."""
+@contextmanager
+def answers_file(data: dict) -> Iterator[str]:
+    """DATA in a temporary YAML file, for Copier's --data-file."""
     with tempfile.NamedTemporaryFile("w", suffix=".yml", delete=False, encoding="utf-8") as fh:
         yaml.safe_dump(data, fh)
-        data_file = fh.name
     try:
-        run([*copier_cmd(), "copy", "--quiet", "--defaults", "--overwrite", "--vcs-ref", ref,
-             "--data-file", data_file, str(repo), str(dest)])
+        yield fh.name
     finally:
-        Path(data_file).unlink()
+        Path(fh.name).unlink()
+
+
+def render(repo: Path, ref: str, data: dict, dest: Path) -> Path:
+    """The Mech's answers rendered with the template at REF ("HEAD" on a checkout: its working tree)."""
+    with answers_file(data) as path:
+        run([*copier_cmd(), "copy", "--quiet", "--defaults", "--overwrite", "--vcs-ref", ref,
+             "--data-file", path, str(repo), str(dest)])
     return dest
 
 
@@ -509,17 +519,8 @@ def apply(mech: Path, plan: Plan, accepted: set[str], data: dict,
                       "in the template first.")
     cmd = [*copier_cmd(), "update", "--quiet", "--skip-answered", "--defaults", "--conflict", "inline",
            "--vcs-ref", plan.target]
-    data_file = None
-    if data:
-        with tempfile.NamedTemporaryFile("w", suffix=".yml", delete=False, encoding="utf-8") as fh:
-            yaml.safe_dump(data, fh)
-            data_file = fh.name
-        cmd += ["--data-file", data_file]
-    try:
-        run([*cmd, str(mech)])
-    finally:
-        if data_file:
-            Path(data_file).unlink()
+    with answers_file(data) as path:
+        run([*cmd, *(["--data-file", path] if data else []), str(mech)])
 
     def held(path: str) -> bool:
         return any(fnmatch.fnmatch(path, pattern) for pattern in keep or [])
