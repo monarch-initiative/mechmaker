@@ -643,12 +643,11 @@ def main(argv: list[str] | None = None) -> int:
                 print(json.dumps(plan.to_dict(), indent=2) if args.json else plan_text(plan), end="")
                 return 1 if plan.updates or plan.questions else 0
             try:
-                accepted = chosen(plan, None if args.all else args.accept, args.decline)
+                # --all names nothing to decline, so chosen() takes every update.
+                accepted = chosen(plan, args.accept, args.decline)
             except ValueError as err:
                 print(err, file=sys.stderr)
                 return 64
-            if args.all:
-                accepted = {u.id for u in plan.updates}
             result, code = apply(mech, plan, accepted, data, args.keep)
             print(json.dumps(result, indent=2) if args.json else apply_text(result), end="")
             return code
