@@ -74,11 +74,10 @@ just docs-serve      # the documentation site, locally
 ## Staying current
 
 A Mech remembers the template version it came from. To take later
-improvements:
+improvements, ask your agent to run mechmaker's `sync-mech` skill. It shows
+each change since your version, lets you choose which to take, merges them
+with your own edits, and migrates records where a change needs it. See
+[Updating a Mech](updating.md).
 
-```bash
-just update-template
-```
-
-Copier merges the template's changes with yours, and shows conflicts where
-both changed the same lines.
+Without an agent, `just update-template` takes every change at once, and
+shows conflicts where both changed the same lines.

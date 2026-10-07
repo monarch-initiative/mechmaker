@@ -8,6 +8,7 @@
 | `template/` | The files that become a Mech. Files ending `.jinja` are rendered; everything else is copied as is. Paths may contain Jinja, such as `{{mech_slug}}` or `{% if 'review' in workflows %}` |
 | `skills/` | Skills for the agent that makes a Mech. `.claude/skills` links here |
 | `.claude-plugin/` | Makes the repository a Claude Code plugin and marketplace |
+| `upgrade-notes.yml` | What an existing Mech must do, beyond taking files, to follow a template change. `sync-mech` shows each note to the Mechs it reaches |
 | `AGENTS.md` | Where an agent pointed at this repository starts |
 | `example/` | Two Mechs made with the skills, with their answers and survey briefs |
 | `docs/`, `mkdocs.yml`, `scripts/gen_docs.py` | This site. Reference pages are generated |
@@ -40,6 +41,12 @@ dependencies and builds its own documentation.
   fails while an example's template files differ from a fresh render. The
   files each example owns, its design and its links, are listed in
   `scripts/sync_examples.py` and left alone.
+- **Changes that existing Mechs must act on get an upgrade note.** If a
+  Mech taking the change must also do something by hand (migrate records,
+  fill a newly required field, stop tracking a file, use a renamed
+  command), add an entry to `upgrade-notes.yml` in the same pull request,
+  with `pr:` set to its number. `sync-mech` shows it to every Mech whose
+  update includes that pull request. A test checks the file's shape.
 - **Shared files stay unchanged.** `mech_shared.yaml` and `history.yaml`
   come from [culturebotai-claw](https://github.com/CultureBotAI/culturebotai-claw)
   byte for byte. A test checks their hashes. To update them, copy the new

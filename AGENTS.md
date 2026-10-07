@@ -22,6 +22,12 @@ inside this repository.
 The documentation, indexed for agents:
 https://monarch-initiative.github.io/mechmaker/llms.txt
 
+## If a person wants to update a Mech
+
+They have a Mech made from mechmaker and want its newer features. Work in
+the Mech's folder, not here. Install the skills there as above, and follow
+`sync-mech`. The person chooses which updates to take.
+
 ## If you are changing mechmaker
 
 Read `CLAUDE.md`. It has the layout and the rules: what is vendored and

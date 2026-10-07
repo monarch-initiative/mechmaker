@@ -107,8 +107,11 @@ Quote counts from `just report` or a live command, never from prose.
   page by improving the schema's descriptions.
 - `cache/` and `references_cache/` are written by the validators. Commit
   them. Never hand-edit a row.
-- `.copier-answers.yml` is written by Copier. Run `just update-template` to
-  pull template changes from mechmaker.
+- `.copier-answers.yml` is written by Copier. To take newer template
+  changes from mechmaker, follow mechmaker's `sync-mech` skill
+  (`npx skills add monarch-initiative/mechmaker`): it shows each change,
+  lets the person choose, and migrates records where a change needs it.
+  `just update-template` takes every change at once.
 
 ## Skills
 

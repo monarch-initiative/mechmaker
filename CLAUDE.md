@@ -12,6 +12,9 @@ and agent skills (`skills/`) for making Mechs. See README.md.
 - `AGENTS.md`: the entry point for an agent pointed at this repository.
 - `skills/`: skills for the agent that makes a Mech. `.claude/skills` is a
   symlink to it. `.claude-plugin/` makes the repository a Claude Code plugin.
+- `upgrade-notes.yml`: what an existing Mech must do, beyond taking files,
+  to follow a template change. `sync-mech` shows each note to the Mechs
+  whose update reaches it.
 - `tests/`: `just test` renders six answer sets and each example's
   answers; `just test-generated` installs five generated Mechs and runs
   their `just qc`, plus a few targeted ones.
@@ -33,6 +36,10 @@ and agent skills (`skills/`) for making Mechs. See README.md.
 - The start prompt is a `text` block in `docs/getting-started.md`, copied
   into `docs/index.md` and `README.md`. A test keeps the copies equal.
 
+- A template change that existing Mechs must act on by hand (records to
+  migrate, a field newly required, a file to stop tracking, a command
+  renamed) adds an entry to `upgrade-notes.yml` in the same pull request,
+  with `pr:` set to that pull request's number.
 - A fresh copy must pass `just qc`. Run `just test-generated` after any
   change under `template/`.
 - After a change under `template/`, run `just sync-examples`, then
