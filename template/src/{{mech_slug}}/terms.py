@@ -120,6 +120,10 @@ def check_identity(paths: list) -> int:
         if direct:
             try:
                 found = parents(rid)
+            except LookupError as exc:  # a wrong id, not an outage
+                bad += 1
+                print(f"ERROR {path}: {exc}")
+                continue
             except OSError as exc:  # an outage, not a wrong id: exit 2, as the term check does
                 print(f"The ontology service did not answer for {rid}: {exc}", file=sys.stderr)
                 return 2

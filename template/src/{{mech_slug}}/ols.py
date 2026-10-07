@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import urllib.error
 import urllib.parse
 import urllib.request
 
@@ -28,7 +29,12 @@ def _term_url(curie: str, ontology: str) -> str:
     """The OLS URL of a term. IRIs differ by ontology (EFO's are not OBO PURLs),
     so the term is found by its CURIE and its URL built from the IRI OLS gives."""
     q = urllib.parse.urlencode({"obo_id": curie})
-    terms = _get(f"{OLS}/ontologies/{ontology}/terms?{q}").get("_embedded", {}).get("terms", [])
+    try:
+        terms = _get(f"{OLS}/ontologies/{ontology}/terms?{q}").get("_embedded", {}).get("terms", [])
+    except urllib.error.HTTPError as exc:
+        if exc.code != 404:  # OLS answers an unknown term with 404
+            raise
+        terms = []
     if not terms:
         raise LookupError(f"{curie} is not in the OLS ontology {ontology}")
     iri = urllib.parse.quote(urllib.parse.quote(terms[0]["iri"], safe=""), safe="")
