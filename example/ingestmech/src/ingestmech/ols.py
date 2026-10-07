@@ -27,7 +27,8 @@ def _get(url: str) -> dict:
 
 def _term_url(curie: str, ontology: str) -> str:
     """The OLS URL of a term. IRIs differ by ontology (EFO's are not OBO PURLs),
-    so the term is found by its CURIE and its URL built from the IRI OLS gives."""
+    so the term is found by its CURIE and its URL built from the IRI OLS gives.
+    Some loads leave obo_id empty (PR's, at times); then the OBO PURL is tried."""
     q = urllib.parse.urlencode({"obo_id": curie})
     try:
         terms = _get(f"{OLS}/ontologies/{ontology}/terms?{q}").get("_embedded", {}).get("terms", [])
@@ -35,10 +36,17 @@ def _term_url(curie: str, ontology: str) -> str:
         if exc.code != 404:  # OLS answers an unknown term with 404
             raise
         terms = []
+    iri = terms[0]["iri"] if terms else "http://purl.obolibrary.org/obo/" + curie.replace(":", "_", 1)
+    encoded = urllib.parse.quote(urllib.parse.quote(iri, safe=""), safe="")
+    url = f"{OLS}/ontologies/{ontology}/terms/{encoded}"
     if not terms:
-        raise LookupError(f"{curie} is not in the OLS ontology {ontology}")
-    iri = urllib.parse.quote(urllib.parse.quote(terms[0]["iri"], safe=""), safe="")
-    return f"{OLS}/ontologies/{ontology}/terms/{iri}"
+        try:
+            _get(url)
+        except urllib.error.HTTPError as exc:
+            if exc.code != 404:
+                raise
+            raise LookupError(f"{curie} is not in the OLS ontology {ontology}") from exc
+    return url
 
 
 def ancestors(curie: str, ontology: str | None = None, hierarchical: bool = False) -> list[tuple[str, str]]:
