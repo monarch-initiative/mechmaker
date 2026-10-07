@@ -191,6 +191,22 @@ def test_apply_in_a_subfolder_puts_back_declined_files(nested):
     assert (nested / "docs/NEW.md").is_file()
 
 
+def test_apply_in_a_subfolder_reports_conflicts_and_keeps(nested):
+    outer = nested.parent
+    # The Mech and the template both add to the end of the justfile, so the merge conflicts.
+    with (nested / "justfile").open("a") as fh:
+        fh.write("\n# This Mech's own last line.\n")
+    (outer / "elsewhere.txt").write_text("uncommitted, outside the Mech\n")
+    git(outer, "add", "minimalmech")
+    git(outer, "commit", "-qm", "Local change at the end")
+    code, out, err = sync("apply", str(nested), "--all", "--keep", "docs/*", "--json")
+    assert code == 1, err
+    result = json.loads(out)
+    assert result["conflicts"] == ["justfile"]
+    assert "docs/NEW.md" in result["restored"] and not (nested / "docs/NEW.md").exists()
+    assert result["unplanned"] == []
+
+
 def test_apply_keep_leaves_a_path_alone(mech):
     justfile = (mech / "justfile").read_text()
     code, out, err = sync("apply", str(mech), "--all", "--keep", "justfile", "--json")

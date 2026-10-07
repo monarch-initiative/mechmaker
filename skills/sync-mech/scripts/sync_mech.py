@@ -476,7 +476,8 @@ def restore(mech: Path, path: str) -> None:
 
 def apply(mech: Path, plan: Plan, accepted: set[str], data: dict,
           keep: list[str] | None = None) -> tuple[dict, int]:
-    if git(mech, "status", "--porcelain"):
+    # Only the Mech's own folder counts: it may sit in a larger repository.
+    if git(mech, "status", "--porcelain", "--", "."):
         raise Failure(f"{mech} has uncommitted changes. Commit or stash them first: "
                       "the update must be a diff you can read and undo.")
     if plan.uncommitted:
@@ -511,7 +512,8 @@ def apply(mech: Path, plan: Plan, accepted: set[str], data: dict,
         else:
             kept.append(f.path)
     # A file Copier left outside the plan stays, and is listed.
-    changed = git(mech, "diff", "--name-only", "HEAD").splitlines()
+    # Paths relative to the Mech's folder, as the plan has them.
+    changed = git(mech, "diff", "--name-only", "--relative", "HEAD").splitlines()
     changed += git(mech, "ls-files", "--others", "--exclude-standard").splitlines()
     changed = sorted(set(changed) - {ANSWERS})
     for path in [p for p in changed if held(p) and p not in restored]:
