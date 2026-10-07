@@ -20,7 +20,7 @@ bioportal: needs BIOPORTAL_API_KEY in the environment. With --adapter, the
 ontology argument of search is ignored; pass -. An ols:<id> adapter searches
 the OLS ontology <id>.
 
-Exit status is 1 if any term is missing or any check fails, so the result can
+Exit status is 1 if any term is missing or obsolete, or any check fails, so the result can
 gate a script. It exits 2 if OLS or the adapter does not answer: that is an
 outage, not a missing term. It exits 3 if OAK itself fails, and 64 on a
 usage error, such as a missing argument or a CURIE with no colon. Ontology ids
@@ -86,8 +86,15 @@ def _lookup(onto, curie):
     try:
         terms = _get(f"{OLS}/ontologies/{onto}/terms?{q}").get("_embedded", {}).get("terms", [])
     except urllib.error.HTTPError:
+        terms = []
+    if terms:
+        return terms[0]
+    # Some loads leave obo_id empty (PR's, at times); try the OBO PURL.
+    iri = urllib.parse.quote("http://purl.obolibrary.org/obo/" + curie.replace(":", "_", 1), safe="")
+    try:
+        return _get(f"{OLS}/ontologies/{onto}/terms/" + urllib.parse.quote(iri, safe=""))
+    except urllib.error.HTTPError:
         return None
-    return terms[0] if terms else None
 
 
 def _term_url(curie, suffix=""):
@@ -137,6 +144,14 @@ def label(curie):
         return hits[0] if hits else None
     term = _term(curie)
     return term.get("label") if term else None
+
+
+def obsolete(curie):
+    """True when OLS marks the term obsolete. OAK mode does not say, so False there."""
+    if _oak_mode():
+        return False
+    term = _term(curie)
+    return bool(term and term.get("is_obsolete"))
 
 
 # `runoak ancestors` fails on BioPortal (OAK 0.7.4 passes arguments its
@@ -232,8 +247,10 @@ def main(argv):
     if cmd == "label":
         for c in args:
             lab = label(c)
-            ok &= lab is not None
-            print(f"{c}\t{lab if lab is not None else 'NOT FOUND'}")
+            old = lab is not None and obsolete(c)
+            ok &= lab is not None and not old
+            tag = "\tOBSOLETE" if old else ""
+            print(f"{c}\t{lab if lab is not None else 'NOT FOUND'}{tag}")
     elif cmd == "under":
         direct = "--direct" in args
         args = [a for a in args if a != "--direct"]
@@ -241,12 +258,12 @@ def main(argv):
             print("under needs a root and at least one term: under ROOT TERM [TERM ...]", file=sys.stderr)
             return 64
         root, terms = args[0], args[1:]
-        if label(root) is None:
-            print(f"{root}\tNOT FOUND")
+        if label(root) is None or obsolete(root):
+            print(f"{root}\t{'NOT FOUND' if label(root) is None else 'OBSOLETE'}")
             return 1
         for c in terms:
-            if label(c) is None:
-                print(f"{c}\tNOT FOUND")
+            if label(c) is None or obsolete(c):
+                print(f"{c}\t{'NOT FOUND' if label(c) is None else 'OBSOLETE'}")
                 ok = False
                 continue
             if direct:

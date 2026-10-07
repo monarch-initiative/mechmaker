@@ -65,7 +65,9 @@ reach this Mech (a change to a workflow it does not use); the plan knows.
 
 The target is the latest mechmaker release. Use `--to HEAD` for
 mechmaker's main branch, when the person wants a change not yet released,
-or `--to <tag>` for a particular release.
+or `--to <tag>` for a particular release. A Mech made from main is already
+past the latest release: `check` exits 2 and says it is newer than the tag.
+That Mech is fine; run again with `--to HEAD`.
 
 ## 2. Plan
 

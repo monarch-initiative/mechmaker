@@ -38,7 +38,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from markupsafe import Markup, escape
 
 from . import site
-from .paths import MECH_NAME, PACKAGE_DIR, PAGES_DIR, RECORD_NOUN, REPO_ROOT, REPO_URL, SCHEMA_PATH
+from .paths import MECH_NAME, PACKAGE_DIR, PAGES_DIR, RECORD_NOUN, REPO_ROOT, REPO_URL, SCHEMA_PATH, SLUG
 from .validate import iter_records, load
 
 CURIE_BASES = {
@@ -62,7 +62,9 @@ MAX_CELL_TEXT = 90
 def curie_url(curie: str) -> str:
     prefix, _, local = str(curie).partition(":")
     if prefix == "url":
-        return local
+        return local if local.startswith(("http://", "https://")) else "#"
+    if prefix == SLUG:
+        return ""  # a minted id: no page outside this site
     if prefix in CURIE_BASES:
         return CURIE_BASES[prefix] + local
     return f"https://bioregistry.io/{curie}"
@@ -140,7 +142,7 @@ def scalar(v, key: str = "") -> Markup:
     text = str(v)
     if URL.match(text):
         return link(text, text)
-    if key in ID_KEYS and CURIE.match(text):
+    if key in ID_KEYS and CURIE.match(text) and curie_url(text):
         return link(curie_url(text), text)
     if text in schema_info()[1]:
         return badge(text)

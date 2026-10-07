@@ -10,8 +10,10 @@ MEMBER, COLLABORATOR) or by a GitHub App installed on the repository. Every
 other comment is left out and only counted.
 
 The curation scanner can push, so it reads the thread from here instead of
-from GitHub. A stranger can comment on any open issue; only a person can put
-the `curation` label on one, so the title and body are kept.
+from GitHub. A stranger can comment on any open issue, so only comments from
+people with write access are kept. The title and body are kept: a person
+puts the `curation` label on an issue, except a literature-scan issue, whose
+body quotes a paper's abstract (the prompt treats it as untrusted).
 """
 
 from __future__ import annotations

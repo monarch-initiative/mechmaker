@@ -53,6 +53,10 @@ this site can start from [llms.txt](llms.txt).
     See its [site](example/ingestmech/index.html) and
     [record browser](example/ingestmech/records/index.html).
 
+- **[Updating a Mech](updating.md)**
+
+    Bring a Mech made with an older mechmaker up to date.
+
 - **[Workflows](workflows.md)**
 
     GitHub automation, from checks to curation agents. You choose.

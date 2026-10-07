@@ -111,7 +111,7 @@ jobs:
 {% endif %}{% raw %}          claude_args: |
             --model ${{ steps.agent.outputs.model }}
             --max-turns ${{ steps.agent.outputs.max-turns }}
-            --allowedTools "Bash(just:*),Bash(uv run:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git add:*),Bash(git commit:*),Bash(git checkout:*),Bash(git switch:*),Bash(git push:*),Bash(gh pr list:*),Bash(gh pr view:*),Bash(gh pr create:*),Read,Edit,Write,Glob,Grep,WebFetch,WebSearch,TodoWrite,Task"
+            --allowedTools "Bash(just:*),Bash(uv run:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git add:*),Bash(git commit:*),Bash(git checkout:*),Bash(git switch:*),Bash(git push:*),Bash(gh pr list:*),Bash(gh pr create:*),Read,Edit,Write,Glob,Grep,WebFetch,WebSearch,TodoWrite,Task"
       - name: Check the agent run
         if: always() && steps.agent.outcome == 'success'
         env:

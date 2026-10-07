@@ -37,9 +37,10 @@ record_count_date: {{ '%Y-%m-%d' | strftime }}
 record_identifier_policy: >-
 {%- if identity_prefix %}
   Records are keyed by {{ identity_prefix }} CURIEs where a term exists and
-  otherwise by a minted {{ mech_slug }}: CURIE.
+  otherwise by a minted {{ mech_slug }}:<uuid> CURIE.
 {%- else %}
-  Records are keyed by minted {{ mech_slug }}: CURIEs.
+  Records take a stable identifier from a source when one names them
+  uniquely, otherwise a minted {{ mech_slug }}:<uuid> CURIE.
 {%- endif %}
 identifier_prefix: {{ mech_slug }}
 {%- set seen = [] %}

@@ -36,6 +36,7 @@ says how to plan the mapping, and what to do with evidence.
 from __future__ import annotations
 
 import argparse
+import copy
 import datetime as dt
 from collections.abc import Iterable
 from dataclasses import dataclass, field
@@ -112,7 +113,7 @@ def convert(
         if isinstance(entry, Skip):
             report.skipped.append((entry.key, entry.reason))
             continue
-        data = dict(entry.record)
+        data = copy.deepcopy(dict(entry.record))
         if not data.get("name"):
             report.skipped.append((entry.key, "the record has no name"))
             continue

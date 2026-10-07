@@ -99,7 +99,9 @@ Off. Answer `langfuse` in Copier to add tracing to every agent workflow.
   `post-review`, `pr-shepherd`, `literature-scan`.
 - Triage adds `curation` only to issues whose author can write to the
   repository, so a stranger's issue reaches the curation scanner only after a
-  person has read it and added the label. Anyone can still comment on it
+  person has read it and added the label. The exception is literature-scan,
+  which files its own `curation` issues; their bodies quote paper abstracts,
+  which the scanner's prompt treats as data. Anyone can still comment on an issue
   later, and the scanner can push, so it never reads the thread on GitHub: a
   step with no model writes the queue with the title, the body, and only the
   comments and reviews from people with write access (OWNER, MEMBER,

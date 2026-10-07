@@ -229,7 +229,7 @@ def validate_paths(paths: Iterable[Path]) -> dict[Path, list[str]]:
         errors = schema_errors(data) + rule_errors(data, path)
         if isinstance(data, dict):
             errors += evidence_errors(data)
-        rid = data.get("id") if isinstance(data, dict) else None
+        rid = str(data["id"]) if isinstance(data, dict) and data.get("id") is not None else None
         if rid in ids:
             errors.append(f"id {rid} is also used by {ids[rid]}")
         elif rid:

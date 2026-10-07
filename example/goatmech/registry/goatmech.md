@@ -25,8 +25,8 @@ record_type: a goat breed
 record_count: 3
 record_count_date: 2026-09-30
 record_identifier_policy: >-
-  Records are keyed by VBO CURIEs where a term exists and
-  otherwise by a minted goatmech: CURIE.
+  Records are keyed by VBO CURIEs. A breed VBO lacks is a new-term
+  request, not a minted record.
 identifier_prefix: goatmech
 ontologies:
   - VBO

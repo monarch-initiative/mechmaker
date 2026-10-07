@@ -1,7 +1,7 @@
 ---
 name: evidence-references
 description: >-
-  Find, fetch, quote and validate the evidence behind a GoatMech claim.
+  Find, fetch, quote and validate the evidence behind a claim in GoatMech.
   Use when adding or fixing an `evidence` item, when a snippet fails
   reference validation, when choosing between sources, or when asked whether
   a claim is supported.

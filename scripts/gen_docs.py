@@ -44,12 +44,16 @@ def source_link(path: Path) -> str:
     return REPO + urllib.parse.quote(rel)
 
 
-def md_cell(text: object) -> str:
-    """One table cell: on one line, pipes escaped, and <placeholders> outside
-    code spans escaped, or the browser takes them for tags and hides them."""
-    parts = " ".join(str(text).split()).replace("|", "\\|").split("`")
+def md_cell(text: object, code: bool = False) -> str:
+    """One table cell: on one line, with pipes and <placeholders> outside code
+    spans escaped, or the table splits and the browser hides them as tags.
+    Inside a code span (code=True: the whole text) they print as they are."""
+    one_line = " ".join(str(text).split())
+    if code:
+        return one_line
+    parts = one_line.split("`")
     for i in range(0, len(parts), 2):  # the even parts are outside code spans
-        parts[i] = parts[i].replace("<", "&lt;").replace(">", "&gt;")
+        parts[i] = parts[i].replace("|", "\\|").replace("<", "&lt;").replace(">", "&gt;")
     return "`".join(parts)
 
 
@@ -114,7 +118,7 @@ def questions() -> str:
                       "| Question | Type | Default | What it decides |", "|---|---|---|---|"]
         help_text = sentence(md_cell(q.get("help", "")))
         if "when" in q:
-            help_text += f" *Asked when* `{md_cell(q['when']).strip('{} ')}`."
+            help_text += f" *Asked when* `{md_cell(q['when'], code=True).strip('{} ')}`."
         choices = q.get("choices")
         if isinstance(choices, dict):
             values = ", ".join(f"`{v}`" for v in choices.values())
@@ -127,7 +131,10 @@ def questions() -> str:
         elif q["default"] in ("", None):
             default = "empty"
         else:
-            default = f"`{md_cell(q['default'])}`"
+            value = q["default"]
+            if not isinstance(value, str):  # as the answer is written in YAML
+                value = yaml.safe_dump(value, default_flow_style=True).strip().removesuffix("...").strip()
+            default = f"`{md_cell(value, code=True)}`"
         lines.append(f"| `{key}` | {kind} | {default} | {help_text} |")
     return "\n".join(lines) + "\n"
 

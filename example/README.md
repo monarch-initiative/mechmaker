@@ -1,7 +1,7 @@
 # Examples
 
 Two Mechs made with mechmaker's skills and template, to show the whole path
-from a request to curated records. Each one's git history shows every step
+from a request to curated records. mechmaker's git history shows each step
 as its own commit, starting with the untouched template output.
 
 ## GoatMech: a Mech from nothing

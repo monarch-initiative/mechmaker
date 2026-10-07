@@ -17,8 +17,8 @@ not this session. It says what counts as a record and what does not.
 
 ```bash
 ls data/goat_breeds/ | grep -i <word>
-just new-record --id <CURIE> --name "<name>"            # dry run
-just new-record --id <CURIE> --name "<name>" --model <model-id> --apply
+just new-record [--id <CURIE>] --name "<name>"            # dry run
+just new-record [--id <CURIE>] --name "<name>" --model <model-id> --apply
 ```
 
 Find the id first, below. An id with the VBO prefix also

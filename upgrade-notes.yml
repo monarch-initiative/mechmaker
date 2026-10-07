@@ -44,3 +44,16 @@
     once published, so do not rewrite name-style ids to uuids. If the
     Mech's own docs or prompts tell curators to make ids from names, point
     them at `just new-record` without --id instead.
+
+- id: identity-adapter-wins
+  pr: 63
+  when: identity_prefix
+  summary: identity_adapter now serves every term with the identity prefix, including an extra ontology that names its own adapter.
+  action: |
+    Look in `.copier-answers.yml` for an `extra_ontologies` item whose
+    prefix is the identity prefix and that sets its own `adapter`. If there
+    is none, nothing to do. If there is, `conf/oak_config.yaml` now sends
+    that prefix to `identity_adapter`: check that it serves the terms (run
+    `just qc`), then drop the item's `adapter`, or set `identity_adapter` to
+    it with `copier update --data identity_adapter=<adapter>`. Copier now
+    refuses the old pair when it asks the question again.

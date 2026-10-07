@@ -73,10 +73,11 @@ classes:
         description: >-
 {%- if identity_prefix %}
           The {{ identity_prefix }} CURIE for this {{ record_noun }} where a
-          term exists. Otherwise a CURIE minted in the {{ mech_slug }}
-          namespace, which can be re-grounded later.
+          term exists. Otherwise a minted {{ mech_slug }}:<uuid> CURIE, which
+          can be re-grounded later.
 {%- else %}
-          A CURIE minted in the {{ mech_slug }} namespace.
+          A stable identifier from a source when one names the {{ record_noun }}
+          uniquely, otherwise a minted {{ mech_slug }}:<uuid> CURIE.
 {%- endif %}
         pattern: "^[A-Za-z][A-Za-z0-9_]*:[^\\s]+$"
       name:
@@ -373,12 +374,12 @@ enums:
   IdentityTerm:
 {%- if identity_direct_only %}
     description: >-
-      A {{ identity_prefix }} term that can key {{ record_article }} {{ record_noun }}: a direct
+      A term from {{ identity_prefix }} that can key {{ record_article }} {{ record_noun }}: a direct
       is-a child of {{ identity_root }}, not the root and not a term further
       down. linkml-term-validator ignores is_direct, so `just check-identity`
       enforces it.
 {%- else %}
-    description: A {{ identity_prefix }} term that can key {{ record_article }} {{ record_noun }}.
+    description: A term from {{ identity_prefix }} that can key {{ record_article }} {{ record_noun }}.
 {%- endif %}
     reachable_from:
       source_nodes:
