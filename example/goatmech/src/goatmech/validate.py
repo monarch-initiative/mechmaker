@@ -203,6 +203,19 @@ def iter_records(root: Path = RECORDS_DIR) -> list[Path]:
     return sorted(root.rglob("*.yaml")) if root.exists() else []
 
 
+def record_ids(root: Path = RECORDS_DIR) -> dict[str, Path]:
+    """The id of every record under root. A file that does not parse is left to `just validate`."""
+    ids: dict[str, Path] = {}
+    for path in iter_records(root):
+        try:
+            data = load(path)
+        except yaml.YAMLError:
+            continue
+        if isinstance(data, dict) and data.get("id"):
+            ids.setdefault(str(data["id"]), path)
+    return ids
+
+
 def validate_paths(paths: Iterable[Path]) -> dict[Path, list[str]]:
     failures: dict[Path, list[str]] = {}
     ids: dict[str, Path] = {}

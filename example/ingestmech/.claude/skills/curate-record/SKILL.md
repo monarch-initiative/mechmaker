@@ -21,8 +21,13 @@ just new-record --id <CURIE> --name "<name>"            # dry run
 just new-record --id <CURIE> --name "<name>" --model <model-id> --apply
 ```
 
-The id is minted: `ingestmech:<slug>`, where the slug comes from the
-name.
+Leave out `--id` and the record gets a minted `ingestmech:<uuid>`, which
+stays put when the record is renamed. Pass `--id` only for a stable
+identifier a source gives the thing.
+
+```bash
+just new-record --name "<name>" --apply
+```
 
 Check for duplicates by id and by synonym before creating anything.
 

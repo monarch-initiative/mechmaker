@@ -52,8 +52,9 @@ just term-parents <CURIE>     # VBO:0400025 must be among them
 A term one level too deep is a variant of a record, not a record. Find its
 parent and curate that, or add the variant to the parent's record.
 
-If no term fits, mint `goatmech:<slug>` and open a `CURATION_TODO`
-discussion that says a term is missing.
+If no term fits, leave out `--id`: the record gets a minted
+`goatmech:<uuid>`. Open a `CURATION_TODO` discussion that says a term
+is missing.
 
 Check for duplicates by id and by synonym before creating anything.
 

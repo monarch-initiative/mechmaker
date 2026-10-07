@@ -1,7 +1,12 @@
 """Writing records. Every write goes through validation first.
 
-    python -m <slug>.records new --id <CURIE> --name "..." [--description "..."] [--apply]
+    python -m <slug>.records new --name "..." [--description "..."] [--apply]
+    python -m <slug>.records new --id <CURIE> --name "..." [--apply]
     python -m <slug>.records new --id <TERM> --name "..." --term-label "<the ontology's label>" [--apply]
+
+Without --id, the record gets a minted id, `<slug>:<uuid>`: unique, and
+unchanged when the record is renamed. Pass --id when something better keys
+the record: an ontology term, or a stable identifier from a source.
 
 Code that changes records should call `write_validated_record`, which refuses
 to write an invalid record, and `append_curation_event`, which records the
@@ -13,12 +18,13 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import sys
+import uuid
 from pathlib import Path
 
 import yaml
 
-from .paths import IDENTITY_PREFIX, RECORD_NOUN, RECORDS_DIR, REPO_ROOT
-from .validate import evidence_errors, rule_errors, schema_errors, slugify
+from .paths import IDENTITY_PREFIX, RECORD_NOUN, RECORDS_DIR, REPO_ROOT, SLUG
+from .validate import evidence_errors, record_ids, rule_errors, schema_errors, slugify
 
 
 class _Dumper(yaml.SafeDumper):
@@ -43,6 +49,11 @@ _Dumper.add_representer(str, _str)
 
 def dump(data: dict) -> str:
     return yaml.dump(data, Dumper=_Dumper, sort_keys=False, allow_unicode=True, width=4096)
+
+
+def mint_id() -> str:
+    """A new id in the Mech's own namespace, for a record nothing else keys."""
+    return f"{SLUG}:{uuid.uuid4()}"
 
 
 def record_path(data: dict) -> Path:
@@ -88,7 +99,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=f"Scaffold a {RECORD_NOUN} record")
     sub = parser.add_subparsers(dest="cmd", required=True)
     new = sub.add_parser("new", help="scaffold a record (dry-run unless --apply)")
-    new.add_argument("--id", required=True, help="CURIE for the record")
+    new.add_argument("--id", help=f"CURIE for the record (default: a minted {SLUG}:<uuid>)")
     new.add_argument("--name", required=True)
     new.add_argument("--description")
     new.add_argument("--term-label", help="the ontology's label for --id, from `just term-info`; "
@@ -100,15 +111,16 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     today = dt.date.today().isoformat()
-    data: dict = {"id": args.id, "name": args.name}
+    rid = args.id or mint_id()
+    data: dict = {"id": rid, "name": args.name}
     if args.description:
         data["description"] = args.description
-    if IDENTITY_PREFIX and args.id.startswith(f"{IDENTITY_PREFIX}:"):
+    if IDENTITY_PREFIX and rid.startswith(f"{IDENTITY_PREFIX}:"):
         if not args.term_label:
-            print(f"ERROR: {args.id} has the {IDENTITY_PREFIX} prefix. Pass --term-label with its label: "
-                  f"`just term-info {IDENTITY_PREFIX} {args.id}`")
+            print(f"ERROR: {rid} has the {IDENTITY_PREFIX} prefix. Pass --term-label with its label: "
+                  f"`just term-info {IDENTITY_PREFIX} {rid}`")
             return 1
-        data["record_term"] = {"id": args.id, "label": args.term_label}
+        data["record_term"] = {"id": rid, "label": args.term_label}
     data["status"] = "DRAFT"
     data["creation_date"] = today
     data["updated_date"] = today
@@ -122,7 +134,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     path = record_path(data)
     if path.exists():
-        print(f"ERROR: {path.relative_to(REPO_ROOT)} exists")
+        print(f"ERROR: {_rel(path)} exists")
+        return 1
+    taken = record_ids(path.parent).get(rid)
+    if taken:
+        print(f"ERROR: id {rid} is already used by {_rel(taken)}")
         return 1
     try:
         write_validated_record(data, path, dry_run=not args.apply)
@@ -130,11 +146,15 @@ def main(argv: list[str] | None = None) -> int:
         print(f"ERROR: {exc}")
         return 1
     if args.apply:
-        print(path.relative_to(REPO_ROOT))
+        print(_rel(path))
     else:
         print(dump(data))
-        print(f"# dry run; would write {path.relative_to(REPO_ROOT)}")
+        print(f"# dry run; would write {_rel(path)}")
     return 0
+
+
+def _rel(path: Path) -> Path:
+    return path.relative_to(REPO_ROOT) if path.is_relative_to(REPO_ROOT) else path
 
 
 if __name__ == "__main__":

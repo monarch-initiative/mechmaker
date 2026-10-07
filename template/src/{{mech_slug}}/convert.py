@@ -5,6 +5,10 @@ would make. This module does the rest the same way for every source:
 
   - every converted record starts as DRAFT, with a CREATE event that names
     the source and the entry it came from;
+  - a record with no id gets a minted one, `<slug>:<uuid>`; give it the
+    source's own identifier instead when that is stable and unique;
+  - an id already used, by an earlier entry or a record on disk, is reported
+    and never written;
   - every record goes through `write_validated_record`, so an invalid one is
     reported and never written;
   - a record that already exists is left alone and reported;
@@ -20,7 +24,7 @@ A script for one source, scripts/convert_<source>.py:
             if not row["name"]:
                 yield Skip(row["key"], "no name")
                 continue
-            yield Entry(row["key"], {"id": ..., "name": row["name"], ...})
+            yield Entry(row["key"], {"id": ..., "name": row["name"], ...})  # no id: minted
 
     if __name__ == "__main__":
         raise SystemExit(run(entries(), source="Old KB", script=__file__))
@@ -41,8 +45,8 @@ import yaml
 
 from .history import HISTORY_SCHEMA_PATH, build
 from .paths import RECORDS_DIR, REPO_ROOT
-from .records import append_curation_event, write_validated_record
-from .validate import schema_errors, slugify
+from .records import append_curation_event, mint_id, write_validated_record
+from .validate import record_ids, schema_errors, slugify
 
 
 @dataclass
@@ -98,6 +102,8 @@ def convert(
     """Validate each entry's record and, with apply, write it. Never overwrites."""
     report = Report()
     seen: dict[Path, str] = {}
+    # Who holds each id: a record on disk, or an entry written in this run.
+    ids = {rid: f"record {_rel(path)}" for rid, path in record_ids(records_dir).items()}
     for entry in entries:
         if only and str(entry.key) not in only:
             continue
@@ -110,6 +116,8 @@ def convert(
         if not data.get("name"):
             report.skipped.append((entry.key, "the record has no name"))
             continue
+        if not data.get("id"):
+            data["id"] = mint_id()
         today = dt.date.today().isoformat()
         data["status"] = "DRAFT"
         data.setdefault("creation_date", today)
@@ -125,11 +133,16 @@ def convert(
         if path.exists():
             report.exists.append((entry.key, path))
             continue
+        rid = str(data["id"])
+        if rid in ids:
+            report.skipped.append((entry.key, f"id {rid} is already used by {ids[rid]}"))
+            continue
         try:
             write_validated_record(data, path, dry_run=not apply)
         except ValueError as exc:
             report.skipped.append((entry.key, str(exc)))
             continue
+        ids[rid] = f"entry {entry.key}"
         report.written.append((entry.key, path))
     return report
 

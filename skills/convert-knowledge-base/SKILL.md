@@ -63,9 +63,11 @@ Run `survey-domain` with the knowledge base as the main source. Decide:
 
 - **One record is one what.** Usually one entry. Sometimes an entry is a
   field of a larger record, or one entry is several records. Write the rule.
-- **The id.** An ontology CURIE if one keys the entity, else minted in the
-  Mech's namespace. The source's own identifier is kept: as the minted id
-  when it is stable and unique, or in a slot the schema adds for it.
+- **The id.** An ontology CURIE if one keys the entity; else the source's
+  own identifier in the Mech's namespace, when it is stable and unique; else
+  leave `id` out and `convert` mints `<slug>:<uuid>`. A source identifier
+  that is not the id goes in a slot the schema adds for it. `convert` skips
+  an entry whose id an earlier entry or a record on disk already holds.
   Never as a synonym. Synonyms are names. A record keyed by an ontology
   CURIE names it again in `record_term`, with the ontology's label; the
   Mech refuses the record without it.

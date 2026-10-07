@@ -1,21 +1,58 @@
 """The conversion helper: DRAFT, validated, never overwriting, every skip reported."""
 
+import re
+from itertools import count
 from pathlib import Path
+
+import pytest
 
 from goatmech.convert import Entry, Skip, convert, history_record
 from goatmech.history import HISTORY_SCHEMA_PATH
-from goatmech.validate import load, schema_errors
+from goatmech.paths import IDENTITY_PREFIX, SLUG
+from goatmech.records import mint_id
+from goatmech.validate import load, rule_errors, schema_errors
 
 # Entries start from the Mech's own example record, so the tests keep passing
 # when the schema gains required fields.
 EXAMPLE = load(Path(__file__).parent / "data" / "example_record.yaml")
 
 
+def with_id(record, rid):
+    """The record under another id. A record keyed by an ontology term names it in record_term."""
+    record = {**record, "id": rid}
+    if IDENTITY_PREFIX and rid.startswith(f"{IDENTITY_PREFIX}:") and "record_term" in record:
+        record["record_term"] = {**record["record_term"], "id": rid}
+    return record
+
+
+def fits(rid):
+    record = with_id(EXAMPLE, rid)
+    return not schema_errors(record) and not rule_errors(record)
+
+
+MINTED_IDS_FIT = fits(mint_id())
+
+
+def distinct_ids():
+    """Distinct ids this Mech's schema takes: minted ones, or, when the design
+    allows only ontology ids, the example's id with its number counted up."""
+    if MINTED_IDS_FIT:
+        while True:
+            yield mint_id()
+    prefix, local = EXAMPLE["id"].split(":", 1)
+    number = re.search(r"[0-9]+$", local)
+    assert number, f"no way to make distinct ids from {EXAMPLE['id']}; teach this test one"
+    for n in count(int(number.group())):
+        yield f"{prefix}:{local[:number.start()]}{n:0{len(number.group())}d}"
+
+
+IDS = distinct_ids()
+
+
 def entry(key, name, **extra):
-    # The example's own id: it fits the Mech's id pattern, and its record_term
-    # when the example is keyed by an ontology term. The key is the source's.
+    # Each entry gets its own id that fits the Mech's id pattern. The key is the source's.
     record = {k: v for k, v in EXAMPLE.items() if k not in ("curation_history", "status")}
-    return Entry(key, {**record, "name": name, **extra})
+    return Entry(key, {**with_id(record, next(IDS)), "name": name, **extra})
 
 
 def test_dry_run_writes_nothing(tmp_path):
@@ -80,3 +117,32 @@ def test_long_lines_are_not_folded(tmp_path):
     report = convert([entry("a1", "Alpha", description=long.strip())], source="Old KB",
                      apply=True, records_dir=tmp_path)
     assert f"description: {long.strip()}\n" in report.written[0][1].read_text(encoding="utf-8")
+
+
+def test_two_entries_one_id(tmp_path):
+    first = entry("a1", "Alpha")
+    second = entry("a2", "Beta", id=first.record["id"])
+    report = convert([first, second], source="Old KB", records_dir=tmp_path)
+    assert [k for k, _ in report.written] == ["a1"]
+    assert f"id {first.record['id']} is already used by entry a1" in dict(report.skipped)["a2"]
+
+
+def test_an_id_on_disk_is_not_used_again(tmp_path):
+    first = entry("a1", "Alpha")
+    convert([first], source="Old KB", apply=True, records_dir=tmp_path)
+    report = convert([entry("b2", "Beta", id=first.record["id"])], source="Old KB",
+                     apply=True, records_dir=tmp_path)
+    assert "is already used by record" in dict(report.skipped)["b2"]
+    assert "alpha.yaml" in dict(report.skipped)["b2"]
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["alpha.yaml"]
+
+
+@pytest.mark.skipif(not MINTED_IDS_FIT, reason="the schema takes only ontology ids")
+def test_an_entry_without_an_id_gets_a_minted_one(tmp_path):
+    bare = entry("a1", "Alpha")
+    bare.record.pop("id")
+    bare.record.pop("record_term", None)
+    report = convert([bare, entry("b2", "Beta")], source="Old KB", apply=True, records_dir=tmp_path)
+    assert [k for k, _ in report.written] == ["a1", "b2"]
+    rid = load(tmp_path / "alpha.yaml")["id"]
+    assert re.fullmatch(re.escape(SLUG) + r":[0-9a-f-]+", rid) and len(rid) == len(SLUG) + 37
