@@ -466,8 +466,9 @@ def chosen(plan: Plan, accept: list[str] | None, decline: list[str] | None) -> s
 
 
 def restore(mech: Path, path: str) -> None:
-    """Put PATH back as it was at the Mech's last commit, or remove it if it is new."""
-    if run(["git", "-C", str(mech), "cat-file", "-e", f"HEAD:{path}"], check=False).returncode == 0:
+    """Put PATH back as it was at the Mech's last commit, or remove it if it is new. `HEAD:./` reads
+    PATH from the Mech's folder, which need not be the top of its repository."""
+    if run(["git", "-C", str(mech), "cat-file", "-e", f"HEAD:./{path}"], check=False).returncode == 0:
         git(mech, "checkout", "HEAD", "--", path)
     elif (mech / path).is_file():
         (mech / path).unlink()

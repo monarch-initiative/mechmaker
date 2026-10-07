@@ -104,6 +104,17 @@ def mech(made, tmp_path) -> Path:
     return dest
 
 
+@pytest.fixture
+def nested(made, tmp_path) -> Path:
+    """The same Mech one folder down in a larger repository, as the examples sit in mechmaker."""
+    outer = tmp_path / "outer"
+    shutil.copytree(made, outer / "minimalmech", symlinks=True, ignore=shutil.ignore_patterns(".git"))
+    git(outer, "init", "-q", "-b", "main")
+    git(outer, "add", "-A")
+    git(outer, "commit", "-qm", "A repository holding a Mech")
+    return outer / "minimalmech"
+
+
 @pytest.fixture(scope="module")
 def plan(made) -> dict:
     code, out, err = sync("plan", str(made), "--json")
@@ -169,6 +180,15 @@ def test_apply_takes_only_the_accepted_update(mech):
     git(mech, "commit", "-qm", "Sync")
     code, out, _ = sync("plan", str(mech))
     assert code == 0 and "up to date" in out
+
+
+def test_apply_in_a_subfolder_puts_back_declined_files(nested):
+    report = (nested / "src/minimalmech/report.py").read_text()
+    code, out, err = sync("apply", str(nested), "--accept", "#8", "--json")
+    assert code == 0, err
+    assert json.loads(out)["restored"] == ["src/minimalmech/report.py"]
+    assert (nested / "src/minimalmech/report.py").read_text() == report
+    assert (nested / "docs/NEW.md").is_file()
 
 
 def test_apply_keep_leaves_a_path_alone(mech):
