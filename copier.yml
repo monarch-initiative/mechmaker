@@ -144,7 +144,8 @@ identity_adapter:
   help: >-
     OAK adapter used to check identity terms: ols:<name>, sqlite:obo:<name>,
     bioportal:<name>, a local file such as simpleobo:ontologies/<file>.obo,
-    or "" to skip
+    or "" to skip. One prefix, one adapter: if an ontology picked below has
+    this prefix, this adapter checks its terms too
   default: "{{ 'ols:' if term_backend == 'ols' else 'sqlite:obo:' }}{{ identity_prefix | lower }}"
   when: "{{ identity_prefix != '' }}"
 
@@ -476,6 +477,8 @@ extra_ontologies:
     Item {{ loop.index }}: the prefix {{ x.prefix }} is already bound by a picked ontology or an earlier extra.
     {%- elif slot in seen.slots -%}
     Item {{ loop.index }}: the slot {{ slot }} is already used by a picked ontology or an earlier extra. Give it another slot.
+    {%- elif identity_prefix and (x.prefix | string) == identity_prefix and x.adapter is defined and x.adapter != identity_adapter -%}
+    Item {{ loop.index }}: {{ x.prefix }} keys records, so identity_adapter ({{ identity_adapter }}) checks its terms. Drop this adapter, or give identity_adapter {{ x.adapter }} instead.
     {%- endif -%}
     {%- if x is mapping -%}
     {%- set seen.prefixes = seen.prefixes + [x.prefix | string] -%}
@@ -752,7 +755,8 @@ ontology_selection:
     {%- set o = ontology_catalog[key] -%}
     {%- set _ = sel.append({
       "key": key, "prefix": o.prefix, "uri": o.uri,
-      "adapter": o.adapter if term_backend == 'ols' else o.adapter | replace('ols:', 'sqlite:obo:'),
+      "adapter": identity_adapter if (identity_prefix and o.prefix == identity_prefix)
+        else o.adapter if term_backend == 'ols' else o.adapter | replace('ols:', 'sqlite:obo:'),
       "descriptor": o.descriptor, "enum": o.enum, "slot": o.slot, "root": o.root,
       "root_label": o.root_label, "noun": o.noun, "category": o.category,
       "article": o.article | default('An' if o.noun[0] in 'aeiou' else 'A')}) -%}
@@ -764,7 +768,8 @@ ontology_selection:
     {%- set _ = sel.append({
       "key": x.prefix, "prefix": x.prefix | string,
       "uri": x.uri | default('http://purl.obolibrary.org/obo/' ~ x.prefix ~ '_'),
-      "adapter": x.adapter | default('ols:' ~ (x.prefix | lower)),
+      "adapter": identity_adapter if (identity_prefix and x.prefix | string == identity_prefix)
+        else x.adapter | default('ols:' ~ (x.prefix | lower)),
       "descriptor": x.descriptor | default(camel ~ 'Descriptor'),
       "enum": x.enum | default(camel ~ 'Term'),
       "slot": x.slot | default(plural | replace(' ', '_') | lower),

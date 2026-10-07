@@ -242,6 +242,12 @@ def test_a_local_identity_ontology_file_is_checked(mech):
     answers.write_text(local)
     _, items = audit(mech)
     assert status(items, "ENVO ontology file `ontologies/envo.obo`") == "missing"
+    # ENVO is also a picked ontology: identity_adapter checks it, and the two checks agree (#58).
+    oak = mech / "conf" / "oak_config.yaml"
+    oak.write_text(oak.read_text().replace('ENVO: "ols:envo"', 'ENVO: "simpleobo:ontologies/envo.obo"'))
+    _, items = audit(mech)
+    assert status(items, "ENVO terms checked with `simpleobo:ontologies/envo.obo`") == "done"
+    assert status(items, "ENVO terms (ENVO)") == "done"
     (mech / "ontologies").mkdir(exist_ok=True)
     (mech / "ontologies" / "envo.obo").write_text("format-version: 1.2\n")
     _, items = audit(mech)
