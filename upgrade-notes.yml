@@ -69,3 +69,23 @@
     and no `--vcs-ref`. Add `--vcs-ref=:current:` to each, so changing an
     answer keeps the Mech at its template commit. Files taken from the
     template already have it.
+
+- id: curation-queue-trusts-less
+  pr: 78
+  summary: literature-scan issues no longer carry `curation`; the curation queue trusts only the Mech's own Apps and withholds text edited after the label.
+  action: |
+    Look in `.copier-answers.yml` for `curation-scanner` under `workflows`.
+    If it is not there, nothing to do. If it is:
+    1. With `literature-scan` on too, list open issues labelled both
+       `literature` and `curation` (`gh issue list --label literature
+       --label curation --state open`). Show them to the person: each one
+       went to the scanner without anyone reading it. Remove `curation`
+       from the ones they have not read; they add it back after reading.
+    2. The queue now keeps comments only from people with write access and
+       from the agent and reviewer Apps. If the Mech relies on another
+       App's comments reaching the scanner, tell the person they are now
+       left out. `github-actions[bot]` comments are left out too; its
+       reviews are kept only when the review workflow posted them.
+    3. If the Mech edited `.github/prompts/compliance.md`, replace its
+       `gh pr list` step with reading `.compliance-open.txt`, as the
+       template's prompt does: the agent no longer has `gh pr list`.

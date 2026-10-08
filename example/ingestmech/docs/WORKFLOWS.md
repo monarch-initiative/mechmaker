@@ -44,7 +44,7 @@ until `agent_schedules` is turned on.
 | `dedupe` | off | `dedupe.yaml`, `auto-close-duplicates.yaml` | Flags likely duplicates; closes them after three days unless a person objects. | one comment, a label, closure | nothing more |
 | `pr-shepherd` | off | `pr-shepherd.yaml` | Comments on the most stuck PR, saying why and what would unstick it. The agent only reads; a step with no model posts. Never pushes or approves. | one comment | nothing more |
 | `curation-scanner` | off | `curation-scanner.yaml` | Picks one unassigned `curation` issue or PR per effort tier and advances it. | branches, PRs, comments | agent App |
-| `literature-scan` | off | `literature-scan.yaml` | Finds recent papers (PubMed or preprints) that match records and files a few `curation` issues. The agent only reads; a step with no model files them. Tune `conf/literature_scan.yaml`. | issues | nothing more |
+| `literature-scan` | off | `literature-scan.yaml` | Finds recent papers (PubMed or preprints) that match records and files a few `literature` issues. The agent only reads; a step with no model files them. A person adds `curation` after reading one. Tune `conf/literature_scan.yaml`. | issues | nothing more |
 | `compliance` | off | `compliance.yaml` | Improves the least complete records by `just compliance`, one PR each. | branches, PRs | agent App |
 | `post-review` | off | `post-review.yaml` | Proposes a suggestion, reply or `Editorial:` issue for each unanswered human review comment; a step with no model posts them. | suggestions, replies, issues | nothing more |
 
@@ -79,14 +79,21 @@ Off. Answer `langfuse` in Copier to add tracing to every agent workflow.
   `post-review`, `pr-shepherd`, `literature-scan`.
 - Triage adds `curation` only to issues whose author can write to the
   repository, so a stranger's issue reaches the curation scanner only after a
-  person has read it and added the label. The exception is literature-scan,
-  which files its own `curation` issues; their bodies quote paper abstracts,
-  which the scanner's prompt treats as data. Anyone can still comment on an issue
-  later, and the scanner can push, so it never reads the thread on GitHub: a
-  step with no model writes the queue with the title, the body, and only the
-  comments and reviews from people with write access (OWNER, MEMBER,
-  COLLABORATOR) or the repository's Apps. The agent has no `gh issue view`,
-  `gh pr view` or search, and no WebFetch on github.com.
+  person has read it and added the label. Literature-scan issues quote paper
+  abstracts, so they too wait for a person to add `curation`. Anyone can still
+  comment on an issue later, and the scanner can push, so it never reads the
+  thread on GitHub: a step with no model writes the queue with the title, the
+  body, and only the comments and reviews from people with write access
+  (OWNER, MEMBER, COLLABORATOR) or this Mech's own Apps (the agent App and the
+  reviewer App). Other bots are left out: pr-shepherd, dedupe and post-review
+  post as `github-actions[bot]` and can repeat a stranger's words; only the
+  review workflow's own reviews under that name are kept. When the author
+  cannot write, a title or body changed after the latest `curation` label is
+  withheld; adding the label again accepts it. The agent has no
+  `gh issue view`, `gh pr view` or search, and no WebFetch on github.com.
+- The compliance agent can push too. It reads open compliance pull requests
+  from a list a step with no model writes (this repository's branch names
+  only), and has no `gh pr list` and no WebFetch on github.com.
 - Prompts and helper scripts load from the default branch, so a PR cannot
   change the instructions it is reviewed under.
 - Tool lists are explicit. No workflow runs with permissions bypassed.

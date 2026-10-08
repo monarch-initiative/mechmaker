@@ -6,6 +6,9 @@
 const MARKER = 'mech-lit-scan:v1';
 const AUGMENT = 'Augment only the existing record. If this needs a new record, ' +
   'open a separate curation + high_effort issue instead.';
+// The body quotes an abstract, which anyone can write, so a person reads it
+// before the curation scanner, which can push, may pick it up.
+const HANDOFF = 'A person adds the `curation` label after reading this, to hand it to the curation scanner.';
 const PREPRINT = 'This is a preprint and has not been peer reviewed. ' +
   'It must not be the only support for a claim.';
 
@@ -25,7 +28,7 @@ function quoted(text) {
 function issueFor(lead, paper) {
   const name = oneLine(lead.name, 100) || '(unnamed)';
   const record = lead.record ? String(lead.record) : '';
-  const labels = ['curation', record ? 'low_effort' : 'high_effort', 'literature'];
+  const labels = ['literature', record ? 'low_effort' : 'high_effort'];
   if (paper.preprint) labels.push('preprint');
   const title = record
     ? `[lit-scan] ${name}: ${oneLine(paper.title, 140)}`
@@ -47,6 +50,7 @@ function issueFor(lead, paper) {
   lines.push(clean(lead.assessment, 4000) || '(no assessment)', '');
   if (record) lines.push(AUGMENT, '');
   if (paper.preprint) lines.push(`_${PREPRINT}_`, '');
+  lines.push(`_${HANDOFF}_`, '');
   lines.push(`<!-- ${MARKER} ${clean(paper.id, 100)} -->`);
   return { title, labels, body: lines.join('\n') };
 }
