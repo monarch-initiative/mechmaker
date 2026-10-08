@@ -49,7 +49,7 @@ and agent skills (`skills/`) for making Mechs. See README.md.
 - `template/src/{{mech_slug}}/schema/mech_shared.yaml` and `history.yaml` are
   vendored byte-identical from culturebotai-claw
   (`src/kg_microbe_governance/artifacts/schema/`, copied at claw commit
-  306e975a, 2026-09-30). Never edit them here. To
+  7e6c3eec, 2026-10-08). Never edit them here. To
   update, copy the new canon and change the md5s in `tests/test_template.py`
   and `template/tests/test_schema.py.jinja`.
 - Every root added to `ontology_catalog` is checked first:

@@ -120,7 +120,7 @@ SCENARIOS["disease"].update({"site_palette": "brown", "site_theme": "light", "de
 SCENARIOS["all-workflows"].update({"site_palette": "yellow", "site_accent": "amber", "site_theme": "dark"})
 
 VENDORED_MD5 = {
-    "mech_shared.yaml": "3cf80648642fcd1f824529bc40c572a5",
+    "mech_shared.yaml": "afbf1a48493e88e086294aa5df03b556",
     "history.yaml": "3742bc2068b637868c48aba406f6569d",
 }
 

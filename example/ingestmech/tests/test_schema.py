@@ -20,7 +20,7 @@ EXAMPLE = Path(__file__).parent / "data" / "example_record.yaml"
 # Fleet canon. These files are vendored byte-identical; a changed hash means
 # a local edit. Change them upstream and re-vendor, never here.
 VENDORED_MD5 = {
-    "mech_shared.yaml": "3cf80648642fcd1f824529bc40c572a5",
+    "mech_shared.yaml": "afbf1a48493e88e086294aa5df03b556",
     "history.yaml": "3742bc2068b637868c48aba406f6569d",
 }
 
