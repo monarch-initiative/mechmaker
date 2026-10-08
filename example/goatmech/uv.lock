@@ -697,7 +697,6 @@ wheels = [
 
 [[package]]
 name = "goatmech"
-version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "biolink-model" },

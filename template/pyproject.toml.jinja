@@ -1,6 +1,7 @@
 [project]
 name = "{{ mech_slug }}"
-version = "0.1.0"
+# The version comes from the latest git tag (v1.2.3); see [tool.uv-dynamic-versioning].
+dynamic = ["version"]
 description = "{{ description | replace('"', '\\"') }}"
 authors = [{ name = "{{ author_name }}", email = "{{ author_email }}" }]
 readme = "README.md"
@@ -50,8 +51,19 @@ Homepage = "https://github.com/{{ github_org }}/{{ repo_name }}"
 Repository = "https://github.com/{{ github_org }}/{{ repo_name }}"
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "uv-dynamic-versioning>=0.8"]
 build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.uv-dynamic-versioning]
+# Without a tag, or outside a git checkout, the version is this.
+fallback-version = "0.0.0"
+
+[tool.uv]
+# Rebuild the installed package when a commit or tag changes its version.
+cache-keys = [{ file = "pyproject.toml" }, { git = { commit = true, tags = true } }]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/{{ mech_slug }}"]

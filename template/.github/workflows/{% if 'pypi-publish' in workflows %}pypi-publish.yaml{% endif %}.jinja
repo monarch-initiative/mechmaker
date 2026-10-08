@@ -2,6 +2,8 @@
 # version tag, PyPI on a published release. Needs a `pypi-release`
 # environment in this repository, and this repository registered as a
 # trusted publisher for the project on PyPI and TestPyPI. No token is stored.
+# The version is the tag's (v1.2.3 builds 1.2.3): tag a new version to
+# publish one; pyproject.toml holds no version to bump.
 name: Publish to PyPI
 
 on:
@@ -20,6 +22,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          # The whole history and its tags: the version is read from the tag.
+          fetch-depth: 0
           persist-credentials: false
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
       - run: uv build
