@@ -91,7 +91,7 @@
        template's prompt does: the agent no longer has `gh pr list`.
 
 - id: version-from-tag
-  pr: PRNUM
+  pr: 79
   summary: The package version now comes from the latest v1.2.3 git tag; pyproject.toml no longer holds one.
   action: |
     Look in `pyproject.toml`: if it has `dynamic = ["version"]` and no
