@@ -627,7 +627,7 @@ def workflow_items(m: Mech) -> list[Item]:
                 "workflows",
                 not absent,
                 f"{', '.join(files)} present" if not absent else f"absent: {', '.join(absent)}",
-                f"run `uvx copier update --skip-answered --defaults` with {name} in workflows",
+                f"run `uvx copier update --vcs-ref=:current: --skip-answered --defaults` with {name} in workflows",
             )
         )
         if name in PROMPTED:

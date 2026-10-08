@@ -9,7 +9,8 @@ description: >-
   to update, sync, upgrade or refresh a Mech made from mechmaker, to check
   whether a Mech is behind the template, or to pull in a new mechmaker
   feature. Not for changing a Mech's own answers alone (that is
-  `copier update --data`), nor for a knowledge base not made with mechmaker.
+  `copier update --vcs-ref=:current: --data`), nor for a knowledge base not
+  made with mechmaker.
 ---
 
 # Sync a Mech with mechmaker

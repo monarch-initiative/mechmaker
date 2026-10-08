@@ -9,7 +9,7 @@
 # part (what a record is, which sections it carries, which sources feed it) is
 # left to an agent working from the skills in this repository's `skills/`.
 
-_min_copier_version: "9.3.0"
+_min_copier_version: "9.8.0"
 _subdirectory: template
 _answers_file: .copier-answers.yml
 _templates_suffix: .jinja

@@ -187,7 +187,7 @@ Each term is checked against the ontology, and the checks earned their keep:
 Workflows are a Copier answer, so they are added with an update:
 
 ```console
-$ uvx copier update --skip-answered --defaults \
+$ uvx copier update --vcs-ref=:current: --skip-answered --defaults \
     --data 'workflows=["sweep","docs","comment-guard","claude","review","triage","dedupe","literature-scan"]'
 ```
 

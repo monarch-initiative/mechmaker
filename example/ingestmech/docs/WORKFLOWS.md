@@ -2,7 +2,7 @@
 
 Every workflow mechmaker knows is listed here, on or off. The set that is on
 was chosen when this repository was made. To change it, run
-`uvx copier update --skip-answered --defaults --data 'workflows=[...]'` with
+`uvx copier update --vcs-ref=:current: --skip-answered --defaults --data 'workflows=[...]'` with
 the whole new list. Copier adds and removes the files; your edits to the
 ones you keep are merged.
 
