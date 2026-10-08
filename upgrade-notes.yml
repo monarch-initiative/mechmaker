@@ -89,3 +89,15 @@
     3. If the Mech edited `.github/prompts/compliance.md`, replace its
        `gh pr list` step with reading `.compliance-open.txt`, as the
        template's prompt does: the agent no longer has `gh pr list`.
+
+- id: version-from-tag
+  pr: PRNUM
+  summary: The package version now comes from the latest v1.2.3 git tag; pyproject.toml no longer holds one.
+  action: |
+    Look in `pyproject.toml`: if it has `dynamic = ["version"]` and no
+    `version =` line, the update merged cleanly. If a merge left a
+    `version = "..."` line beside `dynamic`, delete the `version` line.
+    Nothing else to migrate. If the Mech publishes to PyPI (it has
+    `.github/workflows/pypi-publish.yaml`), check the versions it already
+    holds: the next tag must be higher than any of them, and from now on
+    a release is a new tag, not an edit to `pyproject.toml`.
