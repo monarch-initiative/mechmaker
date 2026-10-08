@@ -25,7 +25,7 @@ that need judgment about the domain.
 | 4b. Choose workflows | you and the person | the GitHub automation |
 | 4c. Style the site | you, with `site-design` | `conf/site.yaml` |
 | 5. Seed records | you, with the new Mech's `curate-record` | 3 to 5 exemplar records |
-| 6. Register | you, with `register-mech` | a MechRegistry pull request |
+| 6. Register | you, with `register-mech` | a registry entry; an issue or pull request if the person wants one |
 | 7. Audit | script and you, with `audit-mech` | a checklist of what was asked for |
 
 If the person already has a knowledge base to bring in, use
@@ -263,7 +263,10 @@ with `extend-schema`, while there are five records and not five hundred.
 
 ## 6. Register
 
-Run the `register-mech` skill.
+Run the `register-mech` skill. It brings the draft entry up to date and
+validates it, then asks the person whether to list the Mech in MechRegistry
+now: not yet, by an issue for the registry's maintainers, or by a pull
+request. A Mech that is not ready to be seen keeps its draft for later.
 
 ## 7. Audit
 
@@ -280,6 +283,7 @@ user before either one. Tell them what will be created and where.
 ## Report
 
 End with: the repository path, what `just qc-full` said, the records seeded,
+the registry issue or pull request (or that the person chose not yet),
 the decisions you made that the user should look at (record type, identity
 root, sections cut or added), and anything you could not source. Then the
 audit from step 7: its checklist, what was not implemented and why, and

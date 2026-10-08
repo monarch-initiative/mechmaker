@@ -55,7 +55,8 @@ The agent works in steps and checks with you along the way:
 4. **Choose workflows.** It asks which GitHub automation to turn on.
 5. **Style.** If you like, it sets the site's colors and layout.
 6. **Seed.** It writes the first three to five records, with real sources.
-7. **Register.** It drafts your entry for MechRegistry.
+7. **Register.** It drafts your entry for MechRegistry. If you want the Mech
+   listed now, it asks the registry to add it, by an issue or a pull request.
 8. **Audit.** It checks the Mech against everything you asked for, and
    gives you a checklist: what is there, what is not and why, and what to
    do next.

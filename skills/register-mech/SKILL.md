@@ -3,9 +3,10 @@ name: register-mech
 description: >-
   Add a Mech to MechRegistry (monarch-initiative/mechregistry): update the
   draft entry that mechmaker generated in registry/<slug>.md, validate it
-  with the registry's own tooling, and prepare the pull request. Use when a
-  new Mech is ready to be listed, or when a listed Mech's entry needs
-  updating.
+  with the registry's own tooling, and, if the person chooses, ask the
+  registry to list it: by an issue for its maintainers or by a pull
+  request. Use when a new Mech is ready to be listed, or when a listed
+  Mech's entry needs updating.
 ---
 
 # Register a Mech
@@ -55,10 +56,40 @@ Validation is closed. An unknown field or enum value fails. Product ids
 must start with `<slug>.`. `collection` accepts only values in the
 registry's `CollectionEnum`; drop the field if the Mech is in none.
 
-## 3. Open the pull request
+## 3. Ask whether to list it, and how
 
-Opening a pull request on a shared repository is visible to others. Ask the
-user first. Show them the entry. Then branch, commit, and open it against
-`main`, or use the registry's new-Mech issue template if the user prefers.
+A new Mech may not be ready to be seen. Listing it is the person's choice,
+and anything opened on MechRegistry is public. Ask them, and show them the
+entry. Three answers:
 
-Keep the Mech's own `registry/<slug>.md` in step with what was submitted.
+- **Not yet.** Stop here. The draft stays in `registry/<slug>.md`, up to
+  date, for when they are ready. Say so in the report.
+- **An issue.** The registry's maintainers add the entry. The issue
+  follows the registry's "Suggest a new Mech" form and carries the whole
+  draft. Use it when the person would rather not open a pull request, or
+  could not run step 2: then say in the issue that the draft is not yet
+  validated.
+- **A pull request.** The person adds the entry themselves, validated in
+  step 2.
+
+The issue needs `gh`, signed in. One script comes with this skill, in the
+`scripts/` folder beside this file; `<scripts>` stands for that folder's
+path. Write the body, show it to the person, then open the issue:
+
+```bash
+uv run <scripts>/registry_issue.py <mech-repo> > registry-issue.md
+gh issue create --repo monarch-initiative/mechregistry \
+  --title "$(uv run <scripts>/registry_issue.py <mech-repo> --title)" \
+  --body-file registry-issue.md
+```
+
+Do not pass `--label new-mech`. The form names that label, but the
+registry does not have it, and `gh` refuses a label that does not exist.
+Without `gh`, give the person the body and the link
+<https://github.com/monarch-initiative/mechregistry/issues/new?template=new-mech.yml>.
+
+For the pull request, branch the clone from step 2, commit
+`mech/<slug>/<slug>.md`, and open it against `main`.
+
+Either way, give the person the link, and keep the Mech's own
+`registry/<slug>.md` in step with what was submitted.
