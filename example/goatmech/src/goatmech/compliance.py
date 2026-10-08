@@ -16,7 +16,7 @@ import json
 import sys
 from pathlib import Path
 
-from .paths import HAS_RECORD_TERM, REPO_ROOT
+from .paths import IDENTITY_PREFIX, REPO_ROOT
 from .validate import _evidence_items, iter_records, load
 
 WEIGHTS = {
@@ -51,7 +51,10 @@ def score(data: dict) -> tuple[float, list[str]]:
         missing.append("description has no description_evidence")
     else:
         parts["description"] = 1.0
-    parts["record_term"] = 1.0 if (not HAS_RECORD_TERM or data.get("record_term")) else 0.0
+    # Only a record keyed by an identity-ontology term must name it in record_term.
+    # A minted id may have no term to name, so it gets full credit here.
+    keyed = bool(IDENTITY_PREFIX) and str(data.get("id", "")).startswith(f"{IDENTITY_PREFIX}:")
+    parts["record_term"] = 1.0 if (not keyed or data.get("record_term")) else 0.0
     if not parts["record_term"]:
         missing.append("no record_term")
     descs = list(_descriptors(data))

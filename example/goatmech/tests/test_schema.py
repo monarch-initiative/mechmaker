@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 from linkml_runtime import SchemaView
 
+from goatmech.compliance import WEIGHTS, score
 from goatmech.paths import (
     HISTORY_SCHEMA_PATH,
     RECORD_CLASS,
@@ -110,6 +111,15 @@ def test_an_ontology_id_names_its_term_in_record_term(example):
     minted = {k: v for k, v in example.items() if k != "record_term"}
     minted["id"] = "goatmech:example"
     assert rule_errors(minted) == []  # a minted id needs no record_term
+
+
+def test_compliance_asks_for_record_term_only_on_a_keyed_id(example):
+    keyed = {k: v for k, v in example.items() if k != "record_term"}
+    keyed["id"] = "VBO:0400025"
+    assert "no record_term" in score(keyed)[1]
+    minted = dict(keyed, id="goatmech:example")
+    assert "no record_term" not in score(minted)[1]
+    assert score(minted)[0] - score(keyed)[0] == pytest.approx(WEIGHTS["record_term"])
 
 
 
