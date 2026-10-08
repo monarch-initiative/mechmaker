@@ -31,7 +31,7 @@ import sys
 import urllib.request
 
 # The oldest Copier the template accepts (copier.yml `_min_copier_version`).
-MIN_COPIER = (9, 3, 0)
+MIN_COPIER = (9, 8, 0)
 
 OS = platform.system()  # "Linux", "Darwin" or "Windows"
 

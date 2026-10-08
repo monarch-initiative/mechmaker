@@ -229,8 +229,14 @@ Ask the person which to turn on, and whether they will create the Apps.
 Then:
 
 ```bash
-uvx copier update --skip-answered --defaults --data 'workflows=[...]'
+uvx copier update --vcs-ref=:current: --skip-answered --defaults --data 'workflows=[...]'
 ```
+
+`--vcs-ref=:current:` keeps the Mech at the template commit it was made
+from, so only the answer changes. Without it Copier moves to mechmaker's
+latest tag: it takes every newer template change along with the answer, or,
+for a Mech made with `--vcs-ref HEAD`, stops because that would be a
+downgrade. It needs Copier 9.8.0 or newer.
 
 Adapt `.github/prompts/` to the domain, and tune `conf/literature_scan.yaml`
 until a trial `just literature-scan --days 30` returns mostly relevant

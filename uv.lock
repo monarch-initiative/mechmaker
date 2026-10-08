@@ -418,7 +418,7 @@ dev = [
 [package.metadata.requires-dev]
 dev = [
     { name = "actionlint-py", specifier = ">=1.7" },
-    { name = "copier", specifier = ">=9.3" },
+    { name = "copier", specifier = ">=9.8" },
     { name = "mkdocs", specifier = ">=1.6,<2" },
     { name = "mkdocs-material", specifier = ">=9.7" },
     { name = "pytest", specifier = ">=8.0" },

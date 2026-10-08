@@ -55,5 +55,17 @@
     is none, nothing to do. If there is, `conf/oak_config.yaml` now sends
     that prefix to `identity_adapter`: check that it serves the terms (run
     `just qc`), then drop the item's `adapter`, or set `identity_adapter` to
-    it with `copier update --data identity_adapter=<adapter>`. Copier now
+    it with `copier update --vcs-ref=:current: --data identity_adapter=<adapter>`. Copier now
     refuses the old pair when it asks the question again.
+
+- id: copier-9-8-current-ref
+  pr: 77
+  summary: Changing an answer now uses `copier update --vcs-ref=:current:`, which needs Copier 9.8.0 or newer.
+  action: |
+    Run `copier --version` if Copier is installed as a tool (`uvx copier`
+    always fetches a current one). Older than 9.8.0: `uv tool upgrade
+    copier`; the template now refuses older versions. Then search the
+    Mech's own docs, skills and prompts for `copier update` with `--data`
+    and no `--vcs-ref`. Add `--vcs-ref=:current:` to each, so changing an
+    answer keeps the Mech at its template commit. Files taken from the
+    template already have it.
