@@ -86,17 +86,32 @@ jobs:
           git config --global user.name "${SLUG}[bot]"
           git config --global user.email "${id}+${SLUG}[bot]@users.noreply.github.com"
           gh auth setup-git
-      # Anyone can comment on an open issue, and this agent can push. A step
+{% endraw %}{% if 'review' in workflows %}{% raw %}      # The review workflow's own App, if it has one, is trusted in the queue.
+      # Only its name is used here; the token goes unused.
+      - name: Reviewer App name
+        id: reviewer
+        continue-on-error: true
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.MECH_REVIEWER_APP_ID }}
+          private-key: ${{ secrets.MECH_REVIEWER_PRIVATE_KEY }}
+          permission-pull-requests: read
+{% endraw %}{% endif %}{% raw %}      # Anyone can comment on an open issue, and this agent can push. A step
       # with no model writes the queue with only the comments of people with
-      # write access (and the repository's Apps); the agent reads that, never
-      # the thread on GitHub.
+      # write access and of this Mech's own Apps, and withholds a stranger's
+      # title or body changed after the `curation` label. The agent reads
+      # that, never the thread on GitHub.
       - name: Curation queue, trusted text only
         id: queue
         env:
           GH_TOKEN: ${{ steps.app.outputs.token }}
           QUEUE_REPO: ${{ github.repository }}
           QUEUE_SELECTOR: ${{ matrix.selector }}
-        run: |
+{% endraw %}{% if 'review' in workflows %}{% raw %}          QUEUE_TRUSTED_BOTS: >-
+            ${{ steps.app.outputs.app-slug }}[bot]
+            ${{ steps.reviewer.outputs.app-slug && format('{0}[bot]', steps.reviewer.outputs.app-slug) || '' }}
+{% endraw %}{% else %}{% raw %}          QUEUE_TRUSTED_BOTS: ${{ steps.app.outputs.app-slug }}[bot]
+{% endraw %}{% endif %}{% raw %}        run: |
           echo ".curation-queue/" >> .git/info/exclude
           python3 .github/scripts/curation_queue.py .curation-queue
       - name: Build prompt

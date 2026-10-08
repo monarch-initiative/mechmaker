@@ -54,16 +54,17 @@ def lead(pid="PMID:1", record="data/a.yaml", **kw):
 def test_a_lead_on_a_record_is_filed_with_packet_facts():
     got = run([lead()])
     issue = got["created"][0]
-    assert issue["labels"] == ["curation", "low_effort", "literature"]
+    assert issue["labels"] == ["literature", "low_effort"]  # a person adds curation after reading
     assert issue["title"] == "[lit-scan] Alpine goat: Goats and hay"
     assert "Goats eat hay." in issue["body"] and "10.1/x" in issue["body"]
     assert "Augment only the existing record." in issue["body"]
+    assert "A person adds the `curation` label after reading this" in issue["body"]
 
 
 def test_a_new_thing_is_high_effort_and_a_preprint_says_so():
     got = run([lead(record="")], papers=[paper(preprint=True, record=None)])
     issue = got["created"][0]
-    assert issue["labels"] == ["curation", "high_effort", "literature", "preprint"]
+    assert issue["labels"] == ["literature", "high_effort", "preprint"]
     assert issue["title"].startswith("[lit-scan:new] Alpine goat")
     assert "not been peer reviewed" in issue["body"]
 

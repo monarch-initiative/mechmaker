@@ -539,6 +539,26 @@ def test_curation_scanner_reads_only_the_trusted_queue(tmp_path):
         assert f"Bash({tool}" not in args, tool
     assert "WebFetch(domain:github.com)" in args.split("--disallowedTools", 1)[1]
     assert ".curation-queue/" in (dest / ".github" / "prompts" / "curation-scanner.md").read_text()
+    # Only the Mech's own Apps are trusted in the queue: the agent's and, with review on, the reviewer's.
+    bots = steps[names.index("queue")]["env"]["QUEUE_TRUSTED_BOTS"]
+    assert "steps.app.outputs.app-slug" in bots and "steps.reviewer.outputs.app-slug" in bots
+    assert names.index("reviewer") < names.index("queue")
+    assert steps[names.index("reviewer")]["continue-on-error"] is True
+
+
+def test_compliance_reads_open_branches_from_a_step_with_no_model(tmp_path):
+    dest = render(tmp_path / "compliance", SCENARIOS["all-workflows"])
+    flow = yaml.safe_load((dest / ".github" / "workflows" / "compliance.yaml").read_text())
+    steps = flow["jobs"]["improve"]["steps"]
+    names = [s.get("id") or s.get("name") for s in steps]
+    listing = steps[names.index("Open compliance branches")]
+    assert names.index("Open compliance branches") < names.index("run")
+    assert "isCrossRepository | not" in listing["run"] and ".compliance-open.txt" in listing["run"]
+    args = steps[names.index("run")]["with"]["claude_args"]
+    for tool in ("gh pr list", "gh pr view", "gh issue view", "gh search", "gh api"):
+        assert f"Bash({tool}" not in args, tool
+    assert "WebFetch(domain:github.com)" in args.split("--disallowedTools", 1)[1]
+    assert ".compliance-open.txt" in (dest / ".github" / "prompts" / "compliance.md").read_text()
 
 
 def test_agents_that_read_untrusted_text_cannot_write(tmp_path):

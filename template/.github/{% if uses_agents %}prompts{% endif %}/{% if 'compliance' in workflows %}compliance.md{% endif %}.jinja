@@ -9,9 +9,9 @@ skills.
 
 1. Run `just compliance`. It scores every record for completeness, lowest
    first.
-2. Find records that already have an open improvement pull request:
-   `gh pr list --repo ${REPO} --state open --search "head:compliance/" --json headRefName`.
-   Skip them.
+2. `.compliance-open.txt` lists the branches of open compliance pull
+   requests, one per line, written before you started. Skip the records
+   they name. Do not look up pull requests any other way.
 3. Take the NUM RECORDS lowest-scoring remaining records. Focus on: ${FOCUS}.
 4. For each record, on its own branch `compliance/<date>-<record stem>`:
    - run `just compliance <file>` to see what is missing;

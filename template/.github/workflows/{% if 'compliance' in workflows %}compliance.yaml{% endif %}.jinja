@@ -74,6 +74,20 @@ jobs:
           git config --global user.name "${SLUG}[bot]"
           git config --global user.email "${id}+${SLUG}[bot]@users.noreply.github.com"
           gh auth setup-git
+      # This agent can push, so it never lists pull requests itself: a fork
+      # can open one, with a title, body and branch name anyone can write. A
+      # step with no model writes the branch names of this repository's own
+      # open compliance pull requests.
+      - name: Open compliance branches
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          echo ".compliance-open.txt" >> .git/info/exclude
+          gh pr list --repo "$REPO" --state open --search "head:compliance/" --limit 500 \
+            --json headRefName,isCrossRepository \
+            --jq '.[] | select(.isCrossRepository | not) | .headRefName' > .compliance-open.txt
+          echo "$(wc -l < .compliance-open.txt) open compliance pull request(s)."
       - name: Build prompt
         id: prompt
         env:
@@ -111,7 +125,8 @@ jobs:
 {% endif %}{% raw %}          claude_args: |
             --model ${{ steps.agent.outputs.model }}
             --max-turns ${{ steps.agent.outputs.max-turns }}
-            --allowedTools "Bash(just:*),Bash(uv run:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git add:*),Bash(git commit:*),Bash(git checkout:*),Bash(git switch:*),Bash(git push:*),Bash(gh pr list:*),Bash(gh pr create:*),Read,Edit,Write,Glob,Grep,WebFetch,WebSearch,TodoWrite,Task"
+            --allowedTools "Bash(just:*),Bash(uv run:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git add:*),Bash(git commit:*),Bash(git checkout:*),Bash(git switch:*),Bash(git push:*),Bash(gh pr create:*),Read,Edit,Write,Glob,Grep,WebFetch,WebSearch,TodoWrite,Task"
+            --disallowedTools "WebFetch(domain:github.com),WebFetch(domain:api.github.com)"
       - name: Check the agent run
         if: always() && steps.agent.outcome == 'success'
         env:

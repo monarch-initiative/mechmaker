@@ -2,9 +2,10 @@
 # records (conf/literature_scan.yaml sets the query), then let an agent pick
 # at most a few of the strongest leads. Anyone can write an abstract, so the
 # agent that reads them has no write access: it returns its picks, and a
-# second job with no model files them as curation issues, taking the paper's
-# details from the packet. Adapted from DisMech's literature, preprint and
-# knowledge-gap scans, folded into one.
+# second job with no model files them as `literature` issues, taking the
+# paper's details from the packet. A person adds `curation` after reading
+# one. Adapted from DisMech's literature, preprint and knowledge-gap scans,
+# folded into one.
 name: Literature scan
 
 on:
