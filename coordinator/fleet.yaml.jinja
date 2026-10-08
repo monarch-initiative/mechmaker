@@ -1,0 +1,35 @@
+# {{ fleet_name }}: the Fleet's members and the relationships between them.
+#
+# This file is the one list of members. Every command reads it, and
+# `just validate` checks it against src/{{ fleet_slug }}_coordinator/schema/fleet_schema.yaml.
+# Add a member with the onboard-mech skill, a relationship with
+# add-relationship. Each member's own answers must agree with its entry here;
+# `fleet answers <member>` prints them.
+#
+#   members:
+#     habitatmech:
+#       name: HabitatMech
+#       github: {{ github_org }}/habitatmech
+#       status: planned          # planned, active or retired
+#       owns: One microbial habitat, keyed by its ENVO term.
+#       record_class: Habitat
+#       records_dir: data/habitats
+#       identity_prefix: ENVO
+#   relationships:
+#     taxonmech-habitats:
+#       subject: taxonmech       # whose records hold the links
+#       object: habitatmech      # whose records they point to
+#       slot: habitats           # the slot in TaxonMech records
+#       description: Habitats a taxon is found in.
+#       relations:
+#         FOUND_IN: {description: The taxon has been isolated from or observed in the habitat.}
+#       bases:
+#         LITERATURE: {description: A cited source reports it, with a quote.}
+
+id: {{ fleet_slug }}
+name: {{ fleet_name }}
+description: >-
+  {{ fleet_description }}
+coordinator: {{ github_org }}/{{ repo_name }}
+members: {}
+relationships: {}

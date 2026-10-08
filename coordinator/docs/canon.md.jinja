@@ -1,0 +1,37 @@
+# The canon
+
+Every member of {{ fleet_name }} carries the files in `canon/` byte for byte.
+`canon/manifest.yaml` lists them, with where each lives in a member and its
+sha256. They start as the shared schema modules from mechmaker,
+`mech_shared.yaml` and `history.yaml`. A Fleet may add its own, such as a
+vocabulary every member uses.
+
+## Pins
+
+Each member keeps `fleet/pin.yaml`: the Coordinator commit its copies came
+from, as a full 40-character commit (never a branch or tag), and the sha256
+of each copy.
+
+- In the member, its `qc` checks the copies against the pin, offline, and
+  its `check-fleet --online` checks the pin against this repository on
+  GitHub.
+- Here, `just audit` checks that every member is pinned to one commit, that
+  the commit is one of this repository's, and that each member's files match
+  the canon at that commit.
+
+## Releasing a change
+
+1. Change the file under `canon/`, on a branch. Run `just canon-refresh`,
+   which rewrites its sha256, and `just qc`.
+2. Merge it. The merge commit is the release; nothing is tagged.
+3. For each member: `just sync <member> <its checkout>` shows the plan, and
+   `--apply` writes the files and the new pin. Run the member's `just qc`,
+   and open a pull request in the member.
+4. When every member has merged, `just fetch && just audit` passes again.
+   Until then it reports the members on different pins.
+
+A change from mechmaker arrives the same way: `just update-template` here
+brings the new canon and its manifest, and steps 2 to 4 release it. Members
+take canon files from this repository, not from mechmaker.
+
+To roll back, sync every member to an earlier commit with `--ref`.

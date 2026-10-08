@@ -69,6 +69,11 @@ ANSWERS = ".copier-answers.yml"
 NOTES = "upgrade-notes.yml"
 # Paths in the template repository whose changes can reach a Mech.
 TEMPLATE_PATHS = ["template", "copier.yml", NOTES]
+# And a Fleet's Coordinator (kind: coordinator), which also links to the shared
+# schema modules, the license and AGENTS.md in template/.
+COORDINATOR_PATHS = ["coordinator", "template/src/{{mech_slug}}/schema/mech_shared.yaml",
+                     "template/src/{{mech_slug}}/schema/history.yaml", "template/LICENSE.jinja",
+                     "template/AGENTS.md", "copier.yml", NOTES]
 WORKING_TREE = "working-tree"
 # The update that holds the effect of changed answers (--data). It is always taken.
 ANSWERS_UPDATE = "answers"
@@ -212,11 +217,16 @@ def endpoints(repo: Path, stored: dict, target: str | None) -> tuple[str, str, s
     return base, ref, target_commit
 
 
-def commits_between(repo: Path, base: str, target: str) -> list[tuple[str, str, str]]:
+def template_paths(answers: dict) -> list[str]:
+    return COORDINATOR_PATHS if answers.get("kind") == "coordinator" else TEMPLATE_PATHS
+
+
+def commits_between(repo: Path, base: str, target: str,
+                    paths: list[str] | None = None) -> list[tuple[str, str, str]]:
     """(sha, id, title) for each first-parent commit after base that touched the template, oldest first.
     A merged pull request is identified by its number, anything else by its short sha."""
     out = git(repo, "log", "--first-parent", "--reverse", "--format=%H%x00%s%x00%b%x1e",
-              f"{base}..{target}", "--", *TEMPLATE_PATHS)
+              f"{base}..{target}", "--", *(paths or TEMPLATE_PATHS))
     found = []
     for entry in filter(None, (e.strip("\n") for e in out.split("\x1e"))):
         sha, subject, body = (entry.split("\x00") + ["", ""])[:3]
@@ -342,7 +352,7 @@ def make_plan(mech: Path, target: str | None, data: dict, tmp: Path) -> Plan:
             spec = git(repo, "show", f"{target_commit}:copier.yml")
         type_data(data, yaml.safe_load(spec) or {})
 
-    steps = commits_between(repo, base, target_commit)
+    steps = commits_between(repo, base, target_commit, template_paths(stored))
     if uncommitted:
         steps.append(("HEAD", WORKING_TREE, "Uncommitted changes in the template checkout"))
     changed = [k for k in data if k not in answers or answers[k] != data[k]]
@@ -712,7 +722,7 @@ def check(mech: Path, target: str | None, as_json: bool, tmp: Path) -> int:
     stored = read_answers(mech)
     repo = open_source(str(stored["_src_path"]), tmp)
     base, ref, target_commit = endpoints(repo, stored, target)
-    steps = commits_between(repo, base, target_commit)
+    steps = commits_between(repo, base, target_commit, template_paths(stored))
     out = {"base": str(stored["_commit"]), "target": describe(repo, ref),
            "updates": [{"id": uid, "title": title} for _, uid, title in steps]}
     if as_json:

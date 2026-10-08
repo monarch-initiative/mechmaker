@@ -1,0 +1,21 @@
+# {{ fleet_name }}
+
+{{ fleet_description }}
+
+This is the Coordinator of {{ fleet_name }}, a Fleet of
+[Mechs](https://monarch-initiative.github.io/mechregistry/docs/what-is-a-mech.html):
+knowledge bases curated by AI agents and reviewed by people, each in its own
+repository. The Coordinator holds no records. It holds the Fleet's
+definition (`fleet.yaml`), the files every member shares (`canon/`), and the
+checks that read the members together.
+
+```bash
+just install
+just qc              # this repository
+just fetch           # clone the members, read-only
+just audit           # the Fleet: answers, canon pins, links between records
+```
+
+See `docs/` (built with `just docs-build`) for the members, their
+relationships, the canon and the Fleet model. Made with
+[mechmaker](https://github.com/monarch-initiative/mechmaker).

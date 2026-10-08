@@ -92,6 +92,17 @@ def sections(raw: str) -> dict[str, str]:
     return out
 
 
+def mech_only(when) -> str:
+    """A question's condition, less the `kind == 'mech'` every Mech question carries (said once, above)."""
+    if when is None or when is True:
+        return ""
+    text = str(when).strip().removeprefix("{{").removesuffix("}}").strip()
+    if text == "kind == 'mech'":
+        return ""
+    m = re.fullmatch(r"kind == 'mech' and \((.*)\)", text) or re.fullmatch(r"kind == 'mech' and (.*)", text)
+    return m.group(1) if m else text
+
+
 def questions() -> str:
     raw = (ROOT / "copier.yml").read_text()
     data = yaml.safe_load(raw)
@@ -105,6 +116,11 @@ def questions() -> str:
         "",
         "A default in `{{ }}` is computed from earlier answers. A question with a",
         "condition is asked only when the condition holds.",
+        "",
+        "`kind` comes first. A Mech (`kind: mech`, the default) is asked every",
+        "question but the Fleet's own; a Fleet's Coordinator (`kind: coordinator`)",
+        "is asked only `fleet_name`, the questions under *The fleet*, and the",
+        "maintainer, repository, code license and Python questions.",
     ]
     current = None
     for key, q in data.items():
@@ -117,8 +133,9 @@ def questions() -> str:
             lines += ["", f"## {current}", "",
                       "| Question | Type | Default | What it decides |", "|---|---|---|---|"]
         help_text = sentence(md_cell(q.get("help", "")))
-        if "when" in q:
-            help_text += f" *Asked when* `{md_cell(q['when'], code=True).strip('{} ')}`."
+        when = mech_only(q.get("when"))
+        if when:
+            help_text += f" *Asked when* `{md_cell(when, code=True)}`."
         choices = q.get("choices")
         if isinstance(choices, dict):
             values = ", ".join(f"`{v}`" for v in choices.values())

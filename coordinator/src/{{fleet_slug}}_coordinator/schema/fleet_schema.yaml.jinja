@@ -1,0 +1,194 @@
+id: https://w3id.org/{{ github_org }}/{{ fleet_slug }}/fleet
+name: fleet
+title: {{ fleet_name }} Fleet model
+description: >-
+  The data model of a Fleet: the Mechs it holds, what each one owns, and the
+  relationships between them. fleet.yaml at the repository root is one Fleet,
+  checked against this schema by `just validate`. A relationship here is the
+  contract for links between records: which Mech's records may link to which
+  Mech's records, through which slot, with which relations and bases. Each
+  member's own schema carries the matching link class, made by mechmaker from
+  `fleet answers <member>`.
+license: {{ code_license }}
+see_also:
+  - https://github.com/{{ github_org }}/{{ repo_name }}
+
+prefixes:
+  linkml: https://w3id.org/linkml/
+  dcterms: http://purl.org/dc/terms/
+  schema: http://schema.org/
+  fleet: https://w3id.org/{{ github_org }}/{{ fleet_slug }}/fleet/
+
+default_prefix: fleet
+default_range: string
+
+imports:
+  - linkml:types
+
+classes:
+
+  Fleet:
+    tree_root: true
+    description: A set of Mechs, each its own repository, with declared relationships between them.
+    slots:
+      - id
+      - name
+      - description
+      - coordinator
+      - members
+      - relationships
+
+  FleetMember:
+    description: >-
+      One Mech in the Fleet. The values here must agree with the Mech's own
+      Copier answers; `just audit` checks that they do.
+    slots:
+      - id
+      - name
+      - github
+      - status
+      - owns
+      - record_class
+      - records_dir
+      - package_path
+      - uri
+      - identity_prefix
+      - scope_notes
+    slot_usage:
+      id:
+        description: The Mech's slug, as in its mech_slug answer. Also its CURIE prefix.
+        pattern: "^[a-z][a-z0-9]*$"
+      name:
+        description: >-
+          The Mech's name, as in its mech_name answer. Links from other
+          members name it in `corpus`.
+        pattern: "^[A-Z][A-Za-z0-9]*$"
+
+  MechRelationship:
+    description: >-
+      Records of the subject Mech may link to records of the object Mech,
+      through one slot. Each link is a CrossCorpusLink (mech_shared): it
+      names the target corpus and record, a relation, a basis and the
+      object's commit that was checked. A shared ontology term between two
+      records is a lead for a link, never a link by itself.
+    slots:
+      - id
+      - subject
+      - object
+      - slot
+      - class_name
+      - description
+      - relations
+      - bases
+    slot_usage:
+      id:
+        description: A name for the relationship, unique in the Fleet (e.g. taxonmech-habitats).
+        pattern: "^[a-z][a-z0-9_-]*$"
+      description:
+        required: true
+
+  LinkTerm:
+    description: One allowed relation or basis value of a relationship.
+    slots:
+      - name
+      - description
+    slot_usage:
+      name:
+        identifier: true
+        pattern: "^[A-Z][A-Z0-9_]*$"
+      description:
+        required: true
+
+slots:
+  id:
+    identifier: true
+    description: The key of the object.
+  name:
+    slot_uri: schema:name
+    required: true
+    description: A display name.
+  description:
+    slot_uri: dcterms:description
+    description: Free text.
+  coordinator:
+    required: true
+    pattern: "^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$"
+    description: GitHub owner/repo of this Coordinator.
+  members:
+    range: FleetMember
+    multivalued: true
+    inlined: true
+    description: The Mechs in the Fleet, keyed by slug.
+  relationships:
+    range: MechRelationship
+    multivalued: true
+    inlined: true
+    description: The allowed links between members' records, keyed by relationship id.
+  github:
+    required: true
+    pattern: "^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$"
+    description: GitHub owner/repo of the Mech.
+  status:
+    range: MemberStatusEnum
+    required: true
+    description: Where the Mech stands in the Fleet.
+  owns:
+    required: true
+    description: >-
+      One sentence: what one record of this Mech is. Two members never own
+      the same kind of thing.
+  record_class:
+    required: true
+    pattern: "^[A-Z][A-Za-z0-9]*$"
+    description: The Mech's record class, as in its record_class answer.
+  records_dir:
+    required: true
+    description: The Mech's records folder, as in its records_dir answer.
+  package_path:
+    description: Where the Mech's package lives. Default src/<id>.
+  uri:
+    description: URI expansion of the Mech's prefix. Default https://w3id.org/<owner>/<id>/.
+  identity_prefix:
+    description: The ontology prefix that keys the Mech's records, when one does.
+  scope_notes:
+    description: >-
+      What the Mech leaves to other members, in words (e.g. "Habitats belong
+      to HabitatMech; this Mech links to them").
+  subject:
+    required: true
+    range: FleetMember
+    description: The Mech whose records hold the links.
+  object:
+    required: true
+    range: FleetMember
+    description: The Mech whose records the links point to.
+  slot:
+    required: true
+    pattern: "^[a-z][a-z0-9_]*$"
+    description: The slot in the subject's records that holds these links.
+  class_name:
+    pattern: "^[A-Z][A-Za-z0-9]*$"
+    description: >-
+      The link class in the subject's schema. Default <object name>Link; give
+      one when the subject has two relationships to the same object.
+  relations:
+    range: LinkTerm
+    multivalued: true
+    inlined: true
+    required: true
+    description: The relations a link may state, from subject record to object record.
+  bases:
+    range: LinkTerm
+    multivalued: true
+    inlined: true
+    description: How a link may be established. Empty leaves the basis free text.
+
+enums:
+  MemberStatusEnum:
+    permissible_values:
+      planned:
+        description: Declared, not yet made. Audits skip it.
+      active:
+        description: Made and synced. Audits check it.
+      retired:
+        description: Kept for its links' sake. Audits skip it; links to it are warnings.

@@ -1,4 +1,5 @@
-# mechmaker: a Copier template for new Mechs.
+# mechmaker: a Copier template for new Mechs, and for the Coordinator of a
+# Fleet of them.
 #
 # A Mech is an AI agent-curated, ontology-grounded, evidence-backed knowledge
 # base. See https://monarch-initiative.github.io/mechregistry/docs/what-is-a-mech.html
@@ -8,15 +9,36 @@
 # the validation gates, the justfile, CI, and the curation skills. The domain
 # part (what a record is, which sections it carries, which sources feed it) is
 # left to an agent working from the skills in this repository's `skills/`.
+#
+# The same file makes a second kind of repository: the Coordinator of a Fleet,
+# a set of Mechs with declared relationships between them. `kind` chooses
+# which. A Coordinator renders from coordinator/ and asks only the questions
+# marked for it; every Mech question is gated on kind == 'mech'.
 
 _min_copier_version: "9.8.0"
-_subdirectory: template
+_subdirectory: "{{ 'coordinator' if kind == 'coordinator' else 'template' }}"
 _answers_file: .copier-answers.yml
 _templates_suffix: .jinja
+# A Fleet member's canon belongs to its Coordinator: `fleet sync` writes the
+# shared schema modules and the pin, and an update from mechmaker leaves them.
+_skip_if_exists:
+  - "{{ 'fleet/pin.yaml' if kind == 'mech' and fleet_name else '.copier-skip-none' }}"
+  - "{{ 'src/' ~ mech_slug ~ '/schema/mech_shared.yaml' if kind == 'mech' and fleet_name else '.copier-skip-none' }}"
+  - "{{ 'src/' ~ mech_slug ~ '/schema/history.yaml' if kind == 'mech' and fleet_name else '.copier-skip-none' }}"
 _envops:
   keep_trailing_newline: true
 
 _message_after_copy: |
+  {% if kind == 'coordinator' -%}
+  {{ fleet_name }}'s Coordinator is laid down in {{ _copier_conf.dst_path }}.
+
+  Next:
+    cd {{ _copier_conf.dst_path }}
+    git init -b main && just install && just qc
+
+  Then declare the Fleet's Mechs and their relationships in fleet.yaml.
+  Ask your agent to run the `make-fleet` skill from mechmaker.
+  {%- else -%}
   {{ mech_name }} is laid down in {{ _copier_conf.dst_path }}.
 
   Next:
@@ -25,11 +47,71 @@ _message_after_copy: |
 
   Then design the domain model. Ask your agent to run the
   `design-mech-schema` skill from mechmaker, or read docs/DOMAIN.md.
+  {%- endif %}
+
+# ---------------------------------------------------------------- kind
+
+kind:
+  type: str
+  help: >-
+    What to make: one Mech, or the Coordinator of a Fleet (a repository that
+    declares a set of Mechs and the relationships between them, holds the
+    files they share, and checks them together)
+  choices:
+    "A Mech": mech
+    "A Fleet's Coordinator": coordinator
+  default: mech
+
+# ---------------------------------------------------------------- the Fleet
+
+fleet_name:
+  type: str
+  help: >-
+    The Fleet's name, CamelCase, ending in "Fleet" by convention (e.g.
+    MicrobeFleet). A Coordinator needs one. For a Mech, the Fleet it is a
+    member of, or empty for none; the Coordinator's `fleet answers <slug>`
+    gives a member this and its other fleet answers
+  default: ""
+  validator: >-
+    {% if kind == 'coordinator' and not fleet_name %}
+    A Coordinator needs the Fleet's name.
+    {% elif fleet_name and not (fleet_name | regex_search('^[A-Z][A-Za-z0-9]*$')) %}
+    Use CamelCase letters and digits only, starting with a capital.
+    {% endif %}
+
+fleet_slug:
+  type: str
+  help: Lowercase identifier for the Fleet. Names the Coordinator's package and its repository
+  default: "{{ fleet_name | lower }}"
+  when: "{{ kind == 'coordinator' }}"
+  validator: >-
+    {% if not (fleet_slug | regex_search('^[a-z][a-z0-9]*$')) %}
+    Use lowercase letters and digits only, starting with a letter.
+    {% endif %}
+
+fleet_description:
+  type: str
+  help: One or two sentences on what the Fleet's Mechs cover together
+  default: "{{ fleet_name }} is a Fleet of coordinated Mechs."
+  when: "{{ kind == 'coordinator' }}"
+
+coordinator_workflows:
+  type: str
+  help: >-
+    GitHub workflows for the Coordinator beyond its always-on QC check. None
+    runs an agent
+  multiselect: true
+  choices:
+    "Audit the whole Fleet daily, and open an issue here when it fails": fleet-audit
+    "Publish the Fleet's documentation site to GitHub Pages": docs
+  default: [fleet-audit, docs]
+  when: "{{ kind == 'coordinator' }}"
 
 # ---------------------------------------------------------------- identity
 
 mech_name:
   type: str
+  when: "{{ kind == 'mech' }}"
   help: Display name of the Mech, CamelCase, ending in "Mech" by convention (e.g. HabitatMech)
   validator: >-
     {% if not (mech_name | regex_search('^[A-Z][A-Za-z0-9]*$')) %}
@@ -38,6 +120,7 @@ mech_name:
 
 mech_slug:
   type: str
+  when: "{{ kind == 'mech' }}"
   help: Lowercase identifier. Used for the package, the schema, the CURIE prefix and the registry id
   default: "{{ mech_name | lower }}"
   validator: >-
@@ -47,11 +130,13 @@ mech_slug:
 
 full_title:
   type: str
+  when: "{{ kind == 'mech' }}"
   help: Long title (e.g. "Disorder Mechanisms Knowledge Base")
   default: "{{ mech_name }} Knowledge Base"
 
 description:
   type: str
+  when: "{{ kind == 'mech' }}"
   help: One or two sentences on what the Mech records and why
   default: "{{ mech_name }} is an AI agent-curated, evidence-backed knowledge base."
 
@@ -59,6 +144,7 @@ description:
 
 record_class:
   type: str
+  when: "{{ kind == 'mech' }}"
   help: >-
     LinkML class name for one record, CamelCase and singular (e.g. Disease,
     Habitat, CellStructure, Antibiotic)
@@ -69,6 +155,7 @@ record_class:
 
 record_noun:
   type: str
+  when: "{{ kind == 'mech' }}"
   help: Human-readable singular noun for one record (e.g. "disorder", "habitat")
   default: "{{ record_class | regex_replace('(?<!^)([A-Z])', ' \\\\1') | lower }}"
 
@@ -79,6 +166,7 @@ record_article:
 
 records_dir:
   type: str
+  when: "{{ kind == 'mech' }}"
   help: Repository-relative directory that holds one YAML file per record
   default: "data/{{ record_noun | replace(' ', '_') }}s"
   validator: >-
@@ -94,6 +182,7 @@ records_dir:
 
 term_backend:
   type: str
+  when: "{{ kind == 'mech' }}"
   help: >-
     Where term checks look up the ontologies chosen from the catalog. OLS asks
     EBI's Ontology Lookup Service online and downloads nothing. SQLite
@@ -107,6 +196,7 @@ term_backend:
 
 identity_prefix:
   type: str
+  when: "{{ kind == 'mech' }}"
   help: >-
     Ontology prefix whose CURIEs key records where a term exists (e.g. MONDO,
     ENVO, CHEBI, GO). Leave empty to mint every id in the Mech's own namespace
@@ -125,7 +215,7 @@ identity_root:
     MONDO:0000001). Required: without it no identity term is checked at all.
     Pick the most specific root that still covers every record, and check a
     few expected records sit under it
-  when: "{{ identity_prefix != '' }}"
+  when: "{{ kind == 'mech' and (identity_prefix != '') }}"
   validator: >-
     {% if not identity_root %}
     A root is required. linkml-term-validator checks only bound terms.
@@ -137,7 +227,7 @@ identity_uri:
   type: str
   help: URI expansion of the identity prefix
   default: "http://purl.obolibrary.org/obo/{{ identity_prefix }}_"
-  when: "{{ identity_prefix != '' }}"
+  when: "{{ kind == 'mech' and (identity_prefix != '') }}"
 
 identity_adapter:
   type: str
@@ -147,7 +237,7 @@ identity_adapter:
     or "" to skip. One prefix, one adapter: if an ontology picked below has
     this prefix, this adapter checks its terms too
   default: "{{ 'ols:' if term_backend == 'ols' else 'sqlite:obo:' }}{{ identity_prefix | lower }}"
-  when: "{{ identity_prefix != '' }}"
+  when: "{{ kind == 'mech' and (identity_prefix != '') }}"
 
 identity_direct_only:
   type: bool
@@ -169,7 +259,7 @@ identity_direct_only:
     cannot key a record either. `just check-identity` enforces the rule, in
     `just qc-full`.
   default: false
-  when: "{{ identity_prefix != '' }}"
+  when: "{{ kind == 'mech' and (identity_prefix != '') }}"
 
 # The ontologies offered below, with their verified roots. Defined before the
 # questions so the extra_ontologies validator can read it.
@@ -401,6 +491,7 @@ ontology_catalog:
 
 ontologies:
   type: str
+  when: "{{ kind == 'mech' }}"
   help: >-
     Ontologies the record binds terms to. Each one adds a descriptor class, a
     dynamic enum and a record section to the starting schema
@@ -430,6 +521,7 @@ ontologies:
 
 extra_ontologies:
   type: yaml
+  when: "{{ kind == 'mech' }}"
   multiline: true
   help: >-
     Ontologies outside the catalog, as a YAML list. Each one gets a descriptor
@@ -489,11 +581,13 @@ extra_ontologies:
 
 causal_graphs:
   type: bool
+  when: "{{ kind == 'mech' }}"
   help: Include mechanism nodes and causal edges, the pathograph pattern from DisMech
   default: true
 
 taxon_scope:
   type: str
+  when: "{{ kind == 'mech' }}"
   help: >-
     NCBITaxon CURIEs the Mech is scoped to, comma-separated (e.g.
     NCBITaxon:9606). Leave empty if not taxon-scoped
@@ -501,6 +595,7 @@ taxon_scope:
 
 domains:
   type: str
+  when: "{{ kind == 'mech' }}"
   help: MechRegistry domain tags (the registry's DomainEnum)
   multiselect: true
   choices: [biomedical, clinical, microbiology, environment, organisms, phenotype,
@@ -539,10 +634,11 @@ github_user:
 repo_name:
   type: str
   help: GitHub repository name
-  default: "{{ mech_slug }}"
+  default: "{{ fleet_slug ~ '-coordinator' if kind == 'coordinator' else mech_slug }}"
 
 collection:
   type: str
+  when: "{{ kind == 'mech' }}"
   help: Which family of Mechs this one joins
   choices:
     "Monarch Initiative (DisMech pattern)": monarch
@@ -550,10 +646,74 @@ collection:
     "Neither": none
   default: none
 
+# A Mech in a Fleet: its Coordinator, and the links its records make to other
+# members' records. The Coordinator writes both: `fleet answers <slug>`.
+fleet_coordinator:
+  type: str
+  help: GitHub owner/repo of the Fleet's Coordinator, which holds the files every member shares
+  default: "{{ github_org }}/{{ fleet_name | lower }}-coordinator"
+  when: "{{ kind == 'mech' and fleet_name != '' }}"
+  validator: >-
+    {% if not (fleet_coordinator | regex_search('^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$')) %}
+    Give the Coordinator's repository as owner/repo.
+    {% endif %}
+
+fleet_links:
+  type: yaml
+  help: >-
+    Links from this Mech's records to other members' records, one per
+    relationship the Fleet declares with this Mech as subject. Each has slot,
+    target (the other Mech's name), prefix (its slug) and relations (NAME:
+    description), and may have bases, description, class and uri. Copy them
+    from `fleet answers <slug>` in the Coordinator; do not write them by hand
+  default: "[]"
+  when: "{{ kind == 'mech' and fleet_name != '' }}"
+  validator: >-
+    {%- set ns = namespace(err='', slots=[], classes=[]) -%}
+    {%- if fleet_links is not sequence or fleet_links is string or fleet_links is mapping -%}
+    {%- set ns.err = 'Give a list of links.' -%}
+    {%- else -%}
+    {%- for x in fleet_links if not ns.err -%}
+    {%- if x is not mapping or not x.slot or not x.target or not x.prefix or not x.relations -%}
+    {%- set ns.err = 'Each link needs slot, target, prefix and relations.' -%}
+    {%- elif not (x.slot | string | regex_search('^[a-z][a-z0-9_]*$')) -%}
+    {%- set ns.err = 'Slot ' ~ x.slot ~ ' must be snake_case.' -%}
+    {%- elif x.slot in ['id', 'name', 'description', 'description_evidence', 'record_term', 'synonyms',
+        'status', 'mechanisms', 'evidence', 'datasets', 'discussions', 'notes', 'creation_date',
+        'updated_date', 'curation_history', 'term', 'label', 'preferred_term'] -%}
+    {%- set ns.err = 'Slot ' ~ x.slot ~ ' is already a slot of every Mech; choose another name.' -%}
+    {%- elif not (x.target | string | regex_search('^[A-Z][A-Za-z0-9]*$')) -%}
+    {%- set ns.err = 'Target ' ~ x.target ~ ' must be a Mech name, in CamelCase.' -%}
+    {%- elif not (x.prefix | string | regex_search('^[a-z][a-z0-9]*$')) or x.prefix == mech_slug -%}
+    {%- set ns.err = 'Prefix ' ~ x.prefix ~ " must be another Mech's slug." -%}
+    {%- elif x.relations is not mapping -%}
+    {%- set ns.err = 'relations of ' ~ x.slot ~ ' must map each NAME to its description.' -%}
+    {%- elif x.bases is defined and x.bases is not mapping -%}
+    {%- set ns.err = 'bases of ' ~ x.slot ~ ' must map each NAME to its description.' -%}
+    {%- else -%}
+    {%- for name in (x.relations | list) + (x.bases | default({}) | list) -%}
+    {%- if not (name | string | regex_search('^[A-Z][A-Z0-9_]*$')) -%}
+    {%- set ns.err = 'Relation and basis names are UPPER_SNAKE_CASE: ' ~ name -%}
+    {%- endif -%}
+    {%- endfor -%}
+    {%- set cls = x['class'] | default(x.target ~ 'Link') -%}
+    {%- if cls in [record_class, 'Term', 'Descriptor', 'EvidenceItem', 'CurationEvent', 'MechanismNode',
+        'CausalEdge', 'CrossCorpusLink', 'Discussion', 'Dataset'] -%}
+    {%- set ns.err = 'Class ' ~ cls ~ ' is already in the schema; give the link a class.' -%}
+    {%- elif x.slot in ns.slots -%}{%- set ns.err = 'Two links use the slot ' ~ x.slot ~ '.' -%}
+    {%- elif cls in ns.classes -%}{%- set ns.err = 'Two links make the class ' ~ cls ~ '; give one a class.' -%}
+    {%- endif -%}
+    {%- set ns.slots = ns.slots + [x.slot] -%}{%- set ns.classes = ns.classes + [cls] -%}
+    {%- endif -%}
+    {%- endfor -%}
+    {%- endif -%}
+    {{ ns.err }}
+
 # ---------------------------------------------------------------- licenses
 
 data_license:
   type: str
+  when: "{{ kind == 'mech' }}"
   help: License for the records
   choices:
     "CC BY 4.0": CC-BY-4.0
@@ -578,11 +738,13 @@ copyright_year:
 
 include_site:
   type: bool
+  when: "{{ kind == 'mech' }}"
   help: Add a static record browser, published at /records/ on the documentation site
   default: true
 
 site_palette:
   type: str
+  when: "{{ kind == 'mech' }}"
   help: >-
     Main color of the documentation site and record browser (a Material for
     MkDocs color name). Change it later in conf/site.yaml
@@ -592,6 +754,7 @@ site_palette:
 
 site_accent:
   type: str
+  when: "{{ kind == 'mech' }}"
   help: Highlight color, for hover and focus (a Material accent name)
   choices: [indigo, blue, light-blue, cyan, teal, green, light-green, lime, yellow,
             amber, orange, deep-orange, red, pink, purple, deep-purple]
@@ -599,12 +762,14 @@ site_accent:
 
 site_theme:
   type: str
+  when: "{{ kind == 'mech' }}"
   help: Light or dark pages. auto follows each visitor's system setting
   choices: [auto, light, dark]
   default: auto
 
 include_claude_hook:
   type: bool
+  when: "{{ kind == 'mech' }}"
   help: >-
     Add a Claude Code PreToolUse hook that validates a record before an edit
     to it lands
@@ -624,6 +789,7 @@ agent_workflows:
 
 workflows:
   type: str
+  when: "{{ kind == 'mech' }}"
   help: >-
     GitHub workflows beyond the always-on QC check. Agent workflows need an
     Anthropic credential as a repository secret; see docs/WORKFLOWS.md
@@ -653,18 +819,19 @@ agent_schedules:
     Run the scheduled agent workflows on their schedules. Off means they run
     only when started by hand, which is the safe way to begin
   default: false
-  when: "{{ workflows | select('in', ['pr-shepherd', 'curation-scanner', 'literature-scan', 'compliance', 'post-review']) | list | length > 0 }}"
+  when: "{{ kind == 'mech' and (workflows | select('in', ['pr-shepherd', 'curation-scanner', 'literature-scan', 'compliance', 'post-review']) | list | length > 0) }}"
 
 langfuse:
   type: bool
   help: Send agent traces to Langfuse (needs LANGFUSE_* secrets)
   default: false
-  when: "{{ workflows | select('in', agent_workflows) | list | length > 0 }}"
+  when: "{{ kind == 'mech' and (workflows | select('in', agent_workflows) | list | length > 0) }}"
 
 # ---------------------------------------------------------------- research and outputs
 
 deep_research:
   type: bool
+  when: "{{ kind == 'mech' }}"
   help: >-
     Add deep research through deep-research-client: AI research reports on a
     record, from providers such as Claude Code, OpenAI or Edison, as leads for
@@ -674,6 +841,7 @@ deep_research:
 
 output_formats:
   type: str
+  when: "{{ kind == 'mech' }}"
   help: >-
     Formats `just export` writes and checks, and releases attach. All come
     from LinkML. JSON-LD and Turtle are RDF: they are only as good as the
@@ -704,10 +872,11 @@ kgx_biolink:
     Mech's own categories and predicates instead. Change later in
     conf/kgx.yaml
   default: true
-  when: "{{ 'kgx' in output_formats or 'kgx_maximal' in output_formats }}"
+  when: "{{ kind == 'mech' and ('kgx' in output_formats or 'kgx_maximal' in output_formats) }}"
 
 load_targets:
   type: str
+  when: "{{ kind == 'mech' }}"
   help: >-
     Running databases `just load` can fill with the records, through
     linkml-store: MongoDB (one collection) and Neo4j (a graph of every
@@ -728,7 +897,7 @@ tabular_layout:
     "One table per class (normalized)": per_class
     "One row per record (flattened)": flat
   default: per_class
-  when: "{{ 'csv' in output_formats or 'tsv' in output_formats }}"
+  when: "{{ kind == 'mech' and ('csv' in output_formats or 'tsv' in output_formats) }}"
 
 python_min:
   type: str
@@ -737,6 +906,26 @@ python_min:
   default: "3.11"
 
 # ---------------------------------------------------------------- computed
+
+# The links a Fleet member's records make, with names filled in. The
+# templates read this, never fleet_links directly.
+fleet_link_selection:
+  type: yaml
+  when: false
+  default: >-
+    {%- set sel = [] -%}
+    {%- if kind == 'mech' and fleet_name -%}
+    {%- for x in fleet_links if x is mapping -%}
+    {%- set cls = x['class'] | default(x.target ~ 'Link') | string -%}
+    {%- set _ = sel.append({
+      "slot": x.slot | string, "target": x.target | string, "prefix": x.prefix | string,
+      "uri": x.uri | default('https://w3id.org/' ~ github_org ~ '/' ~ x.prefix ~ '/') | string,
+      "class": cls, "relation_enum": cls ~ 'RelationEnum', "basis_enum": cls ~ 'BasisEnum',
+      "relations": x.relations, "bases": x.bases | default({}),
+      "description": x.description | default('Links to ' ~ x.target ~ ' records.') | string}) -%}
+    {%- endfor -%}
+    {%- endif -%}
+    {{ sel | tojson }}
 
 uses_agents:
   type: bool

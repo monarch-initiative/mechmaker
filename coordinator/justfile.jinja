@@ -1,0 +1,87 @@
+# {{ fleet_name }}'s Coordinator.
+#
+# These recipes are the repository's real interface. CI calls recipes, not
+# inlined shell. `just qc` is the one definition of green for this
+# repository; `just audit` is the one for the Fleet.
+
+set positional-arguments := true
+{% raw %}
+default:
+    @just --list --unsorted
+
+# Install the package and dev tools
+install:
+    uv sync --extra dev
+
+# ---------------------------------------------------------------- this repository
+
+# Lint, fleet.yaml, the canon, tests, docs: everything that needs no member.
+qc: lint validate canon-check test docs-build
+
+# Lint the Python
+lint:
+    uv run ruff check .
+
+# Run the tests
+test *args:
+    uv run pytest "$@"
+
+# Check fleet.yaml against the Fleet schema and its rules
+validate:
+    uv run fleet validate
+
+# Check the canon's files against canon/manifest.yaml
+canon-check:
+    uv run fleet canon-check
+
+# After a deliberate change to a canon file: rewrite its sha256 in the manifest
+canon-refresh:
+    uv run fleet canon-refresh
+
+# ---------------------------------------------------------------- the Fleet
+
+# Print a member's Copier answers, from fleet.yaml
+answers member:
+    @uv run fleet answers "$1"
+
+# Clone or refresh the members under cache/members/ (anonymous, read-only)
+fetch *members:
+    uv run fleet fetch "$@"
+
+# One row per member: commit, records, mechmaker version, canon pin
+status *args:
+    uv run fleet status "$@"
+
+# Copy the canon into a member checkout. A dry run; add --apply to write.
+sync member path *args:
+    uv run fleet sync "$1" --root "$2" "${@:3}"
+
+# Every link between members' records, against the declared relationships
+check-links *args:
+    uv run fleet check-links "$@"
+
+# Everything, for every member: answers, canon pins, links. Run `just fetch` first.
+audit *args:
+    uv run fleet audit "$@"
+
+# ---------------------------------------------------------------- docs
+
+# Write the pages made from fleet.yaml and the Fleet schema
+docs-pages:
+    uv run fleet docs-pages
+
+# Build the documentation site into site/ (strict: a broken link fails)
+docs-build: docs-pages
+    uv run mkdocs build --strict -d site
+
+# Serve the documentation at http://127.0.0.1:8000 while you edit
+docs-serve: docs-pages
+    uv run mkdocs serve
+
+# ---------------------------------------------------------------- template
+
+# Pull every template change from mechmaker into this repository at once.
+# Canon changes then need a release to the members: the change-canon skill.
+update-template:
+    uvx copier update --skip-answered
+{% endraw %}

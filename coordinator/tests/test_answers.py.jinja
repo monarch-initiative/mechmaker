@@ -1,0 +1,44 @@
+"""A member's answers come from fleet.yaml, and the audit notices when they drift."""
+
+from conftest import commit, write_yaml
+
+from {{ fleet_slug }}_coordinator import answers
+from {{ fleet_slug }}_coordinator.members import read_answers
+
+
+def test_answers_carry_identity_and_links(fleet):
+    got = answers.member_answers(fleet, fleet.members["alphamech"])
+    assert got["mech_slug"] == "alphamech"
+    assert got["github_org"] == "example" and got["repo_name"] == "alphamech"
+    assert got["fleet_name"] == "TestFleet"
+    assert got["fleet_coordinator"] == "example/testfleet-coordinator"
+    assert got["fleet_links"] == [{
+        "slot": "betas", "target": "BetaMech", "prefix": "betamech",
+        "uri": "https://w3id.org/example/betamech/", "description": "Betas an alpha is part of.",
+        "relations": {"PART_OF": "The alpha is part of the beta."},
+        "bases": {"LITERATURE": "A cited source says so."},
+    }]
+    assert answers.member_answers(fleet, fleet.members["betamech"])["fleet_links"] == []
+
+
+def test_render_is_yaml_with_a_header(fleet):
+    text = answers.render(fleet, fleet.members["alphamech"])
+    assert text.startswith("# AlphaMech's answers")
+    assert "fleet_links:" in text
+
+
+def test_matching_answers_agree(fleet, make_member):
+    root = make_member("alphamech")
+    assert answers.disagreements(fleet, fleet.members["alphamech"], root) == []
+
+
+def test_drift_is_reported(fleet, make_member):
+    root = make_member("alphamech")
+    data = read_answers(root)
+    data["record_class"] = "Other"
+    data["fleet_links"] = []
+    write_yaml(root / ".copier-answers.yml", data)
+    commit(root)
+    found = answers.disagreements(fleet, fleet.members["alphamech"], root)
+    assert any("record_class" in f for f in found)
+    assert any("fleet_links" in f for f in found)

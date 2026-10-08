@@ -1,0 +1,101 @@
+# Audit the whole Fleet: clone every active member anonymously, read-only,
+# and check that its answers agree with fleet.yaml, that it carries the
+# canon at the one shared pin, and that every link between records resolves.
+# No agent runs here. When a scheduled run fails, a plain step opens an
+# issue in this repository, or comments on the open one. It never writes to
+# a member.
+name: Fleet audit
+
+on:
+  schedule:
+    - cron: "41 6 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [fleet.yaml, canon/**]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fleet-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      failed: ${{ steps.audit.outputs.failed }}
+    steps:
+      # The full history: a member's pin must be a commit of this repository.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: true
+
+      - name: Install just
+        run: uv tool install rust-just
+
+      - name: Install
+        run: just install
+
+      - name: Fetch the members
+        run: just fetch
+
+      - name: Audit
+        id: audit
+        run: |
+          set -o pipefail
+          if just audit | tee audit.txt; then
+            echo "failed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "failed=true" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+
+      - name: Keep the report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: fleet-audit
+          path: audit.txt
+          if-no-files-found: ignore
+
+  report:
+    needs: audit
+    if: always() && needs.audit.outputs.failed == 'true' && github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: fleet-audit
+
+      - name: Open or update the audit issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          {
+            echo "The daily Fleet audit failed: $RUN"
+            echo
+            echo '```text'
+            tail -n 200 audit.txt
+            echo '```'
+          } > body.md
+          gh label create fleet-audit --repo "$REPO" --color B60205 \
+            --description "The daily Fleet audit failed" 2>/dev/null || true
+          number=$(gh issue list --repo "$REPO" --label fleet-audit --state open --json number --jq '.[0].number // empty')
+          if [ -n "$number" ]; then
+            gh issue comment "$number" --repo "$REPO" --body-file body.md
+          else
+            gh issue create --repo "$REPO" --title "Fleet audit failed" --label fleet-audit --body-file body.md
+          fi

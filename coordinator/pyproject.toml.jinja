@@ -1,0 +1,63 @@
+[project]
+name = "{{ fleet_slug }}-coordinator"
+# The version comes from the latest git tag (v1.2.3); see [tool.uv-dynamic-versioning].
+dynamic = ["version"]
+description = "{{ fleet_name }}'s Coordinator: its Mechs, their relationships, and the files they share."
+authors = [{ name = "{{ author_name }}", email = "{{ author_email }}" }]
+readme = "README.md"
+license = { text = "{{ code_license }}" }
+requires-python = ">={{ python_min }}"
+keywords = ["mech", "fleet", "knowledge base", "linkml", "curation"]
+
+dependencies = [
+    # Checks fleet.yaml against the Fleet schema.
+    "linkml>=1.11.1",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.6",
+    # The documentation site. MkDocs 2 drops the plugin and theme system
+    # Material relies on, so stay on 1.x.
+    "mkdocs>=1.6,<2",
+    "mkdocs-material>=9.7",
+]
+
+[project.scripts]
+fleet = "{{ fleet_slug }}_coordinator.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/{{ github_org }}/{{ repo_name }}"
+Repository = "https://github.com/{{ github_org }}/{{ repo_name }}"
+
+[build-system]
+requires = ["hatchling", "uv-dynamic-versioning>=0.8"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.uv-dynamic-versioning]
+# Without a tag, or outside a git checkout, the version is this.
+fallback-version = "0.0.0"
+
+[tool.uv]
+# Rebuild the installed package when a commit or tag changes its version.
+cache-keys = [{ file = "pyproject.toml" }, { git = { commit = true, tags = true } }]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/{{ fleet_slug }}_coordinator"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "."]
+
+[tool.ruff]
+line-length = 110
+target-version = "py{{ python_min | replace('.', '') }}"
+extend-exclude = ["cache"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]

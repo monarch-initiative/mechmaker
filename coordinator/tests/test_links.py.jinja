@@ -1,0 +1,74 @@
+"""Links between members' records, checked against fleet.yaml and the target's history."""
+
+from conftest import commit, git
+
+from {{ fleet_slug }}_coordinator import links
+
+
+def beta(id_):
+    return {"id": id_, "name": id_}
+
+
+def alpha_with(link):
+    return {"a1": {"id": "alphamech:a1", "name": "a1", "betas": [link]}}
+
+
+def link(identifier="betamech:b1", **kw):
+    return {"corpus": "BetaMech", "identifier": identifier, "relation": "PART_OF",
+            "basis": "LITERATURE", **kw}
+
+
+def setup(fleet, make_member, make_link):
+    beta_root = make_member("betamech", {"b1": beta("betamech:b1")})
+    version = git(beta_root, "rev-parse", "HEAD")
+    alpha_root = make_member("alphamech", alpha_with(make_link(version)))
+    return {"alphamech": alpha_root, "betamech": beta_root}
+
+
+def messages(fleet, roots, level="error"):
+    return [f.message for f in links.check(fleet, roots) if f.level == level]
+
+
+def test_a_good_link_passes(fleet, make_member):
+    roots = setup(fleet, make_member, lambda v: link(source_version=v))
+    assert links.check(fleet, roots) == []
+
+
+def test_find_links_names_the_slot():
+    found = list(links.find_links({"id": "x", "betas": [link()], "nested": {"more": [link()]}}))
+    assert [slot for slot, _ in found] == ["betas", "more"]
+
+
+def test_wrong_relation_and_basis(fleet, make_member):
+    roots = setup(fleet, make_member, lambda v: link(source_version=v, relation="LOVES", basis="HUNCH"))
+    found = messages(fleet, roots)
+    assert any("relation 'LOVES'" in m for m in found)
+    assert any("basis 'HUNCH'" in m for m in found)
+
+
+def test_unknown_corpus(fleet, make_member):
+    roots = setup(fleet, make_member, lambda v: dict(link(source_version=v), corpus="GammaMech"))
+    assert any("not a member" in m for m in messages(fleet, roots))
+
+
+def test_source_version_is_required(fleet, make_member):
+    roots = setup(fleet, make_member, lambda v: link())
+    assert any("source_version" in m for m in messages(fleet, roots))
+
+
+def test_missing_target(fleet, make_member):
+    roots = setup(fleet, make_member, lambda v: link("betamech:nope", source_version=v))
+    assert any("no such record in BetaMech at" in m for m in messages(fleet, roots))
+
+
+def test_target_gone_since_the_pin_is_a_warning(fleet, make_member):
+    roots = setup(fleet, make_member, lambda v: link(source_version=v))
+    (roots["betamech"] / "data" / "betas" / "b1.yaml").unlink()
+    commit(roots["betamech"], "retire b1")
+    assert messages(fleet, roots) == []
+    assert any("gone from BetaMech" in m for m in messages(fleet, roots, "warning"))
+
+
+def test_unknown_commit(fleet, make_member):
+    roots = setup(fleet, make_member, lambda v: link(source_version="f" * 40))
+    assert any("not a commit of example/betamech" in m for m in messages(fleet, roots))
