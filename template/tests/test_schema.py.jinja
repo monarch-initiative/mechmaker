@@ -1,7 +1,9 @@
 """The schema, the vendored modules and the record rules."""
 
 import copy
+{% if not fleet_name -%}
 import hashlib
+{% endif -%}
 from pathlib import Path
 
 import pytest
@@ -13,12 +15,15 @@ from {{ mech_slug }}.compliance import WEIGHTS, score
 from {{ mech_slug }}.paths import (
     HISTORY_SCHEMA_PATH,
     RECORD_CLASS,
+{%- if not fleet_name %}
     SCHEMA_DIR,
+{%- endif %}
     SCHEMA_PATH,
 )
 from {{ mech_slug }}.validate import load, rule_errors, schema_errors
 
 EXAMPLE = Path(__file__).parent / "data" / "example_record.yaml"
+{%- if not fleet_name %}
 
 # Fleet canon. These files are vendored byte-identical; a changed hash means
 # a local edit. Change them upstream and re-vendor, never here.
@@ -26,6 +31,7 @@ VENDORED_MD5 = {
     "mech_shared.yaml": "afbf1a48493e88e086294aa5df03b556",
     "history.yaml": "3742bc2068b637868c48aba406f6569d",
 }
+{%- endif %}
 
 
 @pytest.fixture
@@ -54,9 +60,19 @@ def test_names_of_one_kind_differ_by_more_than_case(kind):
     assert clashes == []
 
 
+{% if fleet_name -%}
+def test_vendored_modules_match_the_fleet_pin():
+    """{{ fleet_name }}'s Coordinator owns these files and records their sha256
+    in fleet/pin.yaml. A changed hash means a local edit: change them in the
+    Coordinator and sync them here, never here."""
+    from {{ mech_slug }}.fleet import offline_errors
+
+    assert offline_errors() == []
+{%- else -%}
 @pytest.mark.parametrize("name,md5", VENDORED_MD5.items())
 def test_vendored_modules_are_unmodified(name, md5):
     assert hashlib.md5((SCHEMA_DIR / name).read_bytes()).hexdigest() == md5
+{%- endif %}
 
 
 def test_example_is_valid(example):

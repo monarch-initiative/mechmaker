@@ -1,0 +1,13 @@
+# The Fleet canon this Mech carries: the files every member of {{ fleet_name }}
+# shares byte for byte. {{ fleet_name }}'s Coordinator ({{ fleet_coordinator }})
+# writes this file with `fleet sync {{ mech_slug }}`. Do not edit it by hand.
+# Until the first sync, ref is empty and the files are mechmaker's copies.
+coordinator: {{ fleet_coordinator }}
+ref: ""
+artifacts:
+  - id: mech_shared
+    target: src/{{ mech_slug }}/schema/mech_shared.yaml
+    sha256: c2e7054fd32635e380c698282bd886a9105861009b9f0474f02bb1b80865e895
+  - id: history
+    target: src/{{ mech_slug }}/schema/history.yaml
+    sha256: b01b06f1b9a37db205c26c31ec0fd910690848507c7e1bfb73b424ac0829c52d

@@ -273,6 +273,41 @@ def item(feature, asked, ok, found, fix="", status=None) -> Item:
     return Item(feature, asked, status or (DONE if ok else MISSING), found, "" if ok else fix)
 
 
+def fleet_items(m: Mech) -> list[Item]:
+    """A Fleet member: its pin, and one link class per fleet_links entry. Links' targets are the
+    Coordinator's to check (`just audit` there), not this script's."""
+    a = m.answers
+    fleet, coordinator = a["fleet_name"], a.get("fleet_coordinator", "")
+    pin = m._yaml(m.root / "fleet" / "pin.yaml") or {}
+    ref = str(pin.get("ref") or "")
+    out = [item(
+        f"Member of {fleet}, with the canon pinned",
+        "fleet_name, fleet_coordinator",
+        len(ref) == 40,
+        f"fleet/pin.yaml at {ref[:12]}" if ref
+        else ("fleet/pin.yaml not synced yet" if pin else "no fleet/pin.yaml"),
+        f"in the Coordinator ({coordinator}): `just sync {m.slug} <this checkout> --apply`, then commit here",
+        status=None if pin else MISSING,
+    )]
+    classes, slots = m.classes(), m.slots()
+    for link in a.get("fleet_links") or []:
+        if not isinstance(link, dict):
+            continue
+        cls = link.get("class") or f"{link.get('target')}Link"
+        is_link = (classes.get(cls) or {}).get("is_a") == "CrossCorpusLink"
+        ok = is_link and link.get("slot") in slots
+        out.append(item(
+            f"Links to {link.get('target')} through `{link.get('slot')}`",
+            "fleet_links",
+            ok,
+            f"class `{cls}` and slot `{link.get('slot')}`" if ok
+            else f"`{cls}` or `{link.get('slot')}` missing",
+            "take `fleet answers` from the Coordinator with copier update, "
+            "or restore the class with extend-schema",
+        ))
+    return out
+
+
 def local_file(adapter: str) -> str | None:
     """The repository file an OAK adapter reads, or None for a service or a downloaded sqlite:obo."""
     kind, _, path = adapter.partition(":")
@@ -472,6 +507,9 @@ def from_answers(m: Mech) -> list[Item]:
                 f"add collection: [{value}] to {reg_path}",
             )
         )
+
+    if a.get("fleet_name"):
+        out += fleet_items(m)
 
     for key, path, table in (
         ("code_license", "LICENSE", CODE_LICENSE_TEXT),
@@ -1050,6 +1088,10 @@ def main(argv: list[str] | None = None) -> int:
     root = args.mech.resolve()
     if not (root / ".copier-answers.yml").exists():
         print(f"{root} has no .copier-answers.yml: not a Mech made from mechmaker.", file=sys.stderr)
+        return 2
+    if "kind: coordinator" in (root / ".copier-answers.yml").read_text():
+        print(f"{root} is a Fleet's Coordinator, not a Mech. Run `just qc` and `just audit` there.",
+              file=sys.stderr)
         return 2
     if args.requests and not args.requests.exists():
         print(f"No requests file at {args.requests}.", file=sys.stderr)

@@ -112,6 +112,23 @@ SCENARIOS["extras"] = {
     "output_formats": ["yaml", "json", "sqlite", "kgx", "kgx_maximal"],
     "kgx_biolink": False,
 }
+# A member of a Fleet: two relationships, one with bases and one without.
+FLEET_LINKS = [
+    {"slot": "betas", "target": "BetaMech", "prefix": "betamech", "uri": "https://w3id.org/example-org/betamech/",
+     "description": "Betas a widget is part of.", "relations": {"PART_OF": "The widget is part of the beta."},
+     "bases": {"LITERATURE": "A cited source says so."}},
+    {"slot": "gamma_sources", "target": "GammaMech", "prefix": "gammamech",
+     "relations": {"DERIVED_FROM": "The widget was derived from the gamma: by any means."}},
+]
+SCENARIOS["fleet-member"] = {
+    **BASE,
+    "mech_name": "AlphaFleetMemberMech",
+    "record_class": "Widget",
+    "ontologies": ["CHEBI"],
+    "fleet_name": "TestFleet",
+    "fleet_links": FLEET_LINKS,
+    "workflows": ["sweep"],
+}
 SCENARIOS["minimal"]["workflows"] = []
 ALL_FORMATS = ["yaml", "json", "jsonld", "ttl", "sqlite", "duckdb", "sql", "csv", "tsv", "kgx", "kgx_maximal"]
 SCENARIOS["disease"].update({"site_palette": "brown", "site_theme": "light", "deep_research": True,
@@ -623,7 +640,8 @@ def _action_refs(root: Path) -> set[tuple[str, str]]:
 def test_every_action_ref_exists(tmp_path):
     """actionlint does not check that a tag exists. A missing one fails CI at "Set up job"."""
     dest = render(tmp_path / "refs", SCENARIOS["all-workflows"])
-    refs = _action_refs(dest) | _action_refs(ROOT)
+    coordinator = render(tmp_path / "coordinator", {**BASE, "kind": "coordinator", "fleet_name": "RefsFleet"})
+    refs = _action_refs(dest) | _action_refs(coordinator) | _action_refs(ROOT)
     assert refs
     missing = []
     for repo in sorted({r for r, _ in refs}):
@@ -717,7 +735,8 @@ def test_bad_slug_rejected(tmp_path):
 
 @pytest.mark.slow
 @pytest.mark.skipif(shutil.which("just") is None or shutil.which("uv") is None, reason="needs just and uv")
-@pytest.mark.parametrize("scenario", ["habitat", "minimal", "disease", "all-workflows", "extras"])
+@pytest.mark.parametrize("scenario", ["habitat", "minimal", "disease", "all-workflows", "extras",
+                                      "fleet-member"])
 def test_generated_mech_passes_qc(tmp_path, scenario):
     dest = render(tmp_path / scenario, SCENARIOS[scenario])
     env = {k: v for k, v in os.environ.items() if k != "VIRTUAL_ENV"}

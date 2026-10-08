@@ -54,6 +54,8 @@ def main(argv: list[str] | None = None) -> int:
     steps.append(("docs build", ["just", "docs-build"]))
     if args.network:
         steps += NETWORK
+        if (PACKAGE_DIR / "fleet.py").exists():
+            steps.append(("fleet canon: the Coordinator", ["just", "check-fleet", "--online"]))
 
     failed = []
     clashes = case_collisions()
