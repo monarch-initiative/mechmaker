@@ -177,6 +177,18 @@ there are five thousand. The
 [IngestMech walkthrough](https://monarch-initiative.github.io/mechmaker/walkthrough-conversion/)
 shows a real conversion.
 
+## Several Mechs together: a Fleet
+
+Some topics need more than one Mech: taxa, the habitats they live in, and
+the traits they show are three kinds of record, each worth its own Mech,
+and their records refer to each other's. A **Fleet** is such a set. Each
+member is a full Mech in its own repository. One more repository, the
+**Coordinator**, declares the members and the relationships between their
+records, holds the files every member shares, and checks the whole Fleet
+daily: every link between records must point at a record that exists. Ask
+your agent to follow the `make-fleet` skill. See
+[Fleets](https://monarch-initiative.github.io/mechmaker/fleets/).
+
 ## Keeping a Mech up to date
 
 mechmaker keeps improving. To bring an existing Mech up to date, ask the
@@ -285,8 +297,8 @@ Copier's own update.
 
 ```bash
 just install
-just test              # render six sample Mechs and check the output
-just test-generated    # generate five Mechs, install them, run their checks
+just test              # render seven sample Mechs and a Coordinator, and check the output
+just test-generated    # generate six Mechs and a Coordinator, install them, run their checks
 just sample /tmp/x     # generate one sample to look at
 just sync-examples     # after a template change: bring the examples in step
 ```

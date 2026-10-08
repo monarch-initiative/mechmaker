@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 This repository is mechmaker: a Copier template (`copier.yml`, `template/`)
-and agent skills (`skills/`) for making Mechs. See README.md.
+and agent skills (`skills/`) for making Mechs, and Fleets of them. See README.md.
 
 ## Layout
 
@@ -9,15 +9,21 @@ and agent skills (`skills/`) for making Mechs. See README.md.
   ontologies with their verified roots.
 - `template/`: the Copier subdirectory. `.jinja` files render; the rest
   copy verbatim. Paths may contain Jinja (`{{mech_slug}}`, `{% if ... %}`).
+- `coordinator/`: the second Copier subdirectory, for a Fleet's
+  Coordinator (`kind: coordinator`). `copier.yml` picks it by templating
+  `_subdirectory`; every Mech question is gated on `kind == 'mech'`.
+  `coordinator/canon/schema/` links to the template's vendored modules, and
+  `LICENSE.jinja` and `AGENTS.md` link to the template's.
 - `AGENTS.md`: the entry point for an agent pointed at this repository.
 - `skills/`: skills for the agent that makes a Mech. `.claude/skills` is a
   symlink to it. `.claude-plugin/` makes the repository a Claude Code plugin.
 - `upgrade-notes.yml`: what an existing Mech must do, beyond taking files,
   to follow a template change. `sync-mech` shows each note to the Mechs
   whose update reaches it.
-- `tests/`: `just test` renders six answer sets and each example's
-  answers; `just test-generated` installs five generated Mechs and runs
-  their `just qc`, plus a few targeted ones.
+- `tests/`: `just test` renders seven answer sets (one a Fleet member), a
+  Coordinator, and each example's answers; `just test-generated` installs
+  six generated Mechs and a Coordinator and runs their `just qc`, plus a
+  few targeted ones, among them a Fleet end to end.
 - `example/`: two Mechs made with the skills (GoatMech, IngestMech), with
   their answers and survey briefs. They stay in step with the template:
   `tests/test_examples.py` fails when a template file in one differs from
@@ -41,7 +47,10 @@ and agent skills (`skills/`) for making Mechs. See README.md.
   renamed) adds an entry to `upgrade-notes.yml` in the same pull request,
   with `pr:` set to that pull request's number.
 - A fresh copy must pass `just qc`. Run `just test-generated` after any
-  change under `template/`.
+  change under `template/` or `coordinator/`.
+- A Fleet member's canon belongs to its Coordinator. Its sha256s are
+  written in three places (the vendored files, the Coordinator's manifest,
+  the member's pin template); a test keeps them equal.
 - After a change under `template/`, run `just sync-examples`, then
   `just qc` in each example it changed, and commit the examples with the
   change. A file an example owns is left alone; merge the change into it
@@ -51,7 +60,10 @@ and agent skills (`skills/`) for making Mechs. See README.md.
   (`src/kg_microbe_governance/artifacts/schema/`, copied at claw commit
   7e6c3eec, 2026-10-08). Never edit them here. To
   update, copy the new canon and change the md5s in `tests/test_template.py`
-  and `template/tests/test_schema.py.jinja`.
+  and `template/tests/test_schema.py.jinja`, and the sha256s in
+  `coordinator/canon/manifest.yaml` and
+  `template/{% if fleet_name %}fleet{% endif %}/pin.yaml.jinja`
+  (`tests/test_fleet.py` checks them).
 - Every root added to `ontology_catalog` is checked first:
   `python skills/make-mech/scripts/check_terms.py label <CURIE>`.
 - Files that contain their own `{{ }}` (the justfile, HTML templates) either

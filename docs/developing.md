@@ -6,6 +6,7 @@
 |---|---|
 | `copier.yml` | The questions, their validators, and `ontology_catalog`, the table of ontologies with verified roots |
 | `template/` | The files that become a Mech. Files ending `.jinja` are rendered; everything else is copied as is. Paths may contain Jinja, such as `{{mech_slug}}` or `{% if 'review' in workflows %}` |
+| `coordinator/` | The files that become a Fleet's Coordinator (`kind: coordinator`). `copier.yml` chooses this folder or `template/` by templating `_subdirectory`. Its canon links to the template's shared schema modules |
 | `skills/` | Skills for the agent that makes a Mech. `.claude/skills` links here |
 | `.claude-plugin/` | Makes the repository a Claude Code plugin and marketplace |
 | `upgrade-notes.yml` | What an existing Mech must do, beyond taking files, to follow a template change. `sync-mech` shows each note to the Mechs it reaches |
@@ -18,8 +19,8 @@
 
 ```bash
 just install          # dev tools
-just test             # render under six answer sets and check the output
-just test-generated   # generate five Mechs, install them, run their `just qc`
+just test             # render under seven answer sets and a Coordinator, and check the output
+just test-generated   # generate six Mechs and a Coordinator, install them, run their `just qc`
 just lint             # ruff
 just sample /tmp/x    # render one sample Mech to look at
 just docs-serve       # this site, locally
@@ -35,7 +36,11 @@ dependencies and builds its own documentation.
 ## Rules
 
 - **A fresh Mech must pass `just qc`.** Run `just test-generated` after any
-  change under `template/`.
+  change under `template/` or `coordinator/`.
+- **Mech questions are gated on `kind`.** A question for Mechs has
+  `kind == 'mech'` in its `when`; a question for the Coordinator,
+  `kind == 'coordinator'`. The maintainer, repository, code license and
+  Python questions are asked of both.
 - **The examples follow the template.** After a change under `template/`,
   run `just sync-examples` and each changed example's `just qc`. `just test`
   fails while an example's template files differ from a fresh render. The
@@ -50,7 +55,8 @@ dependencies and builds its own documentation.
 - **Shared files stay unchanged.** `mech_shared.yaml` and `history.yaml`
   come from [culturebotai-claw](https://github.com/CultureBotAI/culturebotai-claw)
   byte for byte. A test checks their hashes. To update them, copy the new
-  versions and change the hashes in the tests.
+  versions and change the hashes in the tests, in the Coordinator's
+  `canon/manifest.yaml`, and in a Fleet member's `fleet/pin.yaml.jinja`.
 - **Check every ontology root** before adding it to the catalog:
   `python skills/make-mech/scripts/check_terms.py label <CURIE>`.
 - **Keep GitHub's `${{ }}` out of Jinja's way.** Workflow templates put it

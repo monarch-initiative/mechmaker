@@ -52,6 +52,7 @@ nav:
   - Starting from an existing schema: existing-schema.md
   - What a Mech contains: what-you-get.md
   - Updating a Mech: updating.md
+  - Fleets of Mechs: fleets.md
   - Workflows: workflows.md
   - Site options: site-options.md
   - Output formats: output-formats.md
@@ -59,6 +60,7 @@ nav:
   - Skills:
       - skills/index.md
       - make-mech: skills/make-mech.md
+      - make-fleet: skills/make-fleet.md
       - survey-domain: skills/survey-domain.md
       - design-mech-schema: skills/design-mech-schema.md
       - convert-knowledge-base: skills/convert-knowledge-base.md

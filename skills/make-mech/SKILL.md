@@ -28,6 +28,14 @@ that need judgment about the domain.
 | 6. Register | you, with `register-mech` | a registry entry; an issue or pull request if the person wants one |
 | 7. Audit | script and you, with `audit-mech` | a checklist of what was asked for |
 
+If the person wants several Mechs whose records link to each other's, use
+`make-fleet`: it makes a Coordinator and then runs this skill once per
+member, with answers from the Coordinator. A member's identity and fleet
+answers (`mech_name`, `mech_slug`, `github_org`, `repo_name`,
+`record_class`, `records_dir`, `fleet_name`, `fleet_coordinator`,
+`fleet_links`) come from `just answers <member>` there; merge them into
+`answers.yml` and do not change them here.
+
 If the person already has a knowledge base to bring in, use
 `convert-knowledge-base` instead. It follows these steps and adds the
 survey of the old knowledge base, the conversion script and its trial.

@@ -18,3 +18,9 @@
 | **Workflow** | An automated job that GitHub runs, such as checks on every pull request |
 | **Pull request** | A proposed change on GitHub that people review before it is accepted |
 | **MechRegistry** | The public list of Mechs |
+| **Fleet** | A set of Mechs, each in its own repository, whose records link to each other's through declared relationships |
+| **Coordinator** | A Fleet's own repository: the members and relationships (`fleet.yaml`), the files every member shares, and the checks that read the members together. It holds no records |
+| **Relationship** | In a Fleet, a declared way for one member's records to link to another's: a slot, its relations and its bases |
+| **CrossCorpusLink** | A link from a record in one Mech to a record in another: the target Mech, the target record, a relation, a basis, and the target's commit that was checked |
+| **Canon** | The files every member of a Fleet carries byte for byte, kept in the Coordinator |
+| **Pin** | A Fleet member's `fleet/pin.yaml`: the Coordinator commit its canon came from |

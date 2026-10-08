@@ -52,6 +52,17 @@ not copy it into the Mech.
   followed: change it in its own commit first.
 - The Mech's git tree must be clean. Make a branch:
   `git switch -c sync-mechmaker`.
+- **A Fleet member** (its answers set `fleet_name`) takes its shared schema
+  modules and `fleet/pin.yaml` from its Coordinator, not from mechmaker: an
+  update leaves them alone, and a plan that shows them changed is
+  mechmaker's newer canon, which reaches the member through the
+  Coordinator's `change-canon`. Its fleet answers (`fleet_links` and the
+  identity answers) follow the Coordinator's `fleet.yaml`; do not change
+  them here.
+- **A Coordinator** (its answers set `kind: coordinator`) syncs the same
+  way, from its own folder. The script follows `coordinator/` for it. A
+  change to the canon then needs a release to every member: the
+  Coordinator's `change-canon` skill.
 
 ## 1. Check
 
