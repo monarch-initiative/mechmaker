@@ -16,6 +16,27 @@ import yaml
 
 from .paths import FLEET_FILE, SCHEMA_PATH
 
+# Names every Mech's schema already holds: mechmaker's fleet_reserved_names,
+# kept equal by a test there. A member's ontology sections are names too; this
+# repository cannot see them, and mechmaker refuses a link that reuses one when
+# the member takes its answers.
+RESERVED_SLOTS = frozenset({
+    "action", "creation_date", "curation_history", "curator", "datasets", "description",
+    "description_evidence", "discussions", "downstream", "evidence", "evidence_source",
+    "explanation", "id", "label", "llm_assisted", "mechanisms", "model", "name", "notes",
+    "preferred_term", "record_term", "reference", "reference_title", "snippet", "status",
+    "supports", "synonyms", "target", "term", "timestamp", "updated_date",
+})
+RESERVED_CLASSES = frozenset({
+    "CausalEdge", "CrossCorpusLink", "CurationActionEnum", "CurationEvent", "CurationStatusEnum",
+    "Dataset", "DatasetRepositoryEnum", "DatasetTypeEnum", "Descriptor", "Discussion",
+    "DiscussionKindEnum", "DiscussionStatusEnum", "EvidenceItem", "EvidenceSourceEnum",
+    "EvidenceSupportEnum", "HistoryActor", "HistoryActorTypeEnum", "HistoryEvent",
+    "HistoryEventTypeEnum", "HistoryLinks", "HistoryOutcomeEnum", "HistoryRecord", "HistorySession",
+    "HistoryTarget", "HistoryTargetKindEnum", "IdentityTerm", "MechanismNode", "ProposedExperiment",
+    "SupportLevelEnum", "SupportingReference", "Term",
+})
+
 
 class FleetError(Exception):
     """fleet.yaml is wrong. The message lists every problem found."""
@@ -156,6 +177,14 @@ def rule_errors(fleet: Fleet) -> list[str]:
                           "links within one Mech belong to its own schema")
         if not r.relations:
             errors.append(f"relationship {r.id}: give at least one relation")
+        if r.slot in RESERVED_SLOTS:
+            errors.append(f"relationship {r.id}: {r.slot} is already a slot of every Mech; "
+                          "choose another slot")
+        subject = fleet.members.get(r.subject)
+        taken = RESERVED_CLASSES | ({subject.record_class} if subject else set())
+        if {r.class_name, f"{r.class_name}RelationEnum", f"{r.class_name}BasisEnum"} & taken:
+            errors.append(f"relationship {r.id}: the class {r.class_name} (or its enums) is already in "
+                          f"{r.subject}'s schema; give the relationship a class_name")
         key = (r.subject, r.slot)
         if key in slots:
             errors.append(f"relationships {slots[key]} and {r.id} both use {r.subject}'s slot {r.slot}")

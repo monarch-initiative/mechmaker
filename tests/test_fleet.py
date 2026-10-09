@@ -274,10 +274,41 @@ def test_a_mech_outside_a_fleet_has_none_of_it(tmp_path):
     ({**FLEET_LINKS[0], "relations": {"part_of": "lower case"}}, "UPPER_SNAKE_CASE"),
     ({**FLEET_LINKS[0], "relations": ["PART_OF"]}, "map each NAME"),
     ({**FLEET_LINKS[0], "class": "Widget"}, "already in the schema"),
+    ({**FLEET_LINKS[0], "slot": "target"}, "already a slot"),
+    ({**FLEET_LINKS[0], "slot": "chemical_entities"}, "already an ontology's section"),
+    ({**FLEET_LINKS[0], "class": "ChemicalEntityDescriptor"}, "already in the schema"),
+    ({**FLEET_LINKS[0], "class": "SupportingReference"}, "already in the schema"),
+    ({**FLEET_LINKS[0], "class": "beta-link"}, "CamelCase"),
 ])
 def test_bad_fleet_links_rejected(tmp_path, links, message):
     with pytest.raises(Exception, match=message):
         render(tmp_path / "m", {**SCENARIOS["fleet-member"], "fleet_links": [links]})
+
+
+def schema_names(dest: Path) -> dict[str, set[str]]:
+    names: dict[str, set[str]] = {"slots": set(), "classes": set()}
+    for f in (dest / "src").glob("*/schema/*.yaml"):
+        schema = yaml.safe_load(f.read_text())
+        names["slots"] |= set(schema.get("slots") or {})
+        names["classes"] |= set(schema.get("classes") or {}) | set(schema.get("enums") or {})
+    return names
+
+
+def test_reserved_names_cover_every_name_a_mech_has(tmp_path):
+    """fleet_reserved_names holds every slot, class and enum not made from the answers. A render with
+    no ontologies, but causal graphs, a keyed record and every output, must hold no other."""
+    data = {**SCENARIOS["disease"], "ontologies": [], "causal_graphs": True, "record_class": "Widget"}
+    names = schema_names(render(tmp_path / "m", data))
+    reserved = yaml.safe_load((ROOT / "copier.yml").read_text())["fleet_reserved_names"]["default"]
+    assert names["slots"] - set(reserved["slots"]) == set()
+    assert names["classes"] - set(reserved["classes"]) == {"Widget"}
+
+
+def test_the_coordinator_reserves_the_same_names(coordinator):
+    reserved = yaml.safe_load((ROOT / "copier.yml").read_text())["fleet_reserved_names"]["default"]
+    manifest = coordinator_module(coordinator, "manifest")
+    assert set(reserved["slots"]) == manifest.RESERVED_SLOTS
+    assert set(reserved["classes"]) == manifest.RESERVED_CLASSES
 
 
 @pytest.mark.parametrize("second,message", [

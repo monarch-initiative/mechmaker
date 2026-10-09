@@ -81,3 +81,17 @@ def test_shared_names_are_refused(tmp_path):
     data["members"]["betamech"]["name"] = "AlphaMech"
     with pytest.raises(FleetError, match="share the name"):
         load(write(tmp_path, data))
+
+
+@pytest.mark.parametrize("change,message", [
+    ({"slot": "evidence"}, "already a slot of every Mech"),
+    ({"slot": "target"}, "already a slot of every Mech"),
+    ({"class_name": "Alpha"}, "already in alphamech's schema"),
+    ({"class_name": "SupportingReference"}, "already in alphamech's schema"),
+])
+def test_a_name_the_member_schema_already_has_is_refused(tmp_path, change, message):
+    """mechmaker would refuse these answers; refuse them here, before `fleet answers` prints them."""
+    data = copy.deepcopy(FLEET)
+    data["relationships"]["alphamech-betas"].update(change)
+    with pytest.raises(FleetError, match=message):
+        load(write(tmp_path, data))

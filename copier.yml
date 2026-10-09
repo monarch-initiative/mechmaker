@@ -583,6 +583,41 @@ extra_ontologies:
     {%- endfor -%}
     {%- endif -%}
 
+# Every ontology a Mech binds: the catalog picks, then extra_ontologies, with
+# names filled in. The templates read this, never the catalog directly.
+ontology_selection:
+  type: yaml
+  when: false
+  default: >-
+    {%- set sel = [] -%}
+    {%- for key in ontologies if key in ontology_catalog -%}
+    {%- set o = ontology_catalog[key] -%}
+    {%- set _ = sel.append({
+      "key": key, "prefix": o.prefix, "uri": o.uri,
+      "adapter": identity_adapter if (identity_prefix and o.prefix == identity_prefix)
+        else o.adapter if term_backend == 'ols' else o.adapter | replace('ols:', 'sqlite:obo:'),
+      "descriptor": o.descriptor, "enum": o.enum, "slot": o.slot, "root": o.root,
+      "root_label": o.root_label, "noun": o.noun, "category": o.category,
+      "article": o.article | default('An' if o.noun[0] in 'aeiou' else 'A')}) -%}
+    {%- endfor -%}
+    {%- for x in extra_ontologies if x is mapping -%}
+    {%- set noun = x.noun | string | trim -%}
+    {%- set camel = noun.split() | map('capitalize') | join('') -%}
+    {%- set plural = (noun[:-1] ~ 'ies') if (noun.endswith('y') and noun[-2:-1] not in 'aeiou') else (noun ~ 'es' if noun.endswith(('s', 'x', 'ch', 'sh')) else noun ~ 's') -%}
+    {%- set _ = sel.append({
+      "key": x.prefix, "prefix": x.prefix | string,
+      "uri": x.uri | default('http://purl.obolibrary.org/obo/' ~ x.prefix ~ '_'),
+      "adapter": identity_adapter if (identity_prefix and x.prefix | string == identity_prefix)
+        else x.adapter | default('ols:' ~ (x.prefix | lower)),
+      "descriptor": x.descriptor | default(camel ~ 'Descriptor'),
+      "enum": x.enum | default(camel ~ 'Term'),
+      "slot": x.slot | default(plural | replace(' ', '_') | lower),
+      "root": x.root | string, "root_label": x.root_label | string, "noun": noun,
+      "category": x.category | default('biolink:NamedThing'),
+      "article": 'An' if noun[0] | lower in 'aeiou' else 'A'}) -%}
+    {%- endfor -%}
+    {{ sel | tojson }}
+
 causal_graphs:
   type: bool
   when: "{{ kind == 'mech' }}"
@@ -662,6 +697,28 @@ fleet_coordinator:
     Give the Coordinator's repository as owner/repo.
     {% endif %}
 
+# Names every Mech's schema holds, apart from those its answers add (the
+# record class, the ontologies' slots, descriptors and enums). A link's slot,
+# class or enums may not reuse one. The Coordinator's manifest.py keeps the
+# same lists, and tests/test_fleet.py checks both against a render.
+fleet_reserved_names:
+  type: yaml
+  when: false
+  default:
+    slots: [action, creation_date, curation_history, curator, datasets, description,
+            description_evidence, discussions, downstream, evidence, evidence_source,
+            explanation, id, label, llm_assisted, mechanisms, model, name, notes,
+            preferred_term, record_term, reference, reference_title, snippet, status,
+            supports, synonyms, target, term, timestamp, updated_date]
+    classes: [CausalEdge, CrossCorpusLink, CurationActionEnum, CurationEvent,
+              CurationStatusEnum, Dataset, DatasetRepositoryEnum, DatasetTypeEnum,
+              Descriptor, Discussion, DiscussionKindEnum, DiscussionStatusEnum,
+              EvidenceItem, EvidenceSourceEnum, EvidenceSupportEnum, HistoryActor,
+              HistoryActorTypeEnum, HistoryEvent, HistoryEventTypeEnum, HistoryLinks,
+              HistoryOutcomeEnum, HistoryRecord, HistorySession, HistoryTarget,
+              HistoryTargetKindEnum, IdentityTerm, MechanismNode, ProposedExperiment, SupportLevelEnum,
+              SupportingReference, Term]
+
 fleet_links:
   type: yaml
   help: >-
@@ -682,10 +739,10 @@ fleet_links:
     {%- set ns.err = 'Each link needs slot, target, prefix and relations.' -%}
     {%- elif not (x.slot | string | regex_search('^[a-z][a-z0-9_]*$')) -%}
     {%- set ns.err = 'Slot ' ~ x.slot ~ ' must be snake_case.' -%}
-    {%- elif x.slot in ['id', 'name', 'description', 'description_evidence', 'record_term', 'synonyms',
-        'status', 'mechanisms', 'evidence', 'datasets', 'discussions', 'notes', 'creation_date',
-        'updated_date', 'curation_history', 'term', 'label', 'preferred_term'] -%}
+    {%- elif x.slot in fleet_reserved_names.slots -%}
     {%- set ns.err = 'Slot ' ~ x.slot ~ ' is already a slot of every Mech; choose another name.' -%}
+    {%- elif x.slot in ontology_selection | map(attribute='slot') -%}
+    {%- set ns.err = 'Slot ' ~ x.slot ~ " is already an ontology's section; choose another name." -%}
     {%- elif not (x.target | string | regex_search('^[A-Z][A-Za-z0-9]*$')) -%}
     {%- set ns.err = 'Target ' ~ x.target ~ ' must be a Mech name, in CamelCase.' -%}
     {%- elif not (x.prefix | string | regex_search('^[a-z][a-z0-9]*$')) or x.prefix == mech_slug -%}
@@ -700,10 +757,14 @@ fleet_links:
     {%- set ns.err = 'Relation and basis names are UPPER_SNAKE_CASE: ' ~ name -%}
     {%- endif -%}
     {%- endfor -%}
-    {%- set cls = x['class'] | default(x.target ~ 'Link') -%}
-    {%- if cls in [record_class, 'Term', 'Descriptor', 'EvidenceItem', 'CurationEvent', 'MechanismNode',
-        'CausalEdge', 'CrossCorpusLink', 'Discussion', 'Dataset'] -%}
-    {%- set ns.err = 'Class ' ~ cls ~ ' is already in the schema; give the link a class.' -%}
+    {%- set cls = x['class'] | default(x.target ~ 'Link') | string -%}
+    {%- set taken = fleet_reserved_names.classes + [record_class]
+        + (ontology_selection | map(attribute='descriptor') | list)
+        + (ontology_selection | map(attribute='enum') | list) -%}
+    {%- if not (cls | regex_search('^[A-Z][A-Za-z0-9]*$')) -%}
+    {%- set ns.err = 'Class ' ~ cls ~ ' must be CamelCase.' -%}
+    {%- elif cls in taken or (cls ~ 'RelationEnum') in taken or (cls ~ 'BasisEnum') in taken -%}
+    {%- set ns.err = 'Class ' ~ cls ~ ' (or its enums) is already in the schema; give the link a class.' -%}
     {%- elif x.slot in ns.slots -%}{%- set ns.err = 'Two links use the slot ' ~ x.slot ~ '.' -%}
     {%- elif cls in ns.classes -%}{%- set ns.err = 'Two links make the class ' ~ cls ~ '; give one a class.' -%}
     {%- endif -%}
@@ -935,42 +996,6 @@ uses_agents:
   type: bool
   when: false
   default: "{{ workflows | select('in', agent_workflows) | list | length > 0 }}"
-
-
-# Every ontology a Mech binds: the catalog picks, then extra_ontologies, with
-# names filled in. The templates read this, never the catalog directly.
-ontology_selection:
-  type: yaml
-  when: false
-  default: >-
-    {%- set sel = [] -%}
-    {%- for key in ontologies if key in ontology_catalog -%}
-    {%- set o = ontology_catalog[key] -%}
-    {%- set _ = sel.append({
-      "key": key, "prefix": o.prefix, "uri": o.uri,
-      "adapter": identity_adapter if (identity_prefix and o.prefix == identity_prefix)
-        else o.adapter if term_backend == 'ols' else o.adapter | replace('ols:', 'sqlite:obo:'),
-      "descriptor": o.descriptor, "enum": o.enum, "slot": o.slot, "root": o.root,
-      "root_label": o.root_label, "noun": o.noun, "category": o.category,
-      "article": o.article | default('An' if o.noun[0] in 'aeiou' else 'A')}) -%}
-    {%- endfor -%}
-    {%- for x in extra_ontologies if x is mapping -%}
-    {%- set noun = x.noun | string | trim -%}
-    {%- set camel = noun.split() | map('capitalize') | join('') -%}
-    {%- set plural = (noun[:-1] ~ 'ies') if (noun.endswith('y') and noun[-2:-1] not in 'aeiou') else (noun ~ 'es' if noun.endswith(('s', 'x', 'ch', 'sh')) else noun ~ 's') -%}
-    {%- set _ = sel.append({
-      "key": x.prefix, "prefix": x.prefix | string,
-      "uri": x.uri | default('http://purl.obolibrary.org/obo/' ~ x.prefix ~ '_'),
-      "adapter": identity_adapter if (identity_prefix and x.prefix | string == identity_prefix)
-        else x.adapter | default('ols:' ~ (x.prefix | lower)),
-      "descriptor": x.descriptor | default(camel ~ 'Descriptor'),
-      "enum": x.enum | default(camel ~ 'Term'),
-      "slot": x.slot | default(plural | replace(' ', '_') | lower),
-      "root": x.root | string, "root_label": x.root_label | string, "noun": noun,
-      "category": x.category | default('biolink:NamedThing'),
-      "article": 'An' if noun[0] | lower in 'aeiou' else 'A'}) -%}
-    {%- endfor -%}
-    {{ sel | tojson }}
 
 # Whether any adapter reads a file in the repository (BioPortal is uses_bioportal).
 local_ontology_files:
