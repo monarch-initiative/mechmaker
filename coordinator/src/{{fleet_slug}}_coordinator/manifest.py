@@ -92,8 +92,12 @@ class Fleet:
     def by_name(self, name: str) -> Member | None:
         return next((m for m in self.members.values() if m.name == name), None)
 
-    def checked(self) -> list[Member]:
-        """Members the audits read: active ones, and retired ones, whose records links may still name."""
+    def audited(self) -> list[Member]:
+        """Members the audits check: their answers, their canon, the links their records make."""
+        return [m for m in self.members.values() if m.status == "active"]
+
+    def fetched(self) -> list[Member]:
+        """Members the audits read: the audited ones, and retired ones, whose records links may still name."""
         return [m for m in self.members.values() if m.status in ("active", "retired")]
 
 

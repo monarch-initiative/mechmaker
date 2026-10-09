@@ -50,7 +50,7 @@ def clone_url(member: Member) -> str:
 def fetch(fleet: Fleet, root: Path, only: list[str] | None = None) -> list[str]:
     """Clone or refresh each checked member under cache/members/. Returns one line per member."""
     lines = []
-    for m in fleet.checked():
+    for m in fleet.fetched():
         if only and m.id not in only:
             continue
         dest = root / MEMBERS_CACHE / m.id

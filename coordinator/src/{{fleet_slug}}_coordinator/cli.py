@@ -32,7 +32,7 @@ def _roots(fleet, root: Path, pairs: list[str] | None) -> dict[str, Path]:
     unknown = set(overrides) - set(fleet.members)
     if unknown:
         raise SystemExit(f"--root names {', '.join(sorted(unknown))}, not in fleet.yaml")
-    return {m.id: member_root(root, m, overrides) for m in fleet.checked()}
+    return {m.id: member_root(root, m, overrides) for m in fleet.fetched()}
 
 
 def _checkouts(roots: dict[str, Path]) -> tuple[dict[str, Path], list[str]]:
@@ -65,8 +65,9 @@ def audit(root: Path, fleet, roots: dict[str, Path]) -> tuple[list[str], list[st
     present, missing = _checkouts(roots)
     errors = [f"canon: {e}" for e in canon.canon_errors(root)] + missing
     warnings = [f"{m.id}: planned, so not checked" for m in fleet.members.values() if m.status == "planned"]
-    for key, mroot in present.items():
-        errors += answers.disagreements(fleet, fleet.members[key], mroot)
+    for member in fleet.audited():
+        if member.id in present:
+            errors += answers.disagreements(fleet, member, present[member.id])
     e, w = canon.audit(root, fleet, present)
     errors, warnings = errors + e, warnings + w
     for f in links.check(fleet, present):

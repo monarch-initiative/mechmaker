@@ -136,3 +136,19 @@ def test_audit_will_not_read_a_canon_file_linked_out_of_the_member(coordinator, 
     path.symlink_to("/dev/zero")
     errors, _ = canon.audit(coordinator, fleet, roots)
     assert any("not a file within the checkout" in e for e in errors)
+
+
+def test_a_retired_member_is_not_held_to_the_pin(coordinator, fleet, make_member):
+    """A retired member keeps the pin it had; nobody releases to it. A new release must still pass."""
+    from dataclasses import replace
+
+    roots = synced(coordinator, fleet, make_member)
+    retired = replace(fleet, members={**fleet.members,
+                                      "betamech": replace(fleet.members["betamech"], status="retired")})
+    commit(coordinator, "a release")
+    git(coordinator, "push", "-q", "origin", "main")
+    git(coordinator, "fetch", "-q", "origin")
+    canon.sync(coordinator, retired, retired.members["alphamech"], roots["alphamech"], apply=True)
+    assert canon.audit(coordinator, retired, roots) == ([], [])
+    assert [m.id for m in retired.audited()] == ["alphamech"]
+    assert [m.id for m in retired.fetched()] == ["alphamech", "betamech"]

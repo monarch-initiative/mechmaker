@@ -77,7 +77,7 @@ def check(fleet: Fleet, roots: dict[str, Path]) -> list[Finding]:
     """Findings for every link in every member with a root. roots maps member id to its checkout."""
     findings: list[Finding] = []
     ids = _Ids(roots, fleet)
-    for member in fleet.checked():
+    for member in fleet.audited():
         if member.id not in roots:
             continue
         for path, record in iter_records(roots[member.id], member.records_dir):

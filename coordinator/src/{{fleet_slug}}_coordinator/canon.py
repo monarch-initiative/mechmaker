@@ -224,7 +224,7 @@ def audit(root: Path, fleet: Fleet, roots: dict[str, Path]) -> tuple[list[str], 
     refs: dict[str, list[str]] = {}
     head = git(root, "rev-parse", "HEAD", check=False)
     manifests: dict[str, list[Artifact] | None] = {}
-    for member in fleet.checked():
+    for member in fleet.audited():
         if member.id not in roots:
             continue
         who, mroot = member.id, roots[member.id]
