@@ -11,7 +11,8 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    # test-generated installs five Mechs over the network; a hung install stops here.
+    # test-generated installs six Mechs and a Coordinator over the network; a hung
+    # install stops here.
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7
