@@ -158,7 +158,9 @@ def render_item(repo: str, item: dict, comments: list[dict], pr: dict | None = N
            f"- Thumbs up: {thumbs}"]
     if pr is not None:
         fork = ((pr["head"].get("repo") or {}).get("full_name")) != repo
-        out += [f"- Branch: `{pr['head']['ref']}`{' (from a fork: you cannot push to it)' if fork else ''}",
+        # A fork's branch name is anyone's to write, like its title and body.
+        branch = "from a fork (name not shown): you cannot push to it" if fork else f"`{pr['head']['ref']}`"
+        out += [f"- Branch: {branch}",
                 f"- Draft: {'yes' if pr.get('draft') else 'no'}"]
     if "title" in held:
         out += [f"- Title: {held['title']}."]
