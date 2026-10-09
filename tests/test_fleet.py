@@ -220,6 +220,61 @@ def test_a_member_not_yet_synced_is_told_to_sync(tmp_path):
     assert "Undo the local edit" not in out.stdout
 
 
+ONLINE = """
+import io, sys, urllib.error, urllib.request
+from alphafleetmembermech import fleet
+
+def urlopen(request, timeout=None):
+    if sys.argv[1] == "404":
+        raise urllib.error.HTTPError(request.full_url, 404, "Not Found", {}, None)
+    return io.BytesIO(sys.argv[1].encode())
+
+urllib.request.urlopen = urlopen
+sys.exit(fleet.main(["--online"]))
+"""
+
+
+def online_check(dest: Path, manifest: str) -> subprocess.CompletedProcess:
+    """The member's `check-fleet --online`, with GitHub's answer given."""
+    env = {k: v for k, v in os.environ.items() if k not in ("FLEET_TOKEN", "GITHUB_TOKEN")}
+    env["PYTHONPATH"] = str(dest / "src")
+    return subprocess.run([sys.executable, "-c", ONLINE, manifest], cwd=dest, env=env,
+                          capture_output=True, text=True)
+
+
+def test_the_online_check_of_a_member_not_yet_synced_warns(tmp_path):
+    dest = render(tmp_path / "m", SCENARIOS["fleet-member"])
+    out = online_check(dest, "404")
+    assert out.returncode == 0, out.stdout
+    assert "WARNING Fleet canon: not synced" in out.stdout
+
+
+def test_the_online_check_reports_what_it_finds(tmp_path):
+    dest = render(tmp_path / "m", SCENARIOS["fleet-member"])
+    pin_path = dest / "fleet" / "pin.yaml"
+    pin = yaml.safe_load(pin_path.read_text())
+    pin["ref"] = "a" * 40
+    pin_path.write_text(yaml.safe_dump(pin))
+    manifest = {"artifacts": [dict(a) for a in pin["artifacts"]]}
+    assert online_check(dest, yaml.safe_dump(manifest)).returncode == 0
+    out = online_check(dest, "404")
+    assert "HTTP 404" in out.stdout and "FLEET_TOKEN" in out.stdout
+    out = online_check(dest, yaml.safe_dump({"artifacts": manifest["artifacts"][:1]}))
+    assert "fleet/pin.yaml has history, which the canon" in out.stdout
+    out = online_check(dest, "- a list")
+    assert "is not a mapping" in out.stdout and "Traceback" not in out.stderr
+    pin["artifacts"].append({"id": "broken"})
+    pin_path.write_text(yaml.safe_dump(pin))
+    out = online_check(dest, yaml.safe_dump(manifest))
+    assert "an artifact lacks id, target or sha256" in out.stdout and "Traceback" not in out.stderr
+
+
+def test_a_members_sweep_passes_the_fleet_token(tmp_path):
+    dest = render(tmp_path / "m", SCENARIOS["fleet-member"])
+    sweep = yaml.safe_load((dest / ".github" / "workflows" / "sweep.yaml").read_text())
+    assert sweep["env"] == {"FLEET_TOKEN": "${{ secrets.FLEET_TOKEN }}"}
+
+
 def test_an_existing_mech_joins_with_the_documented_update(tmp_path):
     """onboard-mech step 3: a Mech on a Fleet-aware mechmaker takes its fleet answers with copier update."""
     template = template_snapshot(tmp_path / "template")

@@ -101,6 +101,12 @@ link by itself.
 | `just sync <member> <checkout>`: writes both, in the member's checkout | `just qc`: the files match the pin; `just check-fleet --online`: the pin matches the Coordinator |
 | `just audit`: every member on one pin, with matching files | |
 
+A member's online check reads the Coordinator's manifest from GitHub. For a
+private Coordinator, give each member a repository secret `FLEET_TOKEN`
+holding a token that can read it; the member's weekly sweep passes it on.
+Until its first sync, a member's pin is empty, and the check says so as a
+warning.
+
 A change to a shared file is made once, in the Coordinator, merged, then
 synced into every member (the Coordinator's `change-canon` skill). In a
 member, an update from mechmaker leaves the canon files and the pin alone.
