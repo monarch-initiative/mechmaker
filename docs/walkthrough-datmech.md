@@ -128,7 +128,41 @@ $ just qc-full
 QC passed: 11 gate(s).
 ```
 
-## 5. Friction
+## 5. From the news
+
+Water incidents are often reported only by local news: when a boil notice
+began and ended, a spill into a creek, a sewage release. RSS gives the
+newest stories; curation needs the story from the week it happened. The
+[`ingest-news`](skills/ingest-news.md) skill does that in three parts:
+
+- `scripts/news_plan.py` (DaTMech's own) turns a record into dated
+  searches: one per recorded incident, one per recent year for incidents
+  the record lacks, one per current plant, and the Wikipedia articles it
+  cites.
+- `news_leads.py` (the skill's) runs them against Google News' dated
+  search, GDELT and those articles' citations, looks up existing Wayback
+  Machine snapshots, and writes ranked leads to `curation/news/`.
+- The curator reads a lead's archived copy and quotes it. A lead is never
+  cited.
+
+The first runs, on 2026-10-09:
+
+| Record | Leads | What came of them |
+|---|---|---|
+| 44413 East Palestine | 175 | Two bottled-water advisories, from archived Statehouse News Bureau and Cleveland 19 stories: the village's, 14 to 15 February 2023, and the Health Department's for private wells. Priority MEDIUM to HIGH; the knowledge gap resolved |
+| 48502 Flint | 762 | A new incident: 11 million gallons of partially treated sewage into the Flint River, 7 to 8 March 2026, with a no-contact advisory. No paper reports it |
+| 43604 Toledo | 139 | No change. The best lead, an April 2024 boil advisory, covered another part of the city |
+
+!!! note "What the runs taught"
+    GDELT refused every request (HTTP 429); the script now stops asking
+    after two refusals. Google News dated the Flint story February 10; its
+    page says March 9. Live news sites refused scripted requests (403),
+    and archived copies did not. The railroad's bottled water at East
+    Palestine is evidence about the incident, not an advisory: an advisory
+    is a notice from a public body. Advisories need a new kind,
+    `NO_CONTACT`, for a river closed to contact.
+
+## 6. Friction
 
 !!! note "Wikipedia, as text"
     A `url:` reference caches the page's HTML, and a Wikipedia sentence
@@ -158,7 +192,7 @@ QC passed: 11 gate(s).
     script looks for the template's own ENVO enum and reports ENVO missing
     when the design splits it into narrower ones.
 
-## 6. Audit
+## 7. Audit
 
 The `audit-mech` checklist: 37 features asked for. The script marked 33
 done. The other four were the ENVO item above and three it could not judge
@@ -172,3 +206,4 @@ watersheds, treatment facilities and incidents.
 - Toledo's second subbasin and East Palestine's private wells, open as
   `CURATION_TODO` on their records.
 - A first deep research run on one record, as leads for the next.
+- A scheduled watch for new incidents: the place for RSS.
