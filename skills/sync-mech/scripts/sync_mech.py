@@ -126,10 +126,22 @@ class Plan:
 # ---------------------------------------------------------------- reading
 
 
+def foreground_git(env: dict[str, str]) -> dict[str, str]:
+    """env, with git's automatic cleanup (gc, maintenance) kept in the foreground. Copier commits
+    in temporary repositories and deletes them when it is done; a cleanup a commit started in the
+    background can still be writing there, and the delete fails ("Directory not empty")."""
+    env = dict(env)
+    n = int(env.get("GIT_CONFIG_COUNT") or 0)
+    for i, key in enumerate(("gc.autoDetach", "maintenance.autoDetach"), n):
+        env[f"GIT_CONFIG_KEY_{i}"], env[f"GIT_CONFIG_VALUE_{i}"] = key, "false"
+    env["GIT_CONFIG_COUNT"] = str(n + 2)
+    return env
+
+
 def run(cmd: list[str], cwd: Path | None = None, check: bool = True) -> subprocess.CompletedProcess:
     # No prompts: a clone that wants a password fails instead of waiting for one.
     out = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, stdin=subprocess.DEVNULL,
-                         env={**os.environ, "GIT_TERMINAL_PROMPT": "0"})
+                         env=foreground_git({**os.environ, "GIT_TERMINAL_PROMPT": "0"}))
     if check and out.returncode != 0:
         raise Failure(f"{' '.join(cmd[:3])} ... failed:\n{(out.stderr or out.stdout).strip()}")
     return out
