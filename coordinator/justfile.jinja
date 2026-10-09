@@ -54,7 +54,7 @@ status *args:
 
 # Copy the canon into a member checkout. A dry run; add --apply to write.
 sync member path *args:
-    uv run fleet sync "$1" --root "$2" "${@:3}"
+    m="$1"; p="$2"; shift 2; uv run fleet sync "$m" --root "$p" "$@"
 
 # Every link between members' records, against the declared relationships
 check-links *args:

@@ -96,6 +96,24 @@ def test_an_update_of_a_mech_from_before_kind_does_not_ask_it(tmp_path):
     assert not (dest / "fleet.yaml").exists()
 
 
+@pytest.mark.skipif(not shutil.which("just"), reason="just is not installed")
+@pytest.mark.parametrize("recipe,expected", [
+    (["sync", "alphamech", "../alpha", "--apply", "--ref", "abc"],
+     "run fleet sync alphamech --root ../alpha --apply --ref abc"),
+    (["sync", "alphamech", "../alpha"], "run fleet sync alphamech --root ../alpha"),
+    (["audit", "--root", "alphamech=../alpha"], "run fleet audit --root alphamech=../alpha"),
+    (["answers", "alphamech"], "run fleet answers alphamech"),
+])
+def test_coordinator_recipes_pass_their_arguments(coordinator, tmp_path, recipe, expected):
+    """Recipes run under `sh` (dash on Debian and on GitHub's runners); a stand-in uv prints what it gets."""
+    (tmp_path / "uv").write_text('#!/bin/sh\necho "$@"\n')
+    (tmp_path / "uv").chmod(0o755)
+    env = {**os.environ, "PATH": f"{tmp_path}{os.pathsep}{os.environ['PATH']}"}
+    out = subprocess.run(["just", *recipe], cwd=coordinator, env=env, capture_output=True, text=True)
+    assert out.returncode == 0, out.stderr
+    assert out.stdout.strip() == expected
+
+
 def test_coordinator_files(coordinator):
     for rel in ["fleet.yaml", "canon/manifest.yaml", "canon/schema/mech_shared.yaml",
                 "canon/schema/history.yaml",
