@@ -19,6 +19,9 @@ holds what the members share:
 The Coordinator holds no records and pushes to no member. Changes reach a
 member by a pull request in that member.
 
+Fleets arrived in mechmaker 0.2.0. A Mech made with an earlier version
+joins one after updating ([Joining an existing Mech](#joining-an-existing-mech)).
+
 The design follows [culturebotai-claw](https://github.com/CultureBotAI/culturebotai-claw),
 which coordinates the CultureBotAI Mechs: one membership list, a canon of
 shared files pinned by full commit, and a daily read-only audit of the whole
