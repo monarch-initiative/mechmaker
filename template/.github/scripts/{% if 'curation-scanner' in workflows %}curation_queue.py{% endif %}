@@ -19,7 +19,7 @@ App of its own: a `github-actions[bot]` review that approves, requests
 changes or carries the review marker is kept, with its inline comments.
 
 A person puts the `curation` label on an item after reading it (triage adds
-it only for authors with write access). When the author cannot write, a
+it only for authors with write access, and a label a bot adds does not count). When the author cannot write, a
 title or body changed after the latest `curation` label is withheld: nobody
 has read the new text. Adding the label again accepts it.
 """
@@ -39,6 +39,7 @@ ACTIONS_BOT = "github-actions[bot]"
 REVIEW_MARKER = "<!-- mech-review:v1 -->"  # review-publish.js ends every review with it
 LABEL = "curation"
 LIMIT = 50
+UNKNOWN = "unknown"  # last_edited could not be read
 
 EDITED_QUERY = """query($owner: String!, $name: String!, $n: Int!) {
   repository(owner: $owner, name: $name) {
@@ -58,11 +59,15 @@ def gh_api(path: str, *fields: str, paginate: bool = False):
 
 
 def last_edited(repo: str, n: int) -> str | None:
-    """When the item's body was last edited, or None if never. REST does not say."""
+    """When the item's body was last edited, None if never, or UNKNOWN if GitHub did not say (a
+    rate limit, an item moved): one item's failure withholds its body, not the whole queue."""
     owner, name = repo.split("/", 1)
     args = ["gh", "api", "graphql", "-f", f"query={EDITED_QUERY}",
             "-f", f"owner={owner}", "-f", f"name={name}", "-F", f"n={n}"]
-    out = json.loads(subprocess.run(args, capture_output=True, text=True, check=True).stdout)
+    try:
+        out = json.loads(subprocess.run(args, capture_output=True, text=True, check=True).stdout)
+    except (subprocess.CalledProcessError, json.JSONDecodeError):
+        return UNKNOWN
     item = ((out.get("data") or {}).get("repository") or {}).get("issueOrPullRequest") or {}
     return item.get("lastEditedAt")
 
@@ -85,8 +90,11 @@ def withheld(item: dict, events: list[dict], edited_at: str | None) -> dict[str,
     """The title and body a person has not read: changed after the latest `curation` label."""
     if item.get("author_association") in WRITERS:
         return {}
+    # Only a person's label says someone read it: a bot (triage, an App, another
+    # workflow) adds labels without reading.
     labelled = [e.get("created_at", "") for e in events
-                if e.get("event") == "labeled" and (e.get("label") or {}).get("name") == LABEL]
+                if e.get("event") == "labeled" and (e.get("label") or {}).get("name") == LABEL
+                and (e.get("actor") or {}).get("type") != "Bot"]
     if not labelled:
         why = f"withheld: the `{LABEL}` label was not found, so nobody is known to have read it"
         return {"title": why, "body": why}
@@ -97,7 +105,9 @@ def withheld(item: dict, events: list[dict], edited_at: str | None) -> dict[str,
     if renamed:
         late["title"] = (f"withheld: the title changed at {max(renamed)}, after the `{LABEL}` label "
                          f"at {last}. Adding the label again accepts it")
-    if edited_at and edited_at > last:
+    if edited_at == UNKNOWN:
+        late["body"] = "withheld: GitHub did not say when the body was last edited"
+    elif edited_at and edited_at > last:
         late["body"] = (f"withheld: the body was edited at {edited_at}, after the `{LABEL}` label "
                         f"at {last}. Adding the label again accepts it")
     return late
@@ -158,7 +168,9 @@ def render_item(repo: str, item: dict, comments: list[dict], pr: dict | None = N
            f"- Thumbs up: {thumbs}"]
     if pr is not None:
         fork = ((pr["head"].get("repo") or {}).get("full_name")) != repo
-        out += [f"- Branch: `{pr['head']['ref']}`{' (from a fork: you cannot push to it)' if fork else ''}",
+        # A fork's branch name is anyone's to write, like its title and body.
+        branch = "from a fork (name not shown): you cannot push to it" if fork else f"`{pr['head']['ref']}`"
+        out += [f"- Branch: {branch}",
                 f"- Draft: {'yes' if pr.get('draft') else 'no'}"]
     if "title" in held:
         out += [f"- Title: {held['title']}."]

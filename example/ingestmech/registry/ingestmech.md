@@ -20,8 +20,8 @@ domains:
   - biomedical
   - genomics
 record_type: an ingest repository in the Monarch koza template layout
-record_count: 0
-record_count_date: 2026-09-30
+record_count: 3
+record_count_date: 2026-10-09
 record_identifier_policy: >-
   Records are keyed by ingestmech: and the repository name, e.g.
   ingestmech:omim-ingest.

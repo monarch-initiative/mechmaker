@@ -77,11 +77,13 @@ The issue needs `gh`, signed in. One script comes with this skill, in the
 path. Write the body, show it to the person, then open the issue:
 
 ```bash
-uv run <scripts>/registry_issue.py <mech-repo> > registry-issue.md
+uv run <scripts>/registry_issue.py <mech-repo> > /tmp/<slug>-registry-issue.md
 gh issue create --repo monarch-initiative/mechregistry \
   --title "$(uv run <scripts>/registry_issue.py <mech-repo> --title)" \
-  --body-file registry-issue.md
+  --body-file /tmp/<slug>-registry-issue.md
 ```
+
+The body goes outside the Mech, so it never lands in the Mech's repository.
 
 Do not pass `--label new-mech`. The form names that label, but the
 registry does not have it, and `gh` refuses a label that does not exist.

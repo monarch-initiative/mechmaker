@@ -6,6 +6,7 @@ A fresh Mech passes all its checks. This is what it holds.
 |---|---|
 | `src/<slug>/schema/<slug>.yaml` | The data model, in [LinkML](https://linkml.io/): the record class, a descriptor class and a dynamic enum for each chosen ontology, evidence, an optional causal graph, and curation events |
 | `src/<slug>/schema/mech_shared.yaml`, `history.yaml` | Discussion, Dataset and curation history classes shared by all Mechs, copied unchanged |
+| `fleet/pin.yaml` | In a [Fleet](fleets.md) member only: the Coordinator commit its shared schema modules came from, and their sha256s |
 | `src/<slug>/` | The Mech's code: validation, record and history scaffolding, reports, the documentation build |
 | `data/<records>/` | One YAML file per record |
 | `history/` | One file per curation session, never edited, so parallel work never conflicts |
@@ -67,6 +68,7 @@ just export          # the records in every chosen format, each read back
 just load ...        # the records into MongoDB or Neo4j, counted back
 just import-schema ... # start the schema from an existing one
 just site-check      # check conf/site.yaml and its colors
+just check-fleet     # a Fleet member's shared modules against its pin (--online: and the Coordinator)
 just render          # the record browser in pages/, to look at locally (when the Mech has one)
 just docs-serve      # the documentation site, locally
 ```

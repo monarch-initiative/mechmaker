@@ -7,7 +7,7 @@
 | `copier.yml` | The questions, their validators, and `ontology_catalog`, the table of ontologies with verified roots |
 | `template/` | The files that become a Mech. Files ending `.jinja` are rendered; everything else is copied as is. Paths may contain Jinja, such as `{{mech_slug}}` or `{% if 'review' in workflows %}` |
 | `coordinator/` | The files that become a Fleet's Coordinator (`kind: coordinator`). `copier.yml` chooses this folder or `template/` by templating `_subdirectory`. Its canon links to the template's shared schema modules |
-| `skills/` | Skills for the agent that makes a Mech. `.claude/skills` links here |
+| `skills/` | Skills for the agent that makes a Mech or a Fleet. `.claude/skills` links here |
 | `.claude-plugin/` | Makes the repository a Claude Code plugin and marketplace |
 | `upgrade-notes.yml` | What an existing Mech must do, beyond taking files, to follow a template change. `sync-mech` shows each note to the Mechs it reaches |
 | `AGENTS.md` | Where an agent pointed at this repository starts |
@@ -23,6 +23,8 @@ just test             # render under seven answer sets and a Coordinator, and ch
 just test-generated   # generate six Mechs and a Coordinator, install them, run their `just qc`
 just lint             # ruff
 just sample /tmp/x    # render one sample Mech to look at
+just sync-examples    # bring the example Mechs in step with the template
+just check-env        # this machine's tools (--network: and services) a Mech needs
 just docs-serve       # this site, locally
 just docs-build       # this site, built strictly: a broken link fails
 ```
