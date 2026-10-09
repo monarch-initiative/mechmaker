@@ -24,7 +24,7 @@ description_evidence:
 status: PROPOSED
 place_name: East Palestine
 state: OH
-curation_priority: MEDIUM
+curation_priority: HIGH
 zcta:
   vintage: 2020
   interior_latitude: 40.8489473
@@ -225,15 +225,63 @@ incidents:
         supports: SUPPORT
         evidence_source: GOVERNMENT_RECORD
         snippet: Groundwater, surface water, and drinking water are sampled quarterly as part of the site’s long-term monitoring.
+      - reference: url:https://web.archive.org/web/20230214012618/https://www.wkbn.com/news/local-news/east-palestine-train-derailment/east-palestine-water-quality-testing-continues/
+        reference_title: East Palestine, Ohio water quality testing continues
+        supports: SUPPORT
+        evidence_source: NEWS
+        snippet: Norfolk Southern is supplying bottled water to anyone surrounding the incident, or impacted waterways, upon request
+        explanation: 'Bottled water handed out by the railroad, on request: not a public health advisory, so not recorded as one.'
     notes: Contaminants lists the two chemicals sampled in the watershed's water (PMID:39344962). The cars also carried ethylene glycol, ethylhexyl acrylate and isobutylene (US EPA).
+    advisories:
+      - advisory_kind: BOTTLED_WATER
+        issued_by: State of Ohio officials
+        start_date: '2023-02-14'
+        end_date: '2023-02-15'
+        description: Village residents were told to drink bottled water while the municipal wells were tested. Reported after a state briefing on February 14; the report does not say who first gave the advice or when. It ended when Ohio EPA found the municipal water safe.
+        evidence:
+          - reference: url:https://web.archive.org/web/20230215005123/https://wysu.org/ohio-news/2023-02-14/ohio-officials-say-air-quality-in-east-palestine-is-fine-but-not-to-drink-the-water
+            reference_title: Ohio officials say air quality in East Palestine is fine but not to drink the water
+            supports: SUPPORT
+            evidence_source: NEWS
+            snippet: Residents of East Palestine are being advised to drink bottled water for now.
+            explanation: Statehouse News Bureau, February 14, 2023, from the state's briefing that day.
+          - reference: url:https://web.archive.org/web/20230217001906/https://www.cleveland19.com/2023/02/15/east-palestines-municipal-water-system-has-no-detection-contaminants-train-derailment-epa-says/
+            reference_title: East Palestine’s municipal water system has ‘no detection of contaminants’ from train derailment, EPA says
+            supports: SUPPORT
+            evidence_source: NEWS
+            snippet: “With these tests results, Ohio EPA is confident that the municipal water is safe to drink,” DeWine stated.
+            explanation: 'February 15, 2023: the end of the advice for the village system.'
+          - reference: url:https://web.archive.org/web/20230217001906/https://www.cleveland19.com/2023/02/15/east-palestines-municipal-water-system-has-no-detection-contaminants-train-derailment-epa-says/
+            reference_title: East Palestine’s municipal water system has ‘no detection of contaminants’ from train derailment, EPA says
+            supports: SUPPORT
+            evidence_source: NEWS
+            snippet: The test results from the combined, treated water from all five wells also showed no detection of contaminants that are associated with the train derailment, according to DeWine.
+      - advisory_kind: BOTTLED_WATER
+        issued_by: Ohio Department of Health
+        start_date: '2023-02-15'
+        description: People on private wells, which the village system does not serve, were urged to use bottled water until their own well's test results came back. No single end date.
+        evidence:
+          - reference: url:https://web.archive.org/web/20230217001906/https://www.cleveland19.com/2023/02/15/east-palestines-municipal-water-system-has-no-detection-contaminants-train-derailment-epa-says/
+            reference_title: East Palestine’s municipal water system has ‘no detection of contaminants’ from train derailment, EPA says
+            supports: SUPPORT
+            evidence_source: NEWS
+            snippet: The Ohio Department of Health encourages those with private wells to use bottled water until they get the results of their well water tests.
+          - reference: url:https://web.archive.org/web/20230215005123/https://wysu.org/ohio-news/2023-02-14/ohio-officials-say-air-quality-in-east-palestine-is-fine-but-not-to-drink-the-water
+            reference_title: Ohio officials say air quality in East Palestine is fine but not to drink the water
+            supports: SUPPORT
+            evidence_source: NEWS
+            snippet: But he said people with private wells should get them tested.
+            explanation: The Ohio Department of Health director, February 14, 2023.
 discussions:
   - discussion_id: east-palestine-bottled-water-advice
     prompt: Were residents advised to drink bottled water after the derailment, by whom, and until when?
     kind: KNOWLEDGE_GAP
-    status: OPEN
+    status: RESOLVED
     attaches_to:
       - incidents
     rationale: News reports say residents were urged to drink bottled water until test results came in, that Ohio EPA declared the village water safe around February 15, 2023, and that the governor advised private well users on February 17 to keep using bottled water until their wells were tested. The state's own pages for those updates answered 404 on 2026-10-09, so no advisory is recorded. Sourced, it would make curation_priority HIGH.
+    resolved_date: '2026-10-09'
+    resolution_note: 'Archived news copies found with news_leads.py: the Statehouse News Bureau (WYSU) report of February 14, 2023 and Cleveland 19''s of February 15. Two advisories recorded; curation_priority is now HIGH. The state''s own update pages still answer 404.'
   - discussion_id: east-palestine-private-wells
     prompt: Record the private wells in the ZIP area, which the village system does not serve.
     kind: CURATION_TODO
@@ -257,6 +305,17 @@ curation_history:
     action: EDIT
     description: Curated the area, watersheds, treatment facilities and the 2023 derailment from Census, USGS and EPA records, the village's water quality report, EPA pages, Wikipedia and a paper; set curation_priority MEDIUM, since no advisory could be sourced, and status PROPOSED.
   - timestamp: '2026-10-09T20:14:01+00:00'
+    curator: claude-code
+    llm_assisted: false
+    action: EDIT
+    description: Filled reference_title from references_cache/ with `just fill-titles`.
+  - timestamp: '2026-10-09T21:52:10+00:00'
+    curator: claude-code
+    llm_assisted: true
+    model: claude-opus-5-5
+    action: EDIT
+    description: Added two bottled-water advisories to the derailment, from archived news found by news_leads.py, and the railroad's bottled water as evidence; curation_priority MEDIUM to HIGH; resolved the bottled-water knowledge gap.
+  - timestamp: '2026-10-09T21:52:30+00:00'
     curator: claude-code
     llm_assisted: false
     action: EDIT
