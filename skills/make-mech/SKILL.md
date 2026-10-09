@@ -275,6 +275,10 @@ Real sources, real quotes, `status: PROPOSED`. Run `just qc-full`.
 Seeding tests the design. When a record will not fit, change the schema now
 with `extend-schema`, while there are five records and not five hundred.
 
+If the survey named news as a source, run the `ingest-news` skill on one
+seed record: it finds dated news about the record's events, as leads, and
+the archived copies to quote.
+
 ## 6. Register
 
 Run the `register-mech` skill. It brings the draft entry up to date and
