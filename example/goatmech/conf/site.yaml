@@ -32,6 +32,11 @@ index_columns:
 hidden_sections:
   - curation_history
 
+# A map on each record page that holds a bounding box: an object with west,
+# south, east and north in decimal degrees. OpenStreetMap tiles, through
+# Leaflet. A record with no box has no map; false turns maps off everywhere.
+map: true
+
 # Footer text on every browser page.
 footer: >-
   AI-curated. Validation checks that citations exist, quotes are exact and

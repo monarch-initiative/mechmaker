@@ -118,12 +118,49 @@ def rule_errors(data: dict, path: Path | None = None) -> list[str]:
                 errors.append(f"edge {node.get('name')!r} -> {target!r}: no node has that name")
 
     errors.extend(zip_area_errors(data))
+    errors.extend(box_errors(data))
 
     if data.get("status") == "REVIEWED":
         events = data.get("curation_history") or []
         if not any(isinstance(e, dict) and e.get("action") == "REVIEW" and not e.get("llm_assisted")
                    for e in events):
             errors.append("status is REVIEWED but no human REVIEW event is in curation_history")
+    return errors
+
+
+# A bounding box is any object holding these four numbers, in decimal degrees
+# (WGS84). Nothing in the schema has to name it: the record browser draws every
+# one on a map (conf/site.yaml `map`), and box_errors checks every one.
+BOX_KEYS = ("west", "south", "east", "north")
+
+
+def boxes(data, path: str = "", parents: tuple = ()):
+    """(path, parents, box) for every object in DATA holding two or more of BOX_KEYS.
+    parents is ((key, the object holding key), ...) from the record down to the box."""
+    if isinstance(data, dict):
+        if sum(k in data for k in BOX_KEYS) >= 2:
+            yield path or "record", parents, data
+        for k, v in data.items():
+            yield from boxes(v, f"{path}.{k}" if path else k, (*parents, (k, data)))
+    elif isinstance(data, list):
+        for i, v in enumerate(data):
+            yield from boxes(v, f"{path}[{i}]", parents)
+
+
+def box_errors(data: dict) -> list[str]:
+    """A box needs all four sides, west no east of east and south no north of north.
+    A box across the antimeridian (west > east) is not supported."""
+    errors = []
+    for where, _, box in boxes(data):
+        sides = [box.get(k) for k in BOX_KEYS]
+        if not all(isinstance(x, (int, float)) and not isinstance(x, bool) for x in sides):
+            errors.append(f"{where}: a bounding box needs west, south, east and north, in decimal degrees")
+            continue
+        west, south, east, north = sides
+        if not -180 <= west <= east <= 180:
+            errors.append(f"{where}: west {west} and east {east} must lie in -180..180, west first")
+        if not -90 <= south <= north <= 90:
+            errors.append(f"{where}: south {south} and north {north} must lie in -90..90, south first")
     return errors
 
 

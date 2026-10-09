@@ -57,6 +57,7 @@ DEFAULTS = {
     "theme": "auto",
     "index_columns": ["name", "id", "status"],
     "hidden_sections": [],
+    "map": True,
     "footer": (
         "AI-curated. Validation checks that citations exist, quotes are exact and "
         "ontology terms are real. It does not check that the science is right."
@@ -114,6 +115,8 @@ def problems(settings: dict) -> list[str]:
     for key in ("index_columns", "hidden_sections"):
         if not isinstance(settings[key], list):
             out.append(f"{key} must be a list")
+    if not isinstance(settings["map"], bool):
+        out.append("map must be true or false")
     return out
 
 
