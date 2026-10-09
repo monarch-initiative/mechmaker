@@ -1,0 +1,363 @@
+id: datmech:48502
+name: 48502 Flint, Michigan
+description: 'ZIP code 48502 is in Flint, Michigan, on the Flint River. Flint buys its drinking water from the Great Lakes Water Authority, which draws it from Lake Huron. From April 2014 to October 2015 the city treated Flint River water instead, and lead from its pipes leached into the supply: the Flint water crisis.'
+description_evidence:
+  - reference: url:https://www.epa.gov/flint/flint-drinking-water-faqs
+    reference_title: Flint Drinking Water FAQs | US EPA
+    supports: SUPPORT
+    evidence_source: GOVERNMENT_RECORD
+    snippet: The primary supplier of drinking water is The Great Lakes Water Authority in Detroit and the secondary supplier of drinking water is Genesee County.
+  - reference: url:https://www.cityofflint.com/progress-report-on-flint-water-secondary-water-pipeline/
+    reference_title: Progress Report on Flint Water - City of Flint
+    supports: SUPPORT
+    evidence_source: UTILITY_RECORD
+    snippet: Both the Genesee County Drain Commission and GLWA source their water from Lake Huron.
+  - reference: WIKIPEDIA:Flint_water_crisis
+    reference_title: Flint water crisis
+    supports: SUPPORT
+    evidence_source: ENCYCLOPEDIA
+    snippet: In April 2014, during a financial crisis, state-appointed emergency manager Darnell Earley changed Flint's water source from the Detroit Water and Sewerage Department (sourced from Lake Huron and the Detroit River) to the Flint River.
+  - reference: WIKIPEDIA:Flint_water_crisis
+    reference_title: Flint water crisis
+    supports: SUPPORT
+    evidence_source: ENCYCLOPEDIA
+    snippet: The city switched back to the Detroit water system on October 16, 2015.
+status: PROPOSED
+place_name: Flint
+state: MI
+curation_priority: HIGH
+zcta:
+  vintage: 2020
+  interior_latitude: 43.0146449
+  interior_longitude: -83.6891591
+  land_area_m2: 1185564
+  water_area_m2: 17992
+  evidence:
+    - reference: url:https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/PUMA_TAD_TAZ_UGA_ZCTA/MapServer/1/query?where=ZCTA5%3D%2748502%27&outFields=ZCTA5,INTPTLAT,INTPTLON,AREALAND,AREAWATER&returnGeometry=false&f=pjson
+      supports: SUPPORT
+      evidence_source: GEOSPATIAL_DATASET
+      snippet: '"ZCTA5": "48502", "INTPTLAT": "+43.0146449", "INTPTLON": "-083.6891591", "AREALAND": 1185564, "AREAWATER": 17992'
+      explanation: The Census TIGERweb layer of 2020 ZIP Code Tabulation Areas, queried by ZCTA5.
+watersheds:
+  - huc: 04080204
+    name: Flint
+    water_quality_portal: https://www.waterqualitydata.us/wqx3/Station/search?huc=04080204&mimeType=csv
+    evidence:
+      - reference: url:https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer/4/query?geometry=-83.6891591,43.0146449&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=huc8,name&returnGeometry=false&f=pjson
+        supports: SUPPORT
+        evidence_source: GEOSPATIAL_DATASET
+        snippet: '"huc8": "04080204", "name": "Flint"'
+        explanation: The Watershed Boundary Dataset's HUC8 at the ZCTA's interior point.
+  - huc: 040802040410
+    name: Gilkey Creek-Flint River
+    water_bodies:
+      - preferred_term: Flint River
+        term: &id001
+          id: ENVO:00000022
+          label: river
+        evidence:
+          - reference: WIKIPEDIA:Flint_water_crisis
+            reference_title: Flint water crisis
+            supports: SUPPORT
+            evidence_source: ENCYCLOPEDIA
+            snippet: After construction delays, the water source switch to the Flint River is completed.
+            explanation: The river the subwatershed is named for, and Flint's source in 2014 and 2015.
+    evidence:
+      - reference: url:https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer/6/query?geometry=-83.6891591,43.0146449&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=huc12,name&returnGeometry=false&f=pjson
+        supports: SUPPORT
+        evidence_source: GEOSPATIAL_DATASET
+        snippet: '"huc12": "040802040410", "name": "Gilkey Creek-Flint River"'
+        explanation: The Watershed Boundary Dataset's HUC12 at the ZCTA's interior point.
+treatment_facilities:
+  - name: Flint Corrosion Control Plant
+    facility_type:
+      id: ENVO:03600004
+      label: drinking water treatment plant
+    operator: City of Flint
+    system_id: MI0002310
+    service_status: CURRENT
+    source_type: PURCHASED_SURFACE_WATER
+    source_waters:
+      - preferred_term: Lake Huron
+        term:
+          id: ENVO:00000020
+          label: lake
+        evidence:
+          - reference: url:https://www.cityofflint.com/progress-report-on-flint-water-secondary-water-pipeline/
+            reference_title: Progress Report on Flint Water - City of Flint
+            supports: SUPPORT
+            evidence_source: UTILITY_RECORD
+            snippet: Both the Genesee County Drain Commission and GLWA source their water from Lake Huron.
+    purchased_from:
+      - GREAT LAKES WATER AUTHORITY (MI0002838)
+      - GENESEE COUNTY WATER SYSTEM (MI0002615)
+    description: The active treatment plant of Flint's public water system, which buys treated water from the Great Lakes Water Authority and Genesee County.
+    evidence:
+      - reference: url:https://data.epa.gov/efservice/WATER_SYSTEM_FACILITY/PWSID/MI0002310/JSON
+        supports: SUPPORT
+        evidence_source: GOVERNMENT_RECORD
+        snippet: '"facility_name": "CORROSION CONTROL PLANT", "state_facility_id": "TP002", "facility_activity_code": "A"'
+        explanation: 'EPA''s inventory of the system''s facilities: an active (A) treatment plant (TP).'
+      - reference: url:https://data.epa.gov/efservice/WATER_SYSTEM_FACILITY/PWSID/MI0002310/JSON
+        supports: SUPPORT
+        evidence_source: GOVERNMENT_RECORD
+        snippet: '"facility_name": "CONNECTION TO GLWA"'
+        explanation: A connection through which the system buys water; the same row names the seller, GREAT LAKES WATER AUTHORITY, MI0002838.
+      - reference: url:https://www.epa.gov/flint/flint-drinking-water-faqs
+        reference_title: Flint Drinking Water FAQs | US EPA
+        supports: SUPPORT
+        evidence_source: GOVERNMENT_RECORD
+        snippet: The primary supplier of drinking water is The Great Lakes Water Authority in Detroit and the secondary supplier of drinking water is Genesee County.
+      - reference: url:https://www.cityofflint.com/progress-report-on-flint-water-secondary-water-pipeline/
+        reference_title: Progress Report on Flint Water - City of Flint
+        supports: SUPPORT
+        evidence_source: UTILITY_RECORD
+        snippet: The City of Flint contracts with the Great Lakes Water Authority for water through a 30-year contract agreement.
+    notes: EPA names it CORROSION CONTROL PLANT; the city calls its plant the Flint Water Plant. Whether the two are one building is not stated by either source.
+  - name: Flint Water Treatment Plant
+    facility_type:
+      id: ENVO:03600004
+      label: drinking water treatment plant
+    operator: City of Flint
+    system_id: MI0002310
+    service_status: FORMER
+    source_type: SURFACE_WATER
+    source_waters:
+      - preferred_term: Flint River
+        term: *id001
+        evidence:
+          - reference: WIKIPEDIA:Flint_water_crisis
+            reference_title: Flint water crisis
+            supports: SUPPORT
+            evidence_source: ENCYCLOPEDIA
+            snippet: After construction delays, the water source switch to the Flint River is completed.
+    description: The city's own plant, which treated Flint River water from April 2014 until the city returned to Detroit water in October 2015.
+    evidence:
+      - reference: url:https://data.epa.gov/efservice/WATER_SYSTEM_FACILITY/PWSID/MI0002310/JSON
+        supports: SUPPORT
+        evidence_source: GOVERNMENT_RECORD
+        snippet: '"facility_name": "WTP"'
+        explanation: EPA lists the plant as WTP, a treatment plant whose facility_activity_code is I, inactive.
+      - reference: url:https://data.epa.gov/efservice/WATER_SYSTEM_FACILITY/PWSID/MI0002310/JSON
+        supports: SUPPORT
+        evidence_source: GOVERNMENT_RECORD
+        snippet: '"facility_name": "CONCRETE SHORE INTAKE"'
+        explanation: The surface water intake, also inactive (I).
+  - name: Flint Water Pollution Control Facility
+    facility_type:
+      id: ENVO:00002043
+      label: wastewater treatment plant
+    operator: City of Flint
+    system_id: MI0022926
+    service_status: CURRENT
+    receiving_waters:
+      - preferred_term: Flint River
+        term: *id001
+        evidence:
+          - reference: url:https://echodata.epa.gov/echo/dfr_rest_services.get_dfr?output=JSON&p_id=MI0022926
+            supports: SUPPORT
+            evidence_source: GOVERNMENT_RECORD
+            snippet: '"ICISWaterBodyNames":"FLINT RIVER"'
+            explanation: The receiving water on the permit, in EPA's facility report.
+          - reference: url:https://patch.com/michigan/flint/flint-water-pollution-control-division-press-release-10-25-2021
+            reference_title: 'Flint: Water Pollution Control Division Press Release 10-25-2021 | Flint, MI Patch'
+            supports: SUPPORT
+            evidence_source: NEWS
+            snippet: The Retention/Treatment basin discharges into the Flint River.
+    evidence:
+      - reference: url:https://echodata.epa.gov/echo/dfr_rest_services.get_dfr?output=JSON&p_id=MI0022926
+        supports: SUPPORT
+        evidence_source: GOVERNMENT_RECORD
+        snippet: '"FacilityName":"FLINT WATER POLLUTION CONTROL FACILITY"'
+        explanation: EPA's facility report for NPDES permit MI0022926.
+      - reference: url:https://patch.com/michigan/flint/flint-water-pollution-control-division-press-release-10-25-2021
+        reference_title: 'Flint: Water Pollution Control Division Press Release 10-25-2021 | Flint, MI Patch'
+        supports: SUPPORT
+        evidence_source: NEWS
+        snippet: the City of Flint Water Pollution Control Facility discharged excess wet weather flows, consisting of a treated mixture of stormwater and sewage, from its Retention/Treatment Basin.
+    notes: The plant is at G-4652 Beecher Road, in ZIP 48532, outside this ZIP area.
+incidents:
+  - name: Flint water crisis
+    incident_kind: CONTAMINATION
+    start_date: 2014-04
+    end_date: '2019'
+    description: Flint's drinking water was contaminated with lead after the city changed its source to the Flint River, exposing around 100,000 residents.
+    cause: The new source water was not given corrosion control, so lead leached from aging pipes.
+    processes:
+      - preferred_term: lead leaching into drinking water
+        term:
+          id: ENVO:02500039
+          label: water pollution
+        evidence:
+          - reference: WIKIPEDIA:Flint_water_crisis
+            reference_title: Flint water crisis
+            supports: SUPPORT
+            evidence_source: ENCYCLOPEDIA
+            snippet: Officials failed to apply corrosion inhibitors to the water, which resulted in lead from aging pipes leaching into the water supply, exposing around 100,000 residents to elevated lead levels.
+    contaminants:
+      - preferred_term: lead
+        term:
+          id: CHEBI:25016
+          label: lead atom
+        evidence:
+          - reference: PMID:26691115
+            reference_title: 'Elevated Blood Lead Levels in Children Associated With the Flint Drinking Water Crisis: A Spatial Analysis of Risk and Public Health Response.'
+            supports: SUPPORT
+            evidence_source: PUBLICATION
+            snippet: introduced a more corrosive water source into an aging water system without adequate corrosion control.
+    affected_facilities:
+      - Flint Water Treatment Plant
+    advisories:
+      - advisory_kind: EMERGENCY_DECLARATION
+        issued_by: Governor of Michigan
+        start_date: '2016-01-05'
+        description: A state of emergency in Genesee County, which contains Flint.
+        evidence:
+          - reference: WIKIPEDIA:Flint_water_crisis
+            reference_title: Flint water crisis
+            supports: SUPPORT
+            evidence_source: ENCYCLOPEDIA
+            snippet: On January 5, 2016, Michigan Governor Rick Snyder declared a state of emergency in Genesee County
+      - advisory_kind: EMERGENCY_DECLARATION
+        issued_by: US Environmental Protection Agency
+        start_date: 2016-01
+        end_date: '2025-05-19'
+        description: An emergency order under the Safe Drinking Water Act, lifted once Flint met its requirements.
+        evidence:
+          - reference: url:https://www.epa.gov/newsreleases/epa-lifts-2016-emergency-order-drinking-water-flint-michigan
+            reference_title: EPA Lifts 2016 Emergency Order on Drinking Water in Flint, Michigan | US EPA
+            supports: SUPPORT
+            evidence_source: GOVERNMENT_RECORD
+            snippet: Since EPA issued the emergency order in January 2016
+          - reference: url:https://www.epa.gov/flint
+            reference_title: Flint | US EPA
+            supports: SUPPORT
+            evidence_source: GOVERNMENT_RECORD
+            snippet: On May 19, 2025, EPA Administrator Zeldin announced the City of Flint has completed all requirements of EPA’s Safe Drinking Water Act emergency order and it will now be lifted.
+    evidence:
+      - reference: WIKIPEDIA:Flint_water_crisis
+        reference_title: Flint water crisis
+        supports: SUPPORT
+        evidence_source: ENCYCLOPEDIA
+        snippet: The Flint water crisis was a public health crisis from 2014 to 2019 which involved the drinking water for the city of Flint, Michigan, being contaminated with lead and possibly Legionella bacteria.
+      - reference: PMID:26691115
+        reference_title: 'Elevated Blood Lead Levels in Children Associated With the Flint Drinking Water Crisis: A Spatial Analysis of Risk and Public Health Response.'
+        supports: SUPPORT
+        evidence_source: PUBLICATION
+        snippet: Incidence of elevated blood lead levels increased from 2.4% to 4.9% (P < .05) after water source change
+      - reference: url:https://www.epa.gov/newsreleases/epa-lifts-2016-emergency-order-drinking-water-flint-michigan
+        reference_title: EPA Lifts 2016 Emergency Order on Drinking Water in Flint, Michigan | US EPA
+        supports: SUPPORT
+        evidence_source: GOVERNMENT_RECORD
+        snippet: the city has replaced over 97% of legacy lead pipes carrying water to homes, known as lead service lines.
+  - name: Flint boil-water advisories of 2014
+    incident_kind: TREATMENT_FAILURE
+    start_date: 2014-08
+    description: Coliform bacteria were detected in Flint's water twice, and residents were told to boil it.
+    affected_facilities:
+      - Flint Water Treatment Plant
+    advisories:
+      - advisory_kind: BOIL_WATER
+        issued_by: City of Flint
+        start_date: 2014-08
+        end_date: '2014-08-20'
+        evidence:
+          - reference: WIKIPEDIA:Flint_water_crisis
+            reference_title: Flint water crisis
+            supports: SUPPORT
+            evidence_source: ENCYCLOPEDIA
+            snippet: The advisory is lifted on August 20. A second warning is issued in September.
+            explanation: The timeline entry for August 14, 2014.
+      - advisory_kind: BOIL_WATER
+        issued_by: City of Flint
+        start_date: 2014-09
+        evidence:
+          - reference: WIKIPEDIA:Flint_water_crisis
+            reference_title: Flint water crisis
+            supports: SUPPORT
+            evidence_source: ENCYCLOPEDIA
+            snippet: The advisory is lifted on August 20. A second warning is issued in September.
+    evidence:
+      - reference: WIKIPEDIA:Flint_water_crisis
+        reference_title: Flint water crisis
+        supports: SUPPORT
+        evidence_source: ENCYCLOPEDIA
+        snippet: In August and September 2014, city officials detected high levels of coliform bacteria, so residents were advised to boil their water.
+  - name: Genesee County Legionnaires' disease outbreak
+    incident_kind: OUTBREAK
+    start_date: 2014-06
+    end_date: 2015-11
+    description: 87 cases of Legionnaires' disease and 12 deaths in Genesee County during the Flint water crisis.
+    cause: Legionella proliferated through the Flint water system after the change of source.
+    organisms:
+      - preferred_term: Legionella pneumophila
+        term:
+          id: NCBITaxon:446
+          label: Legionella pneumophila
+        evidence:
+          - reference: PMID:31625848
+            reference_title: Comparison of Whole-Genome Sequences of Legionella pneumophila in Tap Water and in Clinical Strains, Flint, Michigan, USA, 2016.
+            supports: SUPPORT
+            evidence_source: PUBLICATION
+            snippet: We compared whole-genome sequences of 10 clinical Legionella pneumophila isolates submitted to a laboratory in Genesee County during the second outbreak with 103 water isolates collected the following year.
+    affected_facilities:
+      - Flint Water Treatment Plant
+    evidence:
+      - reference: WIKIPEDIA:Flint_water_crisis
+        reference_title: Flint water crisis
+        supports: SUPPORT
+        evidence_source: ENCYCLOPEDIA
+        snippet: 87 cases of Legionnaires' disease, a waterborne disease, were reported in Genesee County from June 2014 – November 2015, resulting in 12 deaths
+      - reference: PMID:29432149
+        reference_title: Assessment of the Legionnaires' disease outbreak in Flint, Michigan.
+        supports: SUPPORT
+        evidence_source: PUBLICATION
+        snippet: Following the switch in water supply from Detroit to Flint River water, the odds of a Flint resident presenting with LD increased 6.3-fold
+      - reference: PMID:29432149
+        reference_title: Assessment of the Legionnaires' disease outbreak in Flint, Michigan.
+        supports: SUPPORT
+        evidence_source: PUBLICATION
+        snippet: the results support the hypothesis that a system-wide proliferation of legionellae was responsible for the LD outbreak in Genesee County, MI.
+  - name: Flint trihalomethane violation
+    incident_kind: TREATMENT_FAILURE
+    start_date: '2014'
+    description: Chlorine added to Flint's water in 2014 raised trihalomethanes, disinfection byproducts, past the limit; residents were told in January 2015.
+    contaminants:
+      - preferred_term: trihalomethanes
+        term:
+          id: CHEBI:760803
+          label: trihalomethane
+        evidence:
+          - reference: WIKIPEDIA:Flint_water_crisis
+            reference_title: Flint water crisis
+            supports: SUPPORT
+            evidence_source: ENCYCLOPEDIA
+            snippet: This is likely the cause of a spike in trihalomethanes, unsafe chlorine byproducts, in one of eight water locations.
+    affected_facilities:
+      - Flint Water Treatment Plant
+    evidence:
+      - reference: WIKIPEDIA:Flint_water_crisis
+        reference_title: Flint water crisis
+        supports: SUPPORT
+        evidence_source: ENCYCLOPEDIA
+        snippet: Following this test, the MDEQ placed Flint on violation notice but did not reveal the information to residents until January 2015.
+creation_date: '2026-10-09'
+updated_date: '2026-10-09'
+curation_history:
+  - timestamp: '2026-10-09T20:08:33+00:00'
+    curator: claude-code
+    llm_assisted: true
+    model: claude-opus-5-5
+    action: CREATE
+    description: Scaffolded with `just new-record`.
+  - timestamp: '2026-10-09T20:11:15+00:00'
+    curator: claude-code
+    llm_assisted: true
+    model: claude-opus-5-5
+    action: EDIT
+    description: Curated the area, watersheds, treatment facilities and four incidents from Census, USGS and EPA records, Wikipedia, EPA and city pages, and three papers; set curation_priority HIGH and status PROPOSED.
+  - timestamp: '2026-10-09T20:14:01+00:00'
+    curator: claude-code
+    llm_assisted: false
+    action: EDIT
+    description: Filled reference_title from references_cache/ with `just fill-titles`.
