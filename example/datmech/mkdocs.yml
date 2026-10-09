@@ -7,9 +7,10 @@
 # docs/ directly.
 site_name: "DaTMech"
 site_description: "DaTMech records US ZIP code areas by their water: the watersheds they drain to, the plants that treat their drinking water and wastewater, and the incidents that have harmed its safety or quality, with every claim quoted from its source."
-site_url: https://monarch-initiative.github.io/datmech/
-repo_url: https://github.com/monarch-initiative/datmech
-edit_uri: edit/main/docs/
+# DaTMech is an example inside mechmaker, published with mechmaker's site.
+site_url: https://monarch-initiative.github.io/mechmaker/example/datmech/
+repo_url: https://github.com/monarch-initiative/mechmaker
+edit_uri: edit/main/example/datmech/docs/
 
 theme:
   name: material

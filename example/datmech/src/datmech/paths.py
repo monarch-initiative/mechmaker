@@ -10,7 +10,8 @@ RECORD_NOUN = "ZIP code area"
 # A record whose id has it names the same term in `record_term`.
 IDENTITY_PREFIX = ""
 HAS_RECORD_TERM = bool(IDENTITY_PREFIX)
-REPO_URL = "https://github.com/monarch-initiative/datmech"
+# DaTMech is an example inside mechmaker; issues and links go there.
+REPO_URL = "https://github.com/monarch-initiative/mechmaker"
 
 PACKAGE_DIR = Path(__file__).resolve().parent
 REPO_ROOT = PACKAGE_DIR.parents[1]

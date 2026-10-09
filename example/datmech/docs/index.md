@@ -29,7 +29,7 @@ ZIP code area, and every record follows the same rules.
 
 ## Download
 
-- Records: the [repository](https://github.com/monarch-initiative/datmech/tree/main/data/zip_areas).
+- Records: the [repository](https://github.com/monarch-initiative/mechmaker/tree/main/example/datmech/data/zip_areas).
 - Schema: [datmech.yaml](schema/datmech.yaml) with its imports merged, and [JSON Schema](schema/datmech.schema.json).
 
 ## What the checks do not check
@@ -41,8 +41,8 @@ DaTMech as a curated draft reviewed by people, not as an authority.
 ## Contribute and cite
 
 Issues and reviews are welcome on
-[GitHub](https://github.com/monarch-initiative/datmech). See
-[CONTRIBUTING.md](https://github.com/monarch-initiative/datmech/blob/main/CONTRIBUTING.md).
+[GitHub](https://github.com/monarch-initiative/mechmaker/tree/main/example/datmech). See
+[CONTRIBUTING.md](https://github.com/monarch-initiative/mechmaker/blob/main/example/datmech/CONTRIBUTING.md).
 
 Records are released under CC-BY-4.0. Code is released under
 BSD-3-Clause.
