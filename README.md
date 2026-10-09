@@ -255,7 +255,7 @@ The rest of this README is about working on mechmaker itself.
 | `.claude-plugin/` | Makes this repository installable as a Claude Code plugin |
 | `AGENTS.md` | Where an agent pointed at this repository starts |
 | `tests/` | Tests that generate sample Mechs and check them |
-| `example/` | Two Mechs made with the skills, GoatMech and IngestMech, with their answers and survey briefs. `scripts/sync_examples.py` keeps them in step with the template |
+| `example/` | Three Mechs made with the skills, GoatMech, IngestMech and DaTMech, with their answers and survey briefs. `scripts/sync_examples.py` keeps them in step with the template |
 | `docs/`, `mkdocs.yml`, `scripts/gen_docs.py` | The documentation site. Reference pages are generated |
 | `template/.github/` | GitHub workflows, agent prompts, and their helper scripts. Each workflow is a Copier choice; `template/docs/WORKFLOWS.md.jinja` is the catalog |
 

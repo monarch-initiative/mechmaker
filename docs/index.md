@@ -53,6 +53,13 @@ this site can start from [llms.txt](llms.txt).
     See its [site](example/ingestmech/index.html) and
     [record browser](example/ingestmech/records/index.html).
 
+- **[No ontology, no list](walkthrough-datmech.md)**
+
+    US ZIP code areas, their watersheds, treatment plants and water
+    incidents: records keyed by no ontology, chosen by their incidents.
+    See its [site](example/datmech/index.html) and
+    [record browser](example/datmech/records/index.html).
+
 - **[Fleets](fleets.md)**
 
     Several Mechs whose records link to each other's, coordinated by one

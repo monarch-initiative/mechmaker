@@ -24,8 +24,9 @@ and agent skills (`skills/`) for making Mechs, and Fleets of them. See README.md
   Coordinator, and each example's answers; `just test-generated` installs
   six generated Mechs and a Coordinator and runs their `just qc`, plus a
   few targeted ones, among them a Fleet end to end.
-- `example/`: two Mechs made with the skills (GoatMech, IngestMech), with
-  their answers and survey briefs. They stay in step with the template:
+- `example/`: three Mechs made with the skills (GoatMech, IngestMech,
+  DaTMech), with their answers and survey briefs. They stay in step with
+  the template:
   `tests/test_examples.py` fails when a template file in one differs from
   a fresh render. `scripts/sync_examples.py` lists the files each owns.
 - `docs/`, `mkdocs.yml`: this repository's documentation site. Pages under

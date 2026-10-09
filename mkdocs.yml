@@ -48,6 +48,7 @@ nav:
   - Getting started: getting-started.md
   - "Walkthrough: GoatMech": walkthrough.md
   - "Walkthrough: converting a knowledge base": walkthrough-conversion.md
+  - "Walkthrough: no ontology, no list": walkthrough-datmech.md
   - Already have a knowledge base?: existing-knowledge-base.md
   - Starting from an existing schema: existing-schema.md
   - What a Mech contains: what-you-get.md

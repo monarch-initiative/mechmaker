@@ -40,5 +40,6 @@ Read `CLAUDE.md`. It has the layout and the rules: what is vendored and
 must not be edited, how the template is tested, and how generated pages
 are made. Branch first; changes reach `main` by pull request.
 
-`example/goatmech` and `example/ingestmech` are generated Mechs, each with
-its own `CLAUDE.md`. Inside one, that file governs.
+`example/goatmech`, `example/ingestmech` and `example/datmech` are
+generated Mechs, each with its own `CLAUDE.md`. Inside one, that file
+governs.
