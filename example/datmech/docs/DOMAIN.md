@@ -70,8 +70,13 @@ The Census ZCTA for the ZIP code: vintage, interior point, land and water
 area. One. Filled from Census TIGERweb (`PUMA_TAD_TAZ_UGA_ZCTA/MapServer/1`,
 queried by `ZCTA5`), quoted from the query's JSON.
 
+Its `bounding_box` is the ZCTA's extent in WGS84, from the same layer
+asked for `returnExtentOnly=true&outSR=4326`, quoted and rounded to six
+decimals. The record browser draws it on the record's map.
+
 Example, 48502: vintage 2020, interior point 43.0146449, -83.6891591,
-1,185,564 m² of land, 17,992 m² of water.
+1,185,564 m² of land, 17,992 m² of water; box -83.696946, 43.006408 to
+-83.679611, 43.02246.
 
 ### `watersheds`: where the water drains
 
@@ -85,11 +90,21 @@ layer 4 for HUC8, layer 6 for HUC12), queried at the interior point.
 
 Each watershed links to the Water Quality Portal's monitoring locations in
 it (`water_quality_portal`), by HUC: the place to look for measurements.
+Each has a `bounding_box`, its extent from the same dataset queried by HUC
+code, so the map shows the area beside the watersheds it drains to.
+mechmaker's `add-record-map` skill has the script that prints a box and its
+quote.
 `water_bodies` names the main rivers and lakes, bound to ENVO under
 `ENVO:00000063` (*water body*).
 
 Example, 48502: HUC12 `040802040410` Gilkey Creek-Flint River, in HUC8
 `04080204` Flint; water body Flint River, ENVO:00000022 *river*.
+
+### `bounding_box`
+
+On `zcta` and on each watershed: `west`, `south`, `east`, `north` in
+decimal degrees. Treatment plants and incidents have no box: the sources
+give a plant an address or a point at most, and an incident no extent.
 
 ### `treatment_facilities`: where the water is treated
 
