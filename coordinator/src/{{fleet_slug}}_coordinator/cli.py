@@ -35,6 +35,14 @@ def _roots(fleet, root: Path, pairs: list[str] | None) -> dict[str, Path]:
     return {m.id: member_root(root, m, overrides) for m in fleet.checked()}
 
 
+def _checkouts(roots: dict[str, Path]) -> tuple[dict[str, Path], list[str]]:
+    """The roots that are checkouts, and an error for each that is not."""
+    present = {key: mroot for key, mroot in roots.items() if (mroot / ".git").exists()}
+    errors = [f"{key}: no checkout at {mroot}. Run `just fetch`, or pass --root {key}=PATH."
+              for key, mroot in roots.items() if key not in present]
+    return present, errors
+
+
 def _member(fleet, key: str):
     if key not in fleet.members:
         raise SystemExit(f"{key} is not a member. Members: {', '.join(fleet.members) or 'none'}")
@@ -54,14 +62,9 @@ def _report(errors: list[str], warnings: list[str], what: str) -> int:
 
 
 def audit(root: Path, fleet, roots: dict[str, Path]) -> tuple[list[str], list[str]]:
-    errors = [f"canon: {e}" for e in canon.canon_errors(root)]
+    present, missing = _checkouts(roots)
+    errors = [f"canon: {e}" for e in canon.canon_errors(root)] + missing
     warnings = [f"{m.id}: planned, so not checked" for m in fleet.members.values() if m.status == "planned"]
-    present = {}
-    for key, mroot in roots.items():
-        if not (mroot / ".git").exists():
-            errors.append(f"{key}: no checkout at {mroot}. Run `just fetch`.")
-        else:
-            present[key] = mroot
     for key, mroot in present.items():
         errors += answers.disagreements(fleet, fleet.members[key], mroot)
     e, w = canon.audit(root, fleet, present)
@@ -134,8 +137,9 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"Next, in {mroot}: `just qc`, then commit on a branch and open a pull request.")
             return 0
         if args.command == "check-links":
-            found = links.check(fleet, _roots(fleet, root, args.root))
-            return _report([str(f).split(" ", 1)[1] for f in found if f.level == "error"],
+            present, missing = _checkouts(_roots(fleet, root, args.root))
+            found = links.check(fleet, present)
+            return _report(missing + [str(f).split(" ", 1)[1] for f in found if f.level == "error"],
                            [str(f).split(" ", 1)[1] for f in found if f.level == "warning"], "links")
         if args.command == "audit":
             return _report(*audit(root, fleet, _roots(fleet, root, args.root)), "fleet audit")

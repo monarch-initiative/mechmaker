@@ -5,7 +5,7 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
-from .canon import read_pin
+from .canon import CanonError, read_pin
 from .manifest import Fleet
 from .members import git, read_answers, record_files
 from .paths import SCHEMA_PATH
@@ -22,7 +22,10 @@ def status(fleet: Fleet, roots: dict[str, Path], head: str) -> str:
         commit = git(mroot, "rev-parse", "--short=12", "HEAD", check=False)
         count = len(record_files(mroot, m.records_dir))
         made = str(read_answers(mroot).get("_commit", ""))
-        ref = str((read_pin(mroot) or {}).get("ref") or "")
+        try:
+            ref = str((read_pin(mroot) or {}).get("ref") or "")
+        except CanonError:
+            ref = "unreadable"
         pin = "none" if not ref else (f"{ref[:12]} (current)" if ref == head else ref[:12])
         rows.append(f"| {m.name} | {m.status} | {commit} | {count} | {made} | {pin} |")
     return "\n".join(rows) + "\n"
