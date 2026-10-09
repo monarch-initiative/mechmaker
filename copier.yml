@@ -61,6 +61,10 @@ kind:
     "A Mech": mech
     "A Fleet's Coordinator": coordinator
   default: mech
+  # Asked on a first copy, and kept once answered. A Mech made before `kind`
+  # existed has a mech_slug and no kind: an update leaves it a Mech instead of
+  # offering to turn it into a Coordinator.
+  when: "{{ kind is defined or mech_slug is not defined }}"
 
 # ---------------------------------------------------------------- the Fleet
 

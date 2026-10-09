@@ -66,6 +66,36 @@ def test_coordinator_answers_hold_no_mech_questions(coordinator):
     assert not {"mech_name", "record_class", "ontologies", "workflows", "fleet_links"} & set(answers)
 
 
+def template_snapshot(dest: Path) -> Path:
+    """The template as it is in the working tree, committed, for a test that runs `copier update`."""
+    dest.mkdir(parents=True)
+    for name in ("copier.yml", "template", "coordinator"):
+        src = ROOT / name
+        if src.is_dir():
+            shutil.copytree(src, dest / name, symlinks=True)
+        else:
+            shutil.copy2(src, dest / name)
+    run(dest, "git", "init", "-q", "-b", "main", check=True)
+    commit(dest, "snapshot")
+    return dest
+
+
+def test_an_update_of_a_mech_from_before_kind_does_not_ask_it(tmp_path):
+    """Without --defaults, a question left to ask needs a terminal; there is none here, so asking fails."""
+    template = template_snapshot(tmp_path / "template")
+    dest = tmp_path / "m"
+    copier.run_copy(str(template), str(dest), data=SCENARIOS["minimal"], defaults=True, quiet=True)
+    answers_file = dest / ".copier-answers.yml"
+    answers = yaml.safe_load(answers_file.read_text())
+    del answers["kind"]
+    answers_file.write_text(yaml.safe_dump(answers, sort_keys=False))
+    run(dest, "git", "init", "-q", "-b", "main", check=True)
+    commit(dest, "a Mech made before kind")
+    copier.run_update(str(dest), skip_answered=True, quiet=True, overwrite=True)
+    assert (dest / "src" / "minimalmech").is_dir()
+    assert not (dest / "fleet.yaml").exists()
+
+
 def test_coordinator_files(coordinator):
     for rel in ["fleet.yaml", "canon/manifest.yaml", "canon/schema/mech_shared.yaml",
                 "canon/schema/history.yaml",

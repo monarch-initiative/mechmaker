@@ -120,7 +120,8 @@ def questions() -> str:
         "`kind` comes first. A Mech (`kind: mech`, the default) is asked every",
         "question but the Fleet's own; a Fleet's Coordinator (`kind: coordinator`)",
         "is asked only `fleet_name`, the questions under *The fleet*, and the",
-        "maintainer, repository, code license and Python questions.",
+        "maintainer, repository, code license and Python questions. An update",
+        "of a Mech made before `kind` existed does not ask it: that Mech stays a Mech.",
     ]
     current = None
     for key, q in data.items():
@@ -133,7 +134,7 @@ def questions() -> str:
             lines += ["", f"## {current}", "",
                       "| Question | Type | Default | What it decides |", "|---|---|---|---|"]
         help_text = sentence(md_cell(q.get("help", "")))
-        when = mech_only(q.get("when"))
+        when = "" if key == "kind" else mech_only(q.get("when"))
         if when:
             help_text += f" *Asked when* `{md_cell(when, code=True)}`."
         choices = q.get("choices")
