@@ -131,6 +131,15 @@ Filled from Wikipedia first (its articles cite the primary reports), then
 from government reports, the literature, news and deep research. Every
 date and number is quoted.
 
+News carries what papers rarely do: when an advisory began and ended, a
+local spill, a sewage release. `scripts/news_plan.py` turns a record into
+dated searches, and mechmaker's `ingest-news` script turns those into
+leads in `curation/news/`. A news claim is quoted from the article's
+Wayback Machine snapshot, never the live page, and a lead without one
+waits. Advice from a company (the railroad's bottled water at East
+Palestine) is evidence about the incident, not an advisory: an advisory is
+a notice from a public body.
+
 Example, 48502: the Flint water crisis, April 2014 to 2019, lead and
 Legionella; a state of emergency declared on January 5, 2016.
 
@@ -145,7 +154,8 @@ public datasets (mech_shared `Dataset`).
 
 ## Evidence sources
 
-`evidence_source` says what kind of source a quote comes from:
+`evidence_source` says what kind of source a quote comes from (`NEWS` for
+a news story, always from its archived copy):
 `GOVERNMENT_RECORD`, `GEOSPATIAL_DATASET`, `MONITORING_DATA`,
 `UTILITY_RECORD`, `ENCYCLOPEDIA`, `NEWS`, `PUBLICATION`, `OTHER`.
 
