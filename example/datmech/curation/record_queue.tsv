@@ -1,0 +1,8 @@
+rank	zip	place	incident	lead	status	notes
+1	48502	Flint, Michigan	Flint water crisis, 2014 to 2019	WIKIPEDIA:Flint_water_crisis	CURATED	HIGH
+2	43604	Toledo, Ohio	Microcystin do-not-drink advisory, August 2014	WIKIPEDIA:Microcystin	CURATED	HIGH
+3	44413	East Palestine, Ohio	Train derailment and chemical spill, February 2023	WIKIPEDIA:East_Palestine,_Ohio,_train_derailment	CURATED	MEDIUM until an advisory is sourced
+4	39201	Jackson, Mississippi	Jackson water crisis, 2022	WIKIPEDIA:Jackson,_Mississippi,_water_crisis	CANDIDATE	Chosen by hand from the city's name; confirm the ZIP against the incident's footprint
+5	25301	Charleston, West Virginia	Elk River chemical spill, 2014	WIKIPEDIA:2014_Elk_River_chemical_spill	CANDIDATE	Chosen by hand from the city's name; confirm the ZIP against the incident's footprint
+6	53202	Milwaukee, Wisconsin	Cryptosporidiosis outbreak, 1993	WIKIPEDIA:1993_Milwaukee_cryptosporidiosis_outbreak	CANDIDATE	Chosen by hand from the city's name; confirm the ZIP against the incident's footprint
+7	96818	Honolulu, Hawaii	Red Hill fuel leak, 2021	WIKIPEDIA:Red_Hill_water_crisis	CANDIDATE	Chosen by hand from the city's name; confirm the ZIP against the incident's footprint

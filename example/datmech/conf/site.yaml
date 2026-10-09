@@ -23,7 +23,8 @@ theme: auto
 # A field holding an ontology term shows its label.
 index_columns:
   - name
-  - id
+  - state
+  - curation_priority
   - status
 
 # Record sections left off the browser's record pages. They stay in the data.
