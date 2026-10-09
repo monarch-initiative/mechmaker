@@ -106,9 +106,11 @@ A plant outside the ZIP area that serves it belongs here. A ZIP area on
 private wells with no public system has no drinking water facility; say so
 in a discussion.
 
-Example, 48502: the Flint Water Treatment Plant, a former primary source
-(2014 to 2015) now backup to water purchased from the Great Lakes Water
-Authority.
+Example, 48502: the Flint Corrosion Control Plant, current, which buys
+treated Lake Huron water from the Great Lakes Water Authority and Genesee
+County; the Flint Water Treatment Plant, former, which treated Flint River
+water in 2014 and 2015 and which EPA lists as inactive; and the Flint
+Water Pollution Control Facility, discharging to the Flint River.
 
 ### `incidents`: what went wrong
 

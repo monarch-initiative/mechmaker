@@ -55,15 +55,22 @@ def zip_area_errors(data: dict) -> list[str]:
     (docs/DOMAIN.md, Priority), and an incident names only facilities the
     record lists."""
     errors: list[str] = []
+    if data.get("status") not in (None, "DRAFT"):
+        for field in ("state", "curation_priority"):
+            if not data.get(field):
+                errors.append(f"{field} is required once the record leaves DRAFT")
+
     incidents = [i for i in data.get("incidents") or [] if isinstance(i, dict)]
     advised = any(i.get("advisories") for i in incidents)
-    priority = data.get("curation_priority")
-    if advised and priority != "HIGH":
-        errors.append(f"curation_priority is {priority}, but an incident has an advisory, so it is HIGH")
-    elif incidents and not advised and priority != "MEDIUM":
-        errors.append(f"curation_priority is {priority}, but incidents without an advisory make it MEDIUM")
-    elif not incidents and priority in ("HIGH", "MEDIUM"):
-        errors.append(f"curation_priority is {priority} with no incidents; LOW if searched, else UNASSESSED")
+    priority = data.get("curation_priority")  # may be unset on a DRAFT; required past it, above
+    if priority:
+        if advised and priority != "HIGH":
+            errors.append(f"curation_priority is {priority}, but an incident has an advisory: HIGH")
+        elif incidents and not advised and priority != "MEDIUM":
+            errors.append(f"curation_priority is {priority}, but incidents with no advisory: MEDIUM")
+        elif not incidents and priority in ("HIGH", "MEDIUM"):
+            errors.append(f"curation_priority is {priority} with no incidents: LOW if searched, "
+                          "else UNASSESSED")
 
     facilities = {f.get("name") for f in data.get("treatment_facilities") or [] if isinstance(f, dict)}
     for incident in incidents:

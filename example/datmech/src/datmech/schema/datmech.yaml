@@ -121,7 +121,7 @@ classes:
     description: >-
       A plant that treats the ZIP area's drinking water or its wastewater,
       inside the area or not. A water system that buys treated water names
-      its supplier in source_waters' place through purchased_from.
+      its sellers in purchased_from.
     slots:
       - name
       - facility_type
@@ -315,15 +315,18 @@ slots:
     recommended: true
     description: The place the Postal Service names for the ZIP code, e.g. Flint.
   state:
-    required: true
+    recommended: true
     pattern: "^[A-Z]{2}$"
-    description: Two-letter Postal Service code of the state, e.g. MI.
+    description: >-
+      Two-letter Postal Service code of the state, e.g. MI. Required once
+      the record leaves DRAFT (validate.py).
   curation_priority:
     range: CurationPriorityEnum
-    required: true
+    recommended: true
     description: >-
       How urgently the record needs curating, set from its incidents by the
-      rule in docs/DOMAIN.md and checked by validate.py.
+      rule in docs/DOMAIN.md and checked by validate.py. Required once the
+      record leaves DRAFT.
   zcta:
     range: Zcta
     inlined: true
@@ -402,7 +405,10 @@ slots:
     inlined_as_list: true
     description: The water bodies a drinking water plant draws from.
   purchased_from:
-    description: The system a drinking water system buys treated water from, when it does.
+    multivalued: true
+    description: >-
+      The systems a drinking water system buys treated water from, by name
+      and PWSID as EPA gives them, e.g. GREAT LAKES WATER AUTHORITY (MI0002838).
   receiving_waters:
     range: WaterBodyDescriptor
     multivalued: true
