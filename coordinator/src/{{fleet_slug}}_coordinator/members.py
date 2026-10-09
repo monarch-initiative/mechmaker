@@ -142,8 +142,11 @@ def record_ids(mroot: Path, records_dir: str, rev: str | None = None) -> set[str
     """The ids of a member's records, in its working tree or at a commit."""
     if rev is None:
         return {str(d["id"]) for _, d in iter_records(mroot, records_dir) if "id" in d}
-    names = git(mroot, "ls-tree", "-r", "--name-only", rev, "--", records_dir).splitlines()
-    names = [n for n in names if n.endswith(".yaml")]
+    # -z: names as they are. Without it git quotes a name with non-ASCII
+    # characters ("b\303\251.yaml"), and cat-file would find no such file.
+    names = git(mroot, "ls-tree", "-r", "-z", "--name-only", rev, "--", records_dir).split("\0")
+    # cat-file --batch reads one name per line.
+    names = [n for n in names if n.endswith(".yaml") and "\n" not in n]
     if not names:
         return set()
     # One git process for every file: `cat-file --batch` reads blobs by name.

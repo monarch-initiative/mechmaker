@@ -78,3 +78,10 @@ def test_a_record_linked_out_of_the_member_is_not_read(fleet, make_member):
     roots = setup(fleet, make_member, lambda v: link(source_version=v))
     (roots["alphamech"] / "data" / "alphas" / "zero.yaml").symlink_to("/dev/zero")
     assert links.check(fleet, roots) == []
+
+
+def test_a_target_whose_file_name_is_not_ascii_is_found(fleet, make_member):
+    beta_root = make_member("betamech", {"bé": beta("betamech:b2")})
+    version = git(beta_root, "rev-parse", "HEAD")
+    alpha_root = make_member("alphamech", alpha_with(link("betamech:b2", source_version=version)))
+    assert links.check(fleet, {"alphamech": alpha_root, "betamech": beta_root}) == []
