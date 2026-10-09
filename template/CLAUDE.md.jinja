@@ -162,7 +162,7 @@ member's records link to another's.
   `github_org`, `repo_name`, `record_class`, `records_dir`, `fleet_name`,
   `fleet_coordinator` and `fleet_links` follow `fleet.yaml`. To change one,
   change `fleet.yaml` there, then take `fleet answers {{ mech_slug }}` here with
-  `copier update --vcs-ref=:current: --data-file`.
+  `uvx copier update --vcs-ref=:current: --skip-answered --defaults --data-file`.
 {%- if fleet_link_selection %}
 - **Links to other members.** Each is a `CrossCorpusLink`: the target
   Mech's name, the target record's id verbatim, a relation, a basis, and

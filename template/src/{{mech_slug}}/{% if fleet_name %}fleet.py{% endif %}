@@ -38,10 +38,15 @@ def offline_errors(pin: dict | None = None) -> list[str]:
     if not pin:
         return [f"{PIN.relative_to(REPO_ROOT)} is missing or empty"]
     errors = []
+    synced = len(str(pin.get("ref") or "")) == 40
     for art in pin.get("artifacts") or []:
         path = REPO_ROOT / art["target"]
         if not path.exists():
             errors.append(f"{art['target']} is missing")
+        elif sha256(path.read_bytes()) != art["sha256"] and not synced:
+            errors.append(f"{art['target']} is not mechmaker's copy, and this Mech has not been synced from "
+                          f"its Coordinator ({pin.get('coordinator')}) yet. There: `just sync <this Mech> "
+                          "<this checkout> --apply`.")
         elif sha256(path.read_bytes()) != art["sha256"]:
             errors.append(f"{art['target']} differs from the Fleet canon in fleet/pin.yaml. Undo the local "
                           "edit; change it in the Coordinator and sync it here.")

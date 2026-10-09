@@ -134,8 +134,11 @@ checkout, for work not yet pushed.
 ## Joining an existing Mech
 
 A Mech made with mechmaker joins through the Coordinator's `onboard-mech`
-skill: declare it in `fleet.yaml`, take `just answers <member>` with
-`copier update --vcs-ref=:current: --data-file` in the Mech, sync the canon,
-and set it `active`. A Mech in the CultureBotAI fleet (`collection: xmech`)
+skill: declare it in `fleet.yaml`; bring the Mech up to a mechmaker that
+knows Fleets (`sync-mech`); take `just answers <member>` in the Mech with
+`uvx copier update --vcs-ref=:current: --skip-answered --defaults --data-file`;
+sync the canon; and set it `active`. The update to a Fleet-aware mechmaker
+comes first because `:current:` renders the mechmaker the Mech was last
+updated from, and one from before Fleets drops the Fleet answers. A Mech in the CultureBotAI fleet (`collection: xmech`)
 is coordinated by claw, which is not a mechmaker Coordinator; it joins
 through claw's own `onboard-mech`.

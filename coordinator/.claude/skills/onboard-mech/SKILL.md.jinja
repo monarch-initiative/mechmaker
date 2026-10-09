@@ -49,10 +49,20 @@ now, before records exist: they become the Mech's link classes.
   slug, repository, record class and records folder, and they add the
   `fleet_name`, `fleet_coordinator` and `fleet_links` answers.
 - **An existing Mech made with mechmaker.** In its checkout, on a branch:
-  `just answers <member> > /tmp/<member>-fleet.yml` here, then there
-  `copier update --vcs-ref=:current: --data-file /tmp/<member>-fleet.yml`.
-  Its schema gains the link classes. Run its `just qc`, and open a pull
-  request in it.
+  1. Bring it up to a mechmaker that knows Fleets, with mechmaker's
+     `sync-mech` skill, and merge that first. `--vcs-ref=:current:` below
+     renders the mechmaker the Mech was last updated from; one from before
+     Fleets has no Fleet questions and drops these answers without a word.
+     The same update gives it a shared schema with `CrossCorpusLink`, which
+     the link classes build on.
+  2. `just answers <member> > /tmp/<member>-fleet.yml` here, then there:
+
+     ```bash
+     uvx copier update --vcs-ref=:current: --skip-answered --defaults --data-file /tmp/<member>-fleet.yml
+     ```
+
+     Its schema gains the link classes, and it gains `fleet/pin.yaml`,
+     empty until step 4. Run its `just qc`, and open a pull request in it.
 - **A Mech not made with mechmaker** cannot take these answers. Convert it
   first (mechmaker's `convert-knowledge-base`), or leave it out.
 

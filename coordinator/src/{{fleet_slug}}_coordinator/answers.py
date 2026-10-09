@@ -5,7 +5,9 @@ fleet.yaml is the source of truth for what a member is and how it links.
 for the member's `copier copy` (a new Mech) or `copier update` (a change):
 
     fleet answers habitatmech > /tmp/habitatmech-fleet.yml
-    copier update --vcs-ref=:current: --data-file /tmp/habitatmech-fleet.yml   # in the member
+    # in the member:
+    uvx copier update --vcs-ref=:current: --skip-answered --defaults \\
+        --data-file /tmp/habitatmech-fleet.yml
 
 mechmaker turns fleet_links into the member's link classes: one CrossCorpusLink
 subclass per relationship, with its relations and bases as enums.
@@ -64,7 +66,8 @@ def member_answers(fleet: Fleet, member: Member) -> dict:
 def render(fleet: Fleet, member: Member) -> str:
     head = (f"# {member.name}'s answers from {fleet.name}'s Coordinator (fleet.yaml).\n"
             "# Merge them into the Mech's answers.yml before `copier copy`, or pass them\n"
-            "# to `copier update --vcs-ref=:current: --data-file` in the Mech.\n")
+            "# to `uvx copier update --vcs-ref=:current: --skip-answered --defaults --data-file`\n"
+            "# in the Mech (one already updated to a mechmaker that knows Fleets).\n")
     body = yaml.safe_dump(member_answers(fleet, member), sort_keys=False, allow_unicode=True, width=100)
     return head + body
 

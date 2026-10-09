@@ -54,8 +54,8 @@ diagram. Commit and merge it here first.
 In the subject member's checkout, on a branch:
 
 ```bash
-just answers <subject> > /tmp/<subject>-fleet.yml           # here
-copier update --vcs-ref=:current: --data-file /tmp/<subject>-fleet.yml   # there
+just answers <subject> > /tmp/<subject>-fleet.yml    # here
+uvx copier update --vcs-ref=:current: --skip-answered --defaults --data-file /tmp/<subject>-fleet.yml   # there
 ```
 
 Its schema gains the slot and the link class (`<Object>Link`, or the

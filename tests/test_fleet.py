@@ -202,6 +202,43 @@ def test_member_has_a_pin_and_a_check(member):
     assert "## The Fleet" in (member / "CLAUDE.md").read_text()
 
 
+def member_fleet_check(dest: Path, *args: str) -> subprocess.CompletedProcess:
+    env = {**os.environ, "PYTHONPATH": str(dest / "src")}
+    return subprocess.run([sys.executable, "-m", "alphafleetmembermech.fleet", *args], cwd=dest, env=env,
+                          capture_output=True, text=True)
+
+
+def test_a_member_not_yet_synced_is_told_to_sync(tmp_path):
+    """A Mech that joined with an older canon is told the step that fixes it, not 'undo your edit'."""
+    dest = render(tmp_path / "m", SCENARIOS["fleet-member"])
+    assert member_fleet_check(dest).returncode == 0
+    shared = dest / "src" / "alphafleetmembermech" / "schema" / "mech_shared.yaml"
+    shared.write_text(shared.read_text() + "# an older canon\n")
+    out = member_fleet_check(dest)
+    assert out.returncode == 1
+    assert "has not been synced from its Coordinator" in out.stdout
+    assert "Undo the local edit" not in out.stdout
+
+
+def test_an_existing_mech_joins_with_the_documented_update(tmp_path):
+    """onboard-mech step 3: a Mech on a Fleet-aware mechmaker takes its fleet answers with copier update."""
+    template = template_snapshot(tmp_path / "template")
+    data = SCENARIOS["fleet-member"]
+    outside = {k: v for k, v in data.items() if not k.startswith("fleet_")}
+    dest = tmp_path / "m"
+    copier.run_copy(str(template), str(dest), data=outside, defaults=True, quiet=True)
+    run(dest, "git", "init", "-q", "-b", "main", check=True)
+    commit(dest, "a Mech outside any Fleet")
+    fleet_answers = tmp_path / "fleet.yml"
+    fleet_answers.write_text(yaml.safe_dump({k: v for k, v in data.items() if k.startswith("fleet_")}))
+    run(dest, sys.executable, "-m", "copier", "update", "--vcs-ref=:current:", "--skip-answered",
+        "--defaults", "--data-file", str(fleet_answers), check=True)
+    schema = (dest / "src" / "alphafleetmembermech" / "schema" / "alphafleetmembermech.yaml").read_text()
+    assert "is_a: CrossCorpusLink" in schema
+    assert (dest / "fleet" / "pin.yaml").exists()
+    assert member_fleet_check(dest).returncode == 0
+
+
 def test_member_schema_has_a_link_class_per_relationship(member):
     schema = yaml.safe_load((member / "src" / "alphafleetmembermech" / "schema" / "alphafleetmembermech.yaml")
                             .read_text())
