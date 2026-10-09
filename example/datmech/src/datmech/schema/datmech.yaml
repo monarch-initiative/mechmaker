@@ -721,5 +721,7 @@ enums:
         description: Use bottled water, as a recommendation or by distribution.
       EMERGENCY_DECLARATION:
         description: A government declared an emergency over the water.
+      NO_CONTACT:
+        description: Avoid contact with a water body (swimming, wading, fishing), as after a sewage release or a toxic bloom.
       OTHER:
         description: Any other notice; say what in the description.
