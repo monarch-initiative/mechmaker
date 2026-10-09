@@ -1,0 +1,263 @@
+id: datmech:44413
+name: 44413 East Palestine, Ohio
+description: ZIP code 44413 is East Palestine, Ohio, a village that draws its drinking water from five wells. On February 3, 2023, a Norfolk Southern freight train derailed there; some cars spilled into a ditch that feeds Sulphur Run, and the spill reached streams as far as the Ohio River. Vinyl chloride has not been detected in the village's drinking water or supply wells.
+description_evidence:
+  - reference: url:https://eastpalestine-oh.gov/wp-content/uploads/2025-CCR.pdf
+    supports: SUPPORT
+    evidence_source: UTILITY_RECORD
+    snippet: from an alluvial sand-and-gravel aquifer flowing from the northwest. There are five wells ranging from 50 to 100 feet in depth at the water plant.
+  - reference: url:https://www.epa.gov/east-palestine-oh-train-derailment
+    reference_title: East Palestine, Ohio Train Derailment | US EPA
+    supports: SUPPORT
+    evidence_source: GOVERNMENT_RECORD
+    snippet: At about 8:55 PM ET on February 3, 2023, a Norfolk Southern freight train derailed in East Palestine, Ohio, about a quarter-mile west of the Ohio-Pennsylvania state line.
+  - reference: url:https://www.epa.gov/east-palestine-oh-train-derailment/background
+    reference_title: Background | US EPA
+    supports: SUPPORT
+    evidence_source: GOVERNMENT_RECORD
+    snippet: Some cars spilled their loads into an adjacent ditch that feeds Sulphur Run, a stream that joins Leslie Run, which eventually empties into the Ohio River.
+  - reference: url:https://www.epa.gov/east-palestine-oh-train-derailment/did-drinking-water-samples-american-legion-east-palestine-have
+    reference_title: Did drinking water samples from the American Legion in East Palestine have detections of vinyl chloride? | US EPA
+    supports: SUPPORT
+    evidence_source: GOVERNMENT_RECORD
+    snippet: has been tested weekly since the incident and vinyl chloride has not been detected in the drinking water, nor any of the water supply wells.
+status: PROPOSED
+place_name: East Palestine
+state: OH
+curation_priority: MEDIUM
+zcta:
+  vintage: 2020
+  interior_latitude: 40.8489473
+  interior_longitude: -80.551539
+  land_area_m2: 63459069
+  water_area_m2: 25409
+  evidence:
+    - reference: url:https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/PUMA_TAD_TAZ_UGA_ZCTA/MapServer/1/query?where=ZCTA5%3D%2744413%27&outFields=ZCTA5,INTPTLAT,INTPTLON,AREALAND,AREAWATER&returnGeometry=false&f=pjson
+      supports: SUPPORT
+      evidence_source: GEOSPATIAL_DATASET
+      snippet: '"ZCTA5": "44413", "INTPTLAT": "+40.8489473", "INTPTLON": "-080.5515390", "AREALAND": 63459069, "AREAWATER": 25409'
+      explanation: The Census TIGERweb layer of 2020 ZIP Code Tabulation Areas, queried by ZCTA5.
+watersheds:
+  - huc: '05030101'
+    name: Upper Ohio
+    water_quality_portal: https://www.waterqualitydata.us/wqx3/Station/search?huc=05030101&mimeType=csv
+    evidence:
+      - reference: url:https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer/4/query?geometry=-80.5515390,40.8489473&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=huc8,name&returnGeometry=false&f=pjson
+        supports: SUPPORT
+        evidence_source: GEOSPATIAL_DATASET
+        snippet: '"huc8": "05030101", "name": "Upper Ohio"'
+        explanation: The Watershed Boundary Dataset's HUC8 at the ZCTA's interior point.
+  - huc: '050301010606'
+    name: Leslie Run-Bull Creek
+    water_bodies:
+      - preferred_term: Leslie Run
+        term: &id001
+          id: ENVO:00000023
+          label: stream
+        evidence:
+          - reference: url:https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer/6/query?geometry=-80.5515390,40.8489473&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=huc12,name&returnGeometry=false&f=pjson
+            supports: SUPPORT
+            evidence_source: GEOSPATIAL_DATASET
+            snippet: '"name": "Leslie Run-Bull Creek"'
+            explanation: Named in the subwatershed's name.
+      - preferred_term: Bull Creek
+        term: *id001
+        evidence:
+          - reference: url:https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer/6/query?geometry=-80.5515390,40.8489473&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=huc12,name&returnGeometry=false&f=pjson
+            supports: SUPPORT
+            evidence_source: GEOSPATIAL_DATASET
+            snippet: '"name": "Leslie Run-Bull Creek"'
+            explanation: Named in the subwatershed's name.
+    evidence:
+      - reference: url:https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer/6/query?geometry=-80.5515390,40.8489473&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=huc12,name&returnGeometry=false&f=pjson
+        supports: SUPPORT
+        evidence_source: GEOSPATIAL_DATASET
+        snippet: '"huc12": "050301010606", "name": "Leslie Run-Bull Creek"'
+        explanation: The Watershed Boundary Dataset's HUC12 at the ZCTA's interior point.
+treatment_facilities:
+  - name: East Palestine Water Plant
+    facility_type:
+      id: ENVO:03600004
+      label: drinking water treatment plant
+    operator: Village of East Palestine
+    system_id: OH1500912
+    service_status: CURRENT
+    source_type: GROUNDWATER
+    source_waters:
+      - preferred_term: alluvial sand-and-gravel aquifer
+        evidence:
+          - reference: url:https://eastpalestine-oh.gov/wp-content/uploads/2025-CCR.pdf
+            supports: SUPPORT
+            evidence_source: UTILITY_RECORD
+            snippet: from an alluvial sand-and-gravel aquifer flowing from the northwest. There are five wells ranging from 50 to 100 feet in depth at the water plant.
+          - reference: url:https://eastpalestine-oh.gov/wp-content/uploads/2025-CCR.pdf
+            supports: SUPPORT
+            evidence_source: UTILITY_RECORD
+            snippet: source of drinking water has a high susceptibility to contamination because of a lack of a protective layer of clay.
+        notes: ENVO's aquifer (ENVO:00012408) is not under water body, so term is left empty.
+    description: Treats water from the village's wells with pressure filters for iron and manganese.
+    evidence:
+      - reference: url:https://data.epa.gov/efservice/WATER_SYSTEM_FACILITY/PWSID/OH1500912/JSON
+        supports: SUPPORT
+        evidence_source: GOVERNMENT_RECORD
+        snippet: '"facility_name": "EAST PALESTINE PWS"'
+        explanation: The system's treatment plant in EPA's inventory.
+      - reference: url:https://eastpalestine-oh.gov/wp-content/uploads/2025-CCR.pdf
+        supports: SUPPORT
+        evidence_source: UTILITY_RECORD
+        snippet: is achieved by the use of four pressure filters designed to remove iron and manganese from the raw water to meet U.S. EPA standards.
+  - name: East Palestine Wastewater Treatment Plant
+    facility_type:
+      id: ENVO:00002043
+      label: wastewater treatment plant
+    operator: Village of East Palestine
+    system_id: OH0021784
+    service_status: CURRENT
+    receiving_waters:
+      - preferred_term: Leslie Run
+        term: *id001
+        evidence:
+          - reference: url:https://echodata.epa.gov/echo/dfr_rest_services.get_dfr?output=JSON&p_id=OH0021784
+            supports: SUPPORT
+            evidence_source: GOVERNMENT_RECORD
+            snippet: '"ICISWaterBodyNames":"LESLIE RUN"'
+            explanation: The receiving water on the permit, in EPA's facility report.
+    evidence:
+      - reference: url:https://echodata.epa.gov/echo/dfr_rest_services.get_dfr?output=JSON&p_id=OH0021784
+        supports: SUPPORT
+        evidence_source: GOVERNMENT_RECORD
+        snippet: '"FacilityName":"EAST PALESTINE WWTP"'
+        explanation: EPA's facility report for NPDES permit OH0021784.
+incidents:
+  - name: East Palestine train derailment
+    incident_kind: SPILL
+    start_date: '2023-02-03'
+    description: A Norfolk Southern freight train carrying hazardous materials derailed; spilled chemicals reached Sulphur Run and Leslie Run and were detected downstream to the Ohio River. Drinking water and supply wells have been tested since, and groundwater, surface water and drinking water are sampled quarterly.
+    cause: A freight train derailment; twenty cars carried hazardous materials.
+    processes:
+      - preferred_term: chemical spill into streams
+        term:
+          id: ENVO:02500039
+          label: water pollution
+        evidence:
+          - reference: WIKIPEDIA:East_Palestine,_Ohio,_train_derailment
+            reference_title: East Palestine, Ohio, train derailment
+            supports: SUPPORT
+            evidence_source: ENCYCLOPEDIA
+            snippet: On February 4, they noticed water spillage into Sulphur Run and Leslie Run, and installed booms and underflow dams to separate the floating pollutant.
+    contaminants:
+      - preferred_term: vinyl chloride
+        term:
+          id: CHEBI:28509
+          label: chloroethene
+        evidence:
+          - reference: PMID:39344962
+            reference_title: Natural Attenuation Potential of Vinyl Chloride and Butyl Acrylate Released in the East Palestine, Ohio Train Derailment Accident.
+            supports: SUPPORT
+            evidence_source: PUBLICATION
+            snippet: Streambed sediment, surface water, and private well water samples were collected 128 and 276 days postaccident to assess the natural attenuation potential of VC and BA
+      - preferred_term: butyl acrylate
+        term:
+          id: CHEBI:3245
+          label: butyl acrylate
+        evidence:
+          - reference: PMID:39344962
+            reference_title: Natural Attenuation Potential of Vinyl Chloride and Butyl Acrylate Released in the East Palestine, Ohio Train Derailment Accident.
+            supports: SUPPORT
+            evidence_source: PUBLICATION
+            snippet: The results indicate that microbiomes in the East Palestine watershed have natural attenuation capacity for VC and BA.
+    affected_waters:
+      - preferred_term: Sulphur Run
+        term: *id001
+        evidence:
+          - &id002
+            reference: WIKIPEDIA:East_Palestine,_Ohio,_train_derailment
+            reference_title: East Palestine, Ohio, train derailment
+            supports: SUPPORT
+            evidence_source: ENCYCLOPEDIA
+            snippet: Material from the crash was observed in storm drains and detected in samples from Sulphur Run, Leslie Run, Bull Creek, North Fork Little Beaver Creek, Little Beaver Creek, and the Ohio River.
+      - preferred_term: Leslie Run
+        term: *id001
+        evidence:
+          - *id002
+      - preferred_term: Bull Creek
+        term: *id001
+        evidence:
+          - *id002
+      - preferred_term: North Fork Little Beaver Creek
+        term: *id001
+        evidence:
+          - *id002
+      - preferred_term: Little Beaver Creek
+        term: *id001
+        evidence:
+          - *id002
+      - preferred_term: Ohio River
+        term:
+          id: ENVO:00000022
+          label: river
+        evidence:
+          - *id002
+    evidence:
+      - reference: url:https://www.epa.gov/east-palestine-oh-train-derailment
+        reference_title: East Palestine, Ohio Train Derailment | US EPA
+        supports: SUPPORT
+        evidence_source: GOVERNMENT_RECORD
+        snippet: Twenty of the affected cars contained hazardous materials, including vinyl chloride, ethylene glycol, ethylhexyl acrylate, butyl acrylate and isobutylene.
+      - reference: WIKIPEDIA:East_Palestine,_Ohio,_train_derailment
+        reference_title: East Palestine, Ohio, train derailment
+        supports: SUPPORT
+        evidence_source: ENCYCLOPEDIA
+        snippet: conducted a controlled release and burn of the five tanks of vinyl chloride into the air.
+      - reference: WIKIPEDIA:East_Palestine,_Ohio,_train_derailment
+        reference_title: East Palestine, Ohio, train derailment
+        supports: SUPPORT
+        evidence_source: ENCYCLOPEDIA
+        snippet: A later estimate put the number of minnows at 38,222, with other species of animals at 5,500, totaling 43,222.
+        explanation: The fish kill in the streams.
+      - reference: url:https://www.epa.gov/east-palestine-oh-train-derailment/did-drinking-water-samples-american-legion-east-palestine-have
+        reference_title: Did drinking water samples from the American Legion in East Palestine have detections of vinyl chloride? | US EPA
+        supports: SUPPORT
+        evidence_source: GOVERNMENT_RECORD
+        snippet: has been tested weekly since the incident and vinyl chloride has not been detected in the drinking water, nor any of the water supply wells.
+      - reference: url:https://www.epa.gov/east-palestine-oh-train-derailment
+        reference_title: East Palestine, Ohio Train Derailment | US EPA
+        supports: SUPPORT
+        evidence_source: GOVERNMENT_RECORD
+        snippet: Groundwater, surface water, and drinking water are sampled quarterly as part of the site’s long-term monitoring.
+    notes: Contaminants lists the two chemicals sampled in the watershed's water (PMID:39344962). The cars also carried ethylene glycol, ethylhexyl acrylate and isobutylene (US EPA).
+discussions:
+  - discussion_id: east-palestine-bottled-water-advice
+    prompt: Were residents advised to drink bottled water after the derailment, by whom, and until when?
+    kind: KNOWLEDGE_GAP
+    status: OPEN
+    attaches_to:
+      - incidents
+    rationale: News reports say residents were urged to drink bottled water until test results came in, that Ohio EPA declared the village water safe around February 15, 2023, and that the governor advised private well users on February 17 to keep using bottled water until their wells were tested. The state's own pages for those updates answered 404 on 2026-10-09, so no advisory is recorded. Sourced, it would make curation_priority HIGH.
+  - discussion_id: east-palestine-private-wells
+    prompt: Record the private wells in the ZIP area, which the village system does not serve.
+    kind: CURATION_TODO
+    status: OPEN
+    attaches_to:
+      - treatment_facilities
+    rationale: US EPA says the Columbiana County Health District tests private wells; how many households in the area rely on them is not yet sourced.
+creation_date: '2026-10-09'
+updated_date: '2026-10-09'
+curation_history:
+  - timestamp: '2026-10-09T20:08:36+00:00'
+    curator: claude-code
+    llm_assisted: true
+    model: claude-opus-5-5
+    action: CREATE
+    description: Scaffolded with `just new-record`.
+  - timestamp: '2026-10-09T20:13:29+00:00'
+    curator: claude-code
+    llm_assisted: true
+    model: claude-opus-5-5
+    action: EDIT
+    description: Curated the area, watersheds, treatment facilities and the 2023 derailment from Census, USGS and EPA records, the village's water quality report, EPA pages, Wikipedia and a paper; set curation_priority MEDIUM, since no advisory could be sourced, and status PROPOSED.
+  - timestamp: '2026-10-09T20:14:01+00:00'
+    curator: claude-code
+    llm_assisted: false
+    action: EDIT
+    description: Filled reference_title from references_cache/ with `just fill-titles`.
