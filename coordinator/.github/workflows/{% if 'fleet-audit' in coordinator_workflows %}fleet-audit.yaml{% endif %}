@@ -2,8 +2,8 @@
 # and check that its answers agree with fleet.yaml, that it carries the
 # canon at the one shared pin, and that every link between records resolves.
 # No agent runs here. When a scheduled run fails, a plain step opens an
-# issue in this repository, or comments on the open one. It never writes to
-# a member.
+# issue in this repository, or comments on the open one; a passing run
+# closes it. It never writes to a member.
 name: Fleet audit
 
 on:
@@ -99,4 +99,24 @@ jobs:
             gh issue comment "$number" --repo "$REPO" --body-file body.md
           else
             gh issue create --repo "$REPO" --title "Fleet audit failed" --label fleet-audit --body-file body.md
+          fi
+
+  # A passing audit closes the open issue, so the next failure opens a fresh one.
+  resolve:
+    needs: audit
+    if: needs.audit.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Close the audit issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          number=$(gh issue list --repo "$REPO" --label fleet-audit --state open --json number --jq '.[0].number // empty')
+          if [ -n "$number" ]; then
+            gh issue close "$number" --repo "$REPO" --comment "The Fleet audit passes again: $RUN"
           fi
