@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ site.title }}</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+<nav><a href="../index.html">Documentation</a> · <a href="{{ repo_url }}">Repository</a></nav>
+<h1>{{ site.title }}</h1>
+<p class="meta">{{ records | length }} {{ record_noun }} record{{ "" if records | length == 1 else "s" }}
+{%- for s, n in statuses %} · {{ s | badge("status") }} {{ n }}{% endfor %}</p>
+</header>
+<main>
+<input id="filter" type="search" placeholder="Filter {{ record_noun }} records" aria-label="Filter">
+<div class="table-wrap">
+<table id="records" class="data">
+<thead><tr>{% for col in site.index_columns %}<th><button type="button" data-col="{{ loop.index0 }}">{{ col | label }}</button></th>{% endfor %}</tr></thead>
+<tbody>
+{%- for r in records %}
+<tr>{% for col in site.index_columns %}<td data-label="{{ col | label }}">
+{%- if loop.first %}<a href="records/{{ r.stem }}.html">{{ r.data.get(col) | cell or r.stem }}</a>
+{%- elif col == "status" and r.data.get(col) %}{{ r.data.get(col) | badge("status") }}
+{%- else %}{{ r.data.get(col) | cell }}{% endif %}</td>{% endfor %}</tr>
+{%- endfor %}
+</tbody>
+</table>
+</div>
+<p id="none" class="muted" hidden>No record matches.</p>
+</main>
+<footer><p>{{ site.footer }}</p></footer>
+<script>
+const rows = [...document.querySelectorAll("#records tbody tr")];
+document.getElementById("filter").addEventListener("input", e => {
+  const q = e.target.value.toLowerCase();
+  let shown = 0;
+  for (const row of rows) {
+    row.hidden = !row.textContent.toLowerCase().includes(q);
+    if (!row.hidden) shown++;
+  }
+  document.getElementById("none").hidden = shown > 0;
+});
+for (const b of document.querySelectorAll("#records th button")) {
+  b.addEventListener("click", () => {
+    const i = +b.dataset.col, up = b.dataset.dir !== "up";
+    for (const o of document.querySelectorAll("#records th button")) delete o.dataset.dir;
+    b.dataset.dir = up ? "up" : "down";
+    const key = r => r.cells[i].textContent.trim().toLowerCase();
+    rows.sort((a, c) => key(a).localeCompare(key(c), undefined, {numeric: true}) * (up ? 1 : -1));
+    const body = document.querySelector("#records tbody");
+    for (const r of rows) body.appendChild(r);
+  });
+}
+</script>
+</body>
+</html>

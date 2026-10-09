@@ -1,0 +1,33 @@
+# A schema-shaped example for the tests. It is not a curated record and
+# carries no citations. Real records live under data/zip_areas/.
+id: datmech:example
+name: Example ZIP code area
+description: A placeholder that exercises the record structure.
+status: DRAFT
+chemical_entities:
+  - preferred_term: "chemical entity"
+    term:
+      id: CHEBI:24431
+      label: "chemical entity"
+organisms:
+  - preferred_term: "root"
+    term:
+      id: NCBITaxon:1
+      label: "root"
+environments:
+  - preferred_term: "environmental system"
+    term:
+      id: ENVO:01000254
+      label: "environmental system"
+discussions:
+  - discussion_id: example-gap-1
+    prompt: Which sources should seed this record?
+    kind: CURATION_TODO
+    status: OPEN
+creation_date: 2026-01-01
+curation_history:
+  - timestamp: "2026-01-01T00:00:00Z"
+    curator: mechmaker
+    llm_assisted: false
+    action: CREATE
+    description: Written by the template.

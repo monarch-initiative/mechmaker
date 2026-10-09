@@ -1,0 +1,35 @@
+# Copier answers for the DaTMech example. The domain answers come from
+# dat-survey-brief.md; the maintainer's are Harry's public details.
+mech_name: DaTMech
+mech_slug: datmech
+full_title: Drainage and Treatment Knowledge Base
+description: >-
+  DaTMech records US ZIP code areas by their water: the watersheds they
+  drain to, the plants that treat their drinking water and wastewater, and
+  the incidents that have harmed its safety or quality, with every claim
+  quoted from its source.
+record_class: ZipArea
+record_noun: ZIP code area
+records_dir: data/zip_areas
+identity_prefix: ""
+ontologies: [ENVO, CHEBI, NCBITaxon]
+causal_graphs: false
+taxon_scope: ""
+domains: [environment]
+author_name: J. Harry Caufield
+author_email: jhc@lbl.gov
+author_orcid: 0000-0001-5705-7831
+github_org: monarch-initiative
+github_user: caufieldjh
+repo_name: datmech
+collection: none
+data_license: CC-BY-4.0
+code_license: BSD-3-Clause
+include_site: true
+include_claude_hook: true
+site_palette: blue
+site_accent: cyan
+site_theme: auto
+workflows: [sweep, docs, comment-guard]
+deep_research: true
+python_min: "3.11"

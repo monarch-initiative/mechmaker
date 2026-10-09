@@ -1,0 +1,28 @@
+# What Harry asked DaTMech for, in his words (audit-mech reads this).
+- feature: One record per US geographic region, keyed by ZIP code
+  said: "Each entry is a US geographic region; we can use ZIP code as an ID for this."
+  check: {class: ZipArea}
+- feature: Watersheds on each record
+  said: "DaTMech tracks three main things: watersheds, ..."
+  check: {slot: watersheds}
+- feature: Water treatment plants on each record
+  said: "water treatment plants (e.g., where does water in this area go to be treated, if facilities exist?)"
+  check: {slot: treatment_facilities}
+- feature: Incidents impacting water safety or quality on each record
+  said: "and incidents impacting water safety/quality"
+  check: {slot: incidents}
+- feature: Incidents curated from Wikipedia, web searches, deep research and scholarly publications
+  said: "it requires curation from various sources: Wikipedia, web searches, deep research and scholarly publications, etc."
+  check: {path: curation/source_queue.tsv}
+- feature: Curation priority set by whether a region has incidents
+  said: "the priority for curating an entry relies on whether it has any related safety/quality incidents"
+  check: {slot: curation_priority}
+- feature: The EPA Water Quality Portal as a source
+  said: "The EPA provides a source of water quality data too (https://waterqualitydata.us/beta/)."
+  check: {contains: {path: curation/source_queue.tsv, text: waterqualitydata.us}}
+- feature: Exactly three entries
+  said: "I'd like the example to contain just three entries so we don't get carried away."
+  check: {records: 3}
+- feature: Alignment with ENVO
+  said: "Alignment with the ENVO ontology would be useful."
+  check: {contains: {path: src/datmech/schema/datmech.yaml, text: "ENVO:"}}

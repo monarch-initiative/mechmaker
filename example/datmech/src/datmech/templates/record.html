@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ record.data.name }} | {{ site.title }}</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header>
+<nav><a href="../index.html">{{ site.title }}</a></nav>
+<h1>{{ record.data.name }}</h1>
+<p class="meta">
+{%- if record.data.id and record.data.id | curie_url %}<a class="id" href="{{ record.data.id | curie_url }}">{{ record.data.id }}</a>
+{%- elif record.data.id %}<span class="id">{{ record.data.id }}</span>{% endif %}
+{%- if record.data.status %} {{ record.data.status | badge("status") }}{% endif %}
+{%- if record.data.record_term %} <span class="grounded">{{ record.data.record_term | term }}</span>{% endif %}
+</p>
+</header>
+<main>
+{%- if record.data.description %}
+<p class="lead">{{ record.data.description }}</p>
+{%- if body.description_evidence %}
+<details class="lead-quotes"><summary>Sources for this description: {{ body.description_quotes }} quote{{ "" if body.description_quotes == 1 else "s" }}</summary>{{ body.description_evidence }}</details>
+{%- endif %}
+{%- endif %}
+{%- if record.data.synonyms %}
+<p class="synonyms"><span class="muted">{{ "synonyms" | label }}:</span>{% for s in record.data.synonyms %} <span class="chip">{{ s }}</span>{% endfor %}</p>
+{%- endif %}
+{%- if body.overview %}
+<section class="overview">
+<table class="kv">
+{%- for name, help, html in body.overview %}
+<tr><th{% if help %} title="{{ help }}"{% endif %}>{{ name }}</th><td>{{ html }}</td></tr>
+{%- endfor %}
+</table>
+</section>
+{%- endif %}
+{%- if body.sections | length > 2 %}
+<nav class="toc">{% for s in body.sections %}<a href="#{{ s.key }}">{{ s.label }}{% if s.count %} <span class="count">{{ s.count }}</span>{% endif %}</a>{% endfor %}</nav>
+{%- endif %}
+{%- for s in body.sections %}
+<section id="{{ s.key }}">
+<h2>{{ s.label }}{% if s.count %} <span class="count">{{ s.count }}</span>{% endif %}</h2>
+{%- if s.help %}
+<p class="help">{{ s.help }}</p>
+{%- endif %}
+{{ s.html }}
+</section>
+{%- endfor %}
+</main>
+<footer><p>{{ site.footer }}</p><p><a href="{{ repo_url }}">Repository</a></p></footer>
+</body>
+</html>

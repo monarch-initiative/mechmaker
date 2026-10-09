@@ -1,0 +1,99 @@
+---
+name: deep-research
+description: >-
+  Run deep research on a ZIP code area with deep-research-client,
+  and turn the report into evidence. Use when a record is thin and the
+  literature is large, when starting a record on something new, when asked
+  to research a ZIP code area, or when choosing or setting up a deep
+  research provider. Reports are leads; the evidence is always the primary
+  source, quoted.
+---
+
+# Deep research
+
+`just research PROVIDER TARGET` asks a deep-research provider to survey the
+literature on one ZIP code area and writes a report to `research/`. Read
+`research/README.md` once: it says what a report is for and what it is not.
+
+## When it is worth it
+
+A run takes minutes and, for most providers, costs money. Use it when:
+
+- a record is thin and the literature on its subject is large;
+- a new record is being started and the curator does not know the field;
+- a review found gaps that ordinary searching did not fill.
+
+Do not use it for a single fact a search would find, and never run it over
+the whole corpus without the person saying so. Start with one record.
+
+## Providers
+
+```bash
+just research-providers
+```
+
+| Provider | Needs | Notes |
+|---|---|---|
+| `claude_code` | Claude Code installed and signed in | no extra key; uses the Claude Code account |
+| `openai` | `OPENAI_API_KEY` | OpenAI Deep Research |
+| `falcon` | `EDISON_API_KEY` | Edison Scientific |
+| `perplexity` | `PERPLEXITY_API_KEY` | |
+| `asta` | `ASTA_API_KEY` | |
+| `consensus` | `CONSENSUS_API_KEY` | |
+| `openscientist` | `OPENSCIENTIST_API_KEY` | |
+| `cyberian` | an agent CLI and agentapi | runs an agent through a workflow file |
+| `mock` | `ENABLE_MOCK_PROVIDER=true` | free and fake; for trying the plumbing only |
+
+Keys go in the environment, never in a file in this repository. Ask the
+person which provider to use and who pays for it. If none is ready,
+`claude_code` is the simplest.
+
+## Running
+
+```bash
+just research claude_code datmech_record_stem
+just research claude_code "Name of something new"
+just research falcon some_stem -- --fallback      # let another provider stand in
+```
+
+The report is `research/<stem>-deep-research-<provider>.md`. `just research`
+refuses to replace an existing report; `--force` replaces it, at the cost
+of a new run.
+
+When the run ends, the client checks every PMID and DOI the report cites,
+and every quote attributed to one, and every ontology CURIE against its
+label. Exit code 3 means the report is saved and a check found problems.
+Do not rerun the provider. Read the report's validation sections, or rerun
+only the checks with `just research-validate <report>`.
+
+`--fallback` lets another ready provider take the run when the one asked for
+has no key or credit. The report's frontmatter then names the provider that
+ran; the filename keeps the one asked for. Leave it off unless the person
+wants it.
+
+## From report to record
+
+The report is never cited. For each claim worth keeping:
+
+1. Check the report's validation sections. Skip anything that rests on a
+   citation marked not found.
+2. `just fetch-reference PMID:NNN` for the primary source, and read it.
+3. Write the claim with the `curate-record` and `evidence-references`
+   skills: a verbatim quote from the source, not from the report.
+4. A claim the source does not support is dropped, or becomes a
+   `KNOWLEDGE_GAP` discussion.
+
+In the history record, name the report, its provider and model (from its
+frontmatter), and which of its leads became evidence.
+
+## Adapting the question
+
+`research/templates/record.md` is the question every report answers. Its
+`{name}`, `{id}`, `{label}`, `{synonyms}` and `{record_noun}` placeholders
+(single braces) are filled from the record. Any other brace in the file is
+read as a placeholder too, so do not add literal braces. `just research-check`
+catches both, and `just research` will not call a provider with a prompt
+that fails it. Rewrite its sections to match `docs/DOMAIN.md`, so a
+report comes back in the order a curator fills the record. Keep the demands
+for primary citations, verbatim quotes and exact term labels: the checks
+depend on them.
