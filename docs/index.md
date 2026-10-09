@@ -53,6 +53,11 @@ this site can start from [llms.txt](llms.txt).
     See its [site](example/ingestmech/index.html) and
     [record browser](example/ingestmech/records/index.html).
 
+- **[Fleets](fleets.md)**
+
+    Several Mechs whose records link to each other's, coordinated by one
+    more repository.
+
 - **[Updating a Mech](updating.md)**
 
     Bring a Mech made with an older mechmaker up to date.

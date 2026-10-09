@@ -65,6 +65,11 @@ you along the way:
 
 It asks before it creates anything on GitHub.
 
+Several Mechs whose records link to each other's make a
+[Fleet](fleets.md), with a Coordinator repository that holds what they
+share. Ask for a Fleet, and the agent follows the `make-fleet` skill
+instead.
+
 ## What your machine needs
 
 The agent's first step checks for these. It lists what is missing and the
