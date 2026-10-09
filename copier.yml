@@ -752,11 +752,16 @@ fleet_links:
     {%- elif x.bases is defined and x.bases is not mapping -%}
     {%- set ns.err = 'bases of ' ~ x.slot ~ ' must map each NAME to its description.' -%}
     {%- else -%}
-    {%- for name in (x.relations | list) + (x.bases | default({}) | list) -%}
+    {%- for name, text in (x.relations | dictsort) + (x.bases | default({}) | dictsort) -%}
     {%- if not (name | string | regex_search('^[A-Z][A-Z0-9_]*$')) -%}
     {%- set ns.err = 'Relation and basis names are UPPER_SNAKE_CASE: ' ~ name -%}
+    {%- elif text is not string -%}
+    {%- set ns.err = 'Give ' ~ name ~ ' a description, as text (NAME: what it means).' -%}
     {%- endif -%}
     {%- endfor -%}
+    {%- if x.description is defined and x.description is not string -%}
+    {%- set ns.err = 'The description of ' ~ x.slot ~ ' must be text.' -%}
+    {%- endif -%}
     {%- set cls = x['class'] | default(x.target ~ 'Link') | string -%}
     {%- set taken = fleet_reserved_names.classes + [record_class]
         + (ontology_selection | map(attribute='descriptor') | list)
