@@ -866,3 +866,19 @@ def test_import_a_json_schema(tmp_path):
     bad = subprocess.run(["just", "validate-schema", "data/items/salt.yaml"], cwd=dest, env=env,
                          capture_output=True, text=True)
     assert bad.returncode != 0 and "plasma" in bad.stdout + bad.stderr
+
+
+def test_version_comes_from_the_git_tag(generated):
+    """A Mech's package version is its latest tag (#79): dynamic, read by uv-dynamic-versioning, and
+    the publish workflow checks out the tags it reads."""
+    _, _, dest = generated
+    pyproject = tomllib.loads((dest / "pyproject.toml").read_text())
+    assert "version" not in pyproject["project"]
+    assert pyproject["project"]["dynamic"] == ["version"]
+    assert pyproject["tool"]["hatch"]["version"]["source"] == "uv-dynamic-versioning"
+    assert "uv-dynamic-versioning>=0.8" in pyproject["build-system"]["requires"]
+    publish = dest / ".github" / "workflows" / "pypi-publish.yaml"
+    if publish.exists():
+        steps = [s for job in yaml.safe_load(publish.read_text())["jobs"].values() for s in job["steps"]]
+        checkouts = [s for s in steps if str(s.get("uses", "")).startswith("actions/checkout@")]
+        assert checkouts and all((s.get("with") or {}).get("fetch-depth") == 0 for s in checkouts)
