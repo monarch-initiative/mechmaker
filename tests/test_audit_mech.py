@@ -257,3 +257,39 @@ def test_a_local_identity_ontology_file_is_checked(mech):
 def test_an_unreadable_requests_file_is_a_usage_error(mech, tmp_path):
     code, _ = audit(mech, "--requests", str(tmp_path))  # a folder, not a file
     assert code == 64
+
+
+# ---------------------------------------------------------------- Fleets
+
+
+@pytest.fixture(scope="module")
+def member(tmp_path_factory) -> Path:
+    dest = render(tmp_path_factory.mktemp("audit") / "member", SCENARIOS["fleet-member"])
+    git(dest, "init", "-q", "-b", "main")
+    git(dest, "add", "-A")
+    git(dest, "commit", "-q", "-m", "Copier output")
+    return dest
+
+
+def test_a_member_is_audited_for_its_pin_and_link_classes(member):
+    _, items = audit(member)
+    pin = items["Member of TestFleet, with the canon pinned"]
+    assert pin["status"] == audit_mech.MISSING and "not synced yet" in pin["found"]
+    assert status(items, "Links to BetaMech through `betas`") == audit_mech.DONE
+    assert status(items, "Links to GammaMech through `gamma_sources`") == audit_mech.DONE
+
+
+def test_a_member_missing_a_link_class_is_reported(member, tmp_path):
+    dest = tmp_path / "member"
+    shutil.copytree(member, dest, symlinks=True)
+    schema = dest / "src" / "alphafleetmembermech" / "schema" / "alphafleetmembermech.yaml"
+    schema.write_text(schema.read_text().replace("is_a: CrossCorpusLink", "is_a: Term", 1))
+    _, items = audit(dest)
+    assert status(items, "Links to BetaMech") == audit_mech.MISSING
+
+
+def test_a_coordinator_is_declined(tmp_path):
+    dest = render(tmp_path / "coordinator", {**SCENARIOS["minimal"], "kind": "coordinator",
+                                             "fleet_name": "TestFleet"})
+    code, items = audit(dest)
+    assert code == 2 and items == {}

@@ -1,0 +1,76 @@
+---
+name: add-relationship
+description: >-
+  Declare how records of one {{ fleet_name }} member link to records of
+  another: the slot, the relations, the bases, in fleet.yaml; then carry it
+  into the subject member's schema through its fleet answers. Use when asked
+  to connect, link or relate two Mechs in the Fleet, or to add or change a
+  relation or basis.
+---
+
+# Add a relationship
+
+A relationship says: records of the **subject** Mech may link to records of
+the **object** Mech, through one slot, stating one of these relations,
+established in one of these ways. The subject's schema enforces the
+relations and bases; `just audit` here checks that every target exists.
+
+## 1. Decide
+
+- **Which way.** The subject holds the links. Pick the side whose curators
+  know the fact: a taxon record says where the taxon lives, so TaxonMech
+  holds `habitats`, linking to HabitatMech. Add the reverse only if the
+  other side's curators record it from their own sources.
+- **The relations.** UPPER_SNAKE_CASE names, each with a description that
+  says what holds between the two records. Prefer few, plain relations.
+- **The bases.** How a curator establishes a link: `LITERATURE` (a cited
+  source, with a quote in the record's evidence), `SAME_INCHIKEY` (an exact
+  structure match), and so on. A shared ontology term, protein or reaction
+  is a lead, never by itself a basis for a stronger relation.
+- **The slot.** snake_case, plural, named for what it holds (`habitats`).
+  A second relationship from the same subject to the same object needs its
+  own `class_name`.
+
+## 2. Declare
+
+```yaml
+relationships:
+  taxonmech-habitats:
+    subject: taxonmech
+    object: habitatmech
+    slot: habitats
+    description: Habitats a taxon is found in.
+    relations:
+      FOUND_IN: {description: The taxon has been isolated from or observed in the habitat.}
+    bases:
+      LITERATURE: {description: A cited source reports it, with a quote in the record's evidence.}
+```
+
+`just validate`, then `just docs-pages` to see it in the relationship
+diagram. Commit and merge it here first.
+
+## 3. Carry it into the subject
+
+In the subject member's checkout, on a branch:
+
+```bash
+just answers <subject> > /tmp/<subject>-fleet.yml    # here
+uvx copier update --vcs-ref=:current: --skip-answered --defaults --data-file /tmp/<subject>-fleet.yml   # there
+```
+
+Its schema gains the slot and the link class (`<Object>Link`, or the
+`class_name`), with relation and basis enums. If the member's schema was
+redesigned and the slot belongs somewhere other than the record's top
+level, move it with that member's `extend-schema` skill. Run its `just qc`
+and open a pull request there.
+
+## 4. Check
+
+After records use it: `just fetch && just audit`. A link whose target is
+gone from the object's main is a warning: the link was right at its
+`source_version`, and someone should look.
+
+Changing a relationship later: removing a relation or basis breaks the
+records that use it. Find them with `just check-links` after editing
+`fleet.yaml` with `--root <subject>=<its checkout>`, migrate them in the
+subject, then release both.

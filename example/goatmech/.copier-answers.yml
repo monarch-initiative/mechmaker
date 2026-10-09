@@ -1,5 +1,5 @@
 # Changes here will be overwritten by Copier. Do not edit by hand.
-_commit: 0.1.4-9-g7e1e7ae
+_commit: 0.1.4-12-g49ded21
 _src_path: gh:monarch-initiative/mechmaker
 agent_schedules: false
 author_email: jhc@lbl.gov
@@ -17,6 +17,7 @@ domains:
 - organisms
 - phenotype
 extra_ontologies: []
+fleet_name: ''
 full_title: Goat Breed Knowledge Base
 github_org: monarch-initiative
 github_user: caufieldjh
@@ -27,6 +28,7 @@ identity_root: VBO:0400025
 identity_uri: http://purl.obolibrary.org/obo/VBO_
 include_claude_hook: true
 include_site: true
+kind: mech
 langfuse: false
 load_targets: []
 mech_name: GoatMech

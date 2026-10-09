@@ -1,5 +1,5 @@
 # Changes here will be overwritten by Copier. Do not edit by hand.
-_commit: 0.1.4-9-g7e1e7ae
+_commit: 0.1.4-12-g49ded21
 _src_path: gh:monarch-initiative/mechmaker
 author_email: jhc@lbl.gov
 author_name: J. Harry Caufield
@@ -17,12 +17,14 @@ domains:
 - biomedical
 - genomics
 extra_ontologies: []
+fleet_name: ''
 full_title: Monarch Ingest Knowledge Base
 github_org: monarch-initiative
 github_user: caufieldjh
 identity_prefix: ''
 include_claude_hook: true
 include_site: true
+kind: mech
 load_targets:
 - mongodb
 - neo4j

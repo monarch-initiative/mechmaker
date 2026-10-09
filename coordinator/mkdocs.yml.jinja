@@ -1,0 +1,64 @@
+# The Coordinator's documentation site, built with `just docs-build`{% if 'docs' in coordinator_workflows %} and
+# published by the docs workflow{% endif %}. members.md, relationships.md,
+# model.md and schema/ are made from fleet.yaml and the Fleet schema on every
+# build; do not edit them. Edit the other pages in docs/ directly.
+site_name: "{{ fleet_name }}"
+site_description: "{{ fleet_description | replace('"', '\\"') }}"
+site_url: https://{{ github_org | lower }}.github.io/{{ repo_name }}/
+repo_url: https://github.com/{{ github_org }}/{{ repo_name }}
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  icon:
+    logo: material/sitemap-outline
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-4
+        name: Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-7
+        name: Light mode
+  features:
+    - content.code.copy
+    - navigation.instant
+    - navigation.tracking
+    - navigation.top
+    - search.suggest
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.magiclink
+  # Material loads Mermaid itself for these blocks; no plugin is needed.
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+nav:
+  - Home: index.md
+  - Members: members.md
+  - Relationships: relationships.md
+  - The canon: canon.md
+  - The Fleet model: model.md
+  - Schema: schema/index.md
+
+# One page per schema element, reached from schema/index.md, not the nav.
+not_in_nav: |
+  /schema/**
+
+watch:
+  - src/{{ fleet_slug }}_coordinator/schema

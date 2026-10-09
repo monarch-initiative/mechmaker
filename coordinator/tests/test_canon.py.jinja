@@ -1,0 +1,154 @@
+"""The canon: its manifest, sync into a member, and the audit of every member's pin."""
+
+import pytest
+import yaml
+from conftest import REPO, commit, git
+
+from {{ fleet_slug }}_coordinator import canon
+from {{ fleet_slug }}_coordinator.paths import PIN_FILE
+
+
+def test_this_repository_canon_matches_its_manifest():
+    assert canon.canon_errors(REPO) == []
+
+
+def test_a_changed_source_is_caught_and_refreshed(coordinator):
+    path = coordinator / "canon" / "schema" / "history.yaml"
+    path.write_text(path.read_text() + "\n# a change\n")
+    assert canon.canon_errors(coordinator)
+    assert canon.refresh(coordinator) == ["history"]
+    assert canon.canon_errors(coordinator) == []
+    assert "# The files every member" in (coordinator / "canon" / "manifest.yaml").read_text()
+
+
+def test_sync_is_a_dry_run_until_applied(coordinator, fleet, make_member):
+    member = fleet.members["alphamech"]
+    root = make_member("alphamech")
+    plan = canon.sync(coordinator, fleet, member, root)
+    assert any("WOULD WRITE" in line and PIN_FILE in line for line in plan)
+    assert not (root / PIN_FILE).exists()
+    canon.sync(coordinator, fleet, member, root, apply=True)
+    pin = yaml.safe_load((root / PIN_FILE).read_text())
+    assert pin["ref"] == git(coordinator, "rev-parse", "origin/main")
+    assert pin["coordinator"] == fleet.coordinator
+    assert {a["id"] for a in pin["artifacts"]} == {"mech_shared", "history"}
+    assert all("UNCHANGED" in line for line in canon.sync(coordinator, fleet, member, root))
+
+
+def test_sync_refuses_an_unpushed_commit(coordinator, fleet, make_member):
+    root = make_member("alphamech")
+    head = commit(coordinator, "not pushed")
+    with pytest.raises(canon.CanonError, match="origin/main"):
+        canon.sync(coordinator, fleet, fleet.members["alphamech"], root, ref="HEAD")
+    canon.sync(coordinator, fleet, fleet.members["alphamech"], root, apply=True)
+    assert head not in (root / PIN_FILE).read_text()
+    canon.sync(coordinator, fleet, fleet.members["alphamech"], root, unpublished=True, apply=True)
+    assert head in (root / PIN_FILE).read_text()
+
+
+def test_sync_refuses_another_repository(coordinator, fleet, make_member):
+    root = make_member("betamech")
+    with pytest.raises(canon.CanonError, match="mech_slug"):
+        canon.sync(coordinator, fleet, fleet.members["alphamech"], root)
+
+
+def synced(coordinator, fleet, make_member):
+    roots = {}
+    for key in ("alphamech", "betamech"):
+        roots[key] = make_member(key)
+        canon.sync(coordinator, fleet, fleet.members[key], roots[key], apply=True)
+        commit(roots[key], "pin")
+    return roots
+
+
+def test_audit_passes_when_every_member_shares_the_pin(coordinator, fleet, make_member):
+    roots = synced(coordinator, fleet, make_member)
+    assert canon.audit(coordinator, fleet, roots) == ([], [])
+
+
+def test_audit_catches_an_unpinned_member(coordinator, fleet, make_member):
+    roots = {"alphamech": make_member("alphamech")}
+    errors, _ = canon.audit(coordinator, fleet, roots)
+    assert any("no fleet/pin.yaml" in e for e in errors)
+
+
+def test_audit_catches_an_edited_copy(coordinator, fleet, make_member):
+    roots = synced(coordinator, fleet, make_member)
+    path = roots["alphamech"] / "src" / "alphamech" / "schema" / "history.yaml"
+    path.write_text(path.read_text() + "# edited\n")
+    errors, _ = canon.audit(coordinator, fleet, roots)
+    assert any("differs from the canon" in e for e in errors)
+
+
+def test_audit_catches_two_pins(coordinator, fleet, make_member):
+    roots = synced(coordinator, fleet, make_member)
+    commit(coordinator, "a release")
+    git(coordinator, "push", "-q", "origin", "main")
+    git(coordinator, "fetch", "-q", "origin")
+    canon.sync(coordinator, fleet, fleet.members["alphamech"], roots["alphamech"], apply=True)
+    errors, _ = canon.audit(coordinator, fleet, roots)
+    assert any("different commits" in e for e in errors)
+
+
+def test_audit_catches_a_pin_that_is_not_ours(coordinator, fleet, make_member):
+    roots = synced(coordinator, fleet, make_member)
+    pin = roots["alphamech"] / PIN_FILE
+    pin.write_text(pin.read_text().replace(git(coordinator, "rev-parse", "HEAD"), "0" * 40))
+    errors, _ = canon.audit(coordinator, fleet, roots)
+    assert any("not a commit of this Coordinator" in e for e in errors)
+
+
+def test_this_repository_canon_matches_mechmakers_pin_shape():
+    arts = canon.load_manifest(REPO)
+    assert [a.id for a in arts] == ["mech_shared", "history"]
+    assert all(a.target.startswith("{package_path}/") for a in arts)
+
+
+def test_sync_needs_a_published_coordinator(coordinator, fleet, make_member):
+    root = make_member("alphamech")
+    git(coordinator, "update-ref", "-d", "refs/remotes/origin/main")
+    with pytest.raises(canon.CanonError, match="no origin/main"):
+        canon.sync(coordinator, fleet, fleet.members["alphamech"], root)
+
+
+def test_a_planned_member_can_be_synced(coordinator, fleet, make_member):
+    root = make_member("alphamech")
+    member = fleet.members["alphamech"]
+    planned = type(member)(**{**member.__dict__, "status": "planned"})
+    canon.sync(coordinator, fleet, planned, root, apply=True)
+    assert (root / PIN_FILE).exists()
+
+
+def test_sync_will_not_write_through_a_symlink_out_of_the_member(coordinator, fleet, make_member, tmp_path):
+    root = make_member("alphamech")
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    (root / "fleet").symlink_to(elsewhere)
+    with pytest.raises(canon.CanonError, match="will not write"):
+        canon.sync(coordinator, fleet, fleet.members["alphamech"], root, apply=True)
+    assert list(elsewhere.iterdir()) == []
+
+
+def test_audit_will_not_read_a_canon_file_linked_out_of_the_member(coordinator, fleet, make_member):
+    roots = synced(coordinator, fleet, make_member)
+    path = roots["alphamech"] / "src" / "alphamech" / "schema" / "history.yaml"
+    path.unlink()
+    path.symlink_to("/dev/zero")
+    errors, _ = canon.audit(coordinator, fleet, roots)
+    assert any("not a file within the checkout" in e for e in errors)
+
+
+def test_a_retired_member_is_not_held_to_the_pin(coordinator, fleet, make_member):
+    """A retired member keeps the pin it had; nobody releases to it. A new release must still pass."""
+    from dataclasses import replace
+
+    roots = synced(coordinator, fleet, make_member)
+    retired = replace(fleet, members={**fleet.members,
+                                      "betamech": replace(fleet.members["betamech"], status="retired")})
+    commit(coordinator, "a release")
+    git(coordinator, "push", "-q", "origin", "main")
+    git(coordinator, "fetch", "-q", "origin")
+    canon.sync(coordinator, retired, retired.members["alphamech"], roots["alphamech"], apply=True)
+    assert canon.audit(coordinator, retired, roots) == ([], [])
+    assert [m.id for m in retired.audited()] == ["alphamech"]
+    assert [m.id for m in retired.fetched()] == ["alphamech", "betamech"]

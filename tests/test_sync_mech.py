@@ -41,6 +41,7 @@ NOTES = [
     {"id": "old", "pr": 3, "summary": "Older than the Mech.", "action": "Never shown."},
     {"id": "site-only", "pr": 8, "when": "include_site", "summary": "Needs a site.", "action": "-"},
     {"id": "year", "pr": 8, "when": "copyright_year", "summary": "Needs a year.", "action": "-"},
+    {"id": "coordinators", "pr": 8, "kind": "coordinator", "summary": "For a Coordinator.", "action": "-"},
 ]
 
 
@@ -167,6 +168,16 @@ def test_plan_shows_the_notes_that_reach_this_mech(plan):
     # "old" names a pull request outside the range; "site-only" needs a site the Mech lacks.
     assert notes == {"new-page": "#8", "loose": "#8", "year": "#8"}
     assert next(u for u in plan["updates"] if u["id"] == "#8")["notes"] == ["new-page", "loose", "year"]
+
+
+@pytest.mark.parametrize("note,answers,expected", [
+    ({"id": "a"}, {"kind": "coordinator"}, False),
+    ({"id": "a"}, {}, True),
+    ({"id": "a", "kind": "coordinator"}, {"kind": "coordinator"}, True),
+    ({"id": "a", "kind": "coordinator"}, {"mech_slug": "x"}, False),
+])
+def test_a_note_reaches_one_kind_of_repository(note, answers, expected):
+    assert sync_mech.applies(note, answers) is expected
 
 
 def test_a_note_can_depend_on_a_new_question(mech):
@@ -330,7 +341,8 @@ def test_upgrade_notes_are_well_formed():
     assert len(ids) == len(set(ids))
     questions = yaml.safe_load((ROOT / "copier.yml").read_text())
     for note in notes:
-        assert set(note) <= {"id", "pr", "when", "summary", "action"}, note["id"]
+        assert set(note) <= {"id", "pr", "kind", "when", "summary", "action"}, note["id"]
+        assert note.get("kind", "mech") in ("mech", "coordinator"), note["id"]
         assert note["summary"].strip() and note["action"].strip(), note["id"]
         assert "pr" not in note or isinstance(note["pr"], int), note["id"]
         assert "when" not in note or note["when"] in questions, note["id"]

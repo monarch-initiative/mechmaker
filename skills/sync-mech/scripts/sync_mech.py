@@ -69,6 +69,11 @@ ANSWERS = ".copier-answers.yml"
 NOTES = "upgrade-notes.yml"
 # Paths in the template repository whose changes can reach a Mech.
 TEMPLATE_PATHS = ["template", "copier.yml", NOTES]
+# And a Fleet's Coordinator (kind: coordinator), which also links to the shared
+# schema modules, the license and AGENTS.md in template/.
+COORDINATOR_PATHS = ["coordinator", "template/src/{{mech_slug}}/schema/mech_shared.yaml",
+                     "template/src/{{mech_slug}}/schema/history.yaml", "template/LICENSE.jinja",
+                     "template/AGENTS.md", "copier.yml", NOTES]
 WORKING_TREE = "working-tree"
 # The update that holds the effect of changed answers (--data). It is always taken.
 ANSWERS_UPDATE = "answers"
@@ -111,6 +116,8 @@ class Plan:
     notes: list[dict]
     skipped: list[str]
     uncommitted: bool = False
+    # A Fleet member's canon and pin: changed in the template, but the Coordinator's to write.
+    coordinator_owned: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -212,11 +219,25 @@ def endpoints(repo: Path, stored: dict, target: str | None) -> tuple[str, str, s
     return base, ref, target_commit
 
 
-def commits_between(repo: Path, base: str, target: str) -> list[tuple[str, str, str]]:
+def template_paths(answers: dict) -> list[str]:
+    return COORDINATOR_PATHS if answers.get("kind") == "coordinator" else TEMPLATE_PATHS
+
+
+def coordinator_owned(answers: dict) -> set[str]:
+    """In a Fleet member, the files its Coordinator writes. copier.yml's _skip_if_exists keeps an
+    update from replacing them once they exist; keep in step with it."""
+    if answers.get("kind", "mech") != "mech" or not answers.get("fleet_name"):
+        return set()
+    slug = answers.get("mech_slug", "")
+    return {"fleet/pin.yaml", f"src/{slug}/schema/mech_shared.yaml", f"src/{slug}/schema/history.yaml"}
+
+
+def commits_between(repo: Path, base: str, target: str,
+                    paths: list[str] | None = None) -> list[tuple[str, str, str]]:
     """(sha, id, title) for each first-parent commit after base that touched the template, oldest first.
     A merged pull request is identified by its number, anything else by its short sha."""
     out = git(repo, "log", "--first-parent", "--reverse", "--format=%H%x00%s%x00%b%x1e",
-              f"{base}..{target}", "--", *TEMPLATE_PATHS)
+              f"{base}..{target}", "--", *(paths or TEMPLATE_PATHS))
     found = []
     for entry in filter(None, (e.strip("\n") for e in out.split("\x1e"))):
         sha, subject, body = (entry.split("\x00") + ["", ""])[:3]
@@ -249,7 +270,10 @@ def notes_in_tree(repo: Path) -> dict[str, dict]:
 
 
 def applies(note: dict, answers: dict) -> bool:
-    """A note with `when: <answer>` applies only where that answer is set and not false or empty."""
+    """A note is for one kind of repository (`kind:`, a Mech unless it says coordinator). With
+    `when: <answer>`, it applies only where that answer is set and not false or empty."""
+    if note.get("kind", "mech") != answers.get("kind", "mech"):
+        return False
     when = note.get("when")
     return not when or bool(answers.get(str(when)))
 
@@ -342,7 +366,7 @@ def make_plan(mech: Path, target: str | None, data: dict, tmp: Path) -> Plan:
             spec = git(repo, "show", f"{target_commit}:copier.yml")
         type_data(data, yaml.safe_load(spec) or {})
 
-    steps = commits_between(repo, base, target_commit)
+    steps = commits_between(repo, base, target_commit, template_paths(stored))
     if uncommitted:
         steps.append(("HEAD", WORKING_TREE, "Uncommitted changes in the template checkout"))
     changed = [k for k in data if k not in answers or answers[k] != data[k]]
@@ -401,9 +425,13 @@ def make_plan(mech: Path, target: str | None, data: dict, tmp: Path) -> Plan:
         prev = now
 
     files = []
+    owned = []
     for path, ids in touched.items():
         # A change undone later in the range is no change: the template's file ends as it began.
         if start.get(path) == prev.get(path):
+            continue
+        if path in coordinator_owned(stored) and (mech / path).exists():
+            owned.append(path)
             continue
         st = status(path, start, prev, mech)
         if st:
@@ -435,7 +463,7 @@ def make_plan(mech: Path, target: str | None, data: dict, tmp: Path) -> Plan:
     shown = describe(repo, target_commit) + (" + uncommitted changes" if uncommitted else "")
     return Plan(mech=str(mech), src=src, base=str(stored["_commit"]), target=ref, target_commit=shown,
                 updates=updates, files=files, questions=questions, dropped_questions=dropped,
-                notes=notes, skipped=skipped, uncommitted=uncommitted)
+                notes=notes, skipped=skipped, uncommitted=uncommitted, coordinator_owned=sorted(owned))
 
 
 # ---------------------------------------------------------------- reporting
@@ -486,6 +514,9 @@ def plan_text(plan: Plan) -> str:
     counts = {s: sum(1 for f in plan.files if f.status == s) for s in STATUSES}
     lines += ["## Files", ""]
     lines += [f"    {counts[s]:>3} {s:<8}{MEANING[s]}" for s in STATUSES if counts[s]]
+    if plan.coordinator_owned:
+        lines += ["", "Left alone: the Fleet's Coordinator writes these (its change-canon skill), "
+                      f"and the update keeps this Mech's copies: {', '.join(plan.coordinator_owned)}"]
     if plan.skipped:
         lines += ["", f"Did not render alone with these answers, so folded into the next update: "
                       f"{', '.join(plan.skipped)}"]
@@ -712,7 +743,7 @@ def check(mech: Path, target: str | None, as_json: bool, tmp: Path) -> int:
     stored = read_answers(mech)
     repo = open_source(str(stored["_src_path"]), tmp)
     base, ref, target_commit = endpoints(repo, stored, target)
-    steps = commits_between(repo, base, target_commit)
+    steps = commits_between(repo, base, target_commit, template_paths(stored))
     out = {"base": str(stored["_commit"]), "target": describe(repo, ref),
            "updates": [{"id": uid, "title": title} for _, uid, title in steps]}
     if as_json:

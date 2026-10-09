@@ -1,0 +1,123 @@
+"""This Mech's Fleet canon: the shared files, checked against fleet/pin.yaml.
+
+    python -m <slug>.fleet            # offline: each shared file matches its sha256 in the pin
+    python -m <slug>.fleet --online   # also: the pin matches the Coordinator on GitHub, at its ref
+
+The Coordinator owns these files. It writes them and the pin with `fleet sync`;
+an update from mechmaker leaves them alone. A mismatch offline means a local
+edit: undo it, and make the change in the Coordinator instead.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import os
+import sys
+import urllib.error
+import urllib.request
+
+import yaml
+
+from .paths import REPO_ROOT
+
+PIN = REPO_ROOT / "fleet" / "pin.yaml"
+RAW = "https://raw.githubusercontent.com/{coordinator}/{ref}/canon/manifest.yaml"
+
+
+def read_pin() -> dict:
+    data = yaml.safe_load(PIN.read_text()) if PIN.exists() else None
+    return data if isinstance(data, dict) else {}
+
+
+def sha256(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def _artifacts(data: dict, where: str) -> tuple[dict[str, dict], list[str]]:
+    """The artifacts in a pin or manifest by id, and an error for each malformed one."""
+    arts, errors = {}, []
+    for art in data.get("artifacts") or []:
+        if not (isinstance(art, dict) and art.get("id") and art.get("target") and art.get("sha256")):
+            errors.append(f"{where}: an artifact lacks id, target or sha256: {art!r}")
+        else:
+            arts[str(art["id"])] = art
+    return arts, errors
+
+
+def offline_errors(pin: dict | None = None) -> list[str]:
+    pin = read_pin() if pin is None else pin
+    if not pin:
+        return [f"{PIN.relative_to(REPO_ROOT)} is missing or empty"]
+    arts, errors = _artifacts(pin, "fleet/pin.yaml")
+    synced = len(str(pin.get("ref") or "")) == 40
+    for art in arts.values():
+        path = REPO_ROOT / str(art["target"])
+        if not path.is_file():
+            errors.append(f"{art['target']} is missing")
+        elif sha256(path.read_bytes()) != art["sha256"] and not synced:
+            errors.append(f"{art['target']} is not mechmaker's copy, and this Mech has not been synced from "
+                          f"its Coordinator ({pin.get('coordinator')}) yet. There: `just sync <this Mech> "
+                          "<this checkout> --apply`.")
+        elif sha256(path.read_bytes()) != art["sha256"]:
+            errors.append(f"{art['target']} differs from the Fleet canon in fleet/pin.yaml. Undo the local "
+                          "edit; change it in the Coordinator and sync it here.")
+    return errors
+
+
+def online_errors(pin: dict) -> list[str]:
+    ref, coordinator = str(pin.get("ref") or ""), str(pin.get("coordinator") or "")
+    request = urllib.request.Request(RAW.format(coordinator=coordinator, ref=ref))
+    # A private Coordinator needs a token that can read it. A member's own
+    # GITHUB_TOKEN cannot read another private repository; FLEET_TOKEN can.
+    token = os.environ.get("FLEET_TOKEN") or os.environ.get("GITHUB_TOKEN")
+    if token:
+        request.add_header("Authorization", f"Bearer {token}")
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            manifest = yaml.safe_load(response.read())
+    except urllib.error.HTTPError as exc:
+        hint = "" if token else " If the Coordinator is private, set FLEET_TOKEN to a token that can read it."
+        return [f"could not read {coordinator}'s canon/manifest.yaml at {ref[:12]}: HTTP {exc.code}.{hint}"]
+    except OSError as exc:
+        return [f"could not reach GitHub for {coordinator}'s canon/manifest.yaml: {exc}"]
+    if not isinstance(manifest, dict):
+        return [f"{coordinator}'s canon/manifest.yaml at {ref[:12]} is not a mapping"]
+    canon, errors = _artifacts(manifest, f"the canon at {ref[:12]}")
+    pinned, pin_errors = _artifacts(pin, "fleet/pin.yaml")
+    errors += pin_errors
+    for key in sorted(set(canon) | set(pinned)):
+        if key not in pinned:
+            errors.append(f"the canon at {ref[:12]} has {key}, which fleet/pin.yaml lacks")
+        elif key not in canon:
+            errors.append(f"fleet/pin.yaml has {key}, which the canon at {ref[:12]} lacks")
+        elif pinned[key]["sha256"] != canon[key]["sha256"]:
+            errors.append(f"fleet/pin.yaml's sha256 for {key} is not the canon's at {ref[:12]}")
+    return errors
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--online", action="store_true", help="also check the pin against the Coordinator")
+    args = parser.parse_args(argv)
+    pin = read_pin()
+    errors = offline_errors(pin)
+    ref = str(pin.get("ref") or "")
+    if args.online and pin and len(ref) == 40:
+        errors += online_errors(pin)
+    for e in errors:
+        print(f"ERROR {e}")
+    if errors:
+        return 1
+    if len(ref) != 40:
+        # Not an error: a member is made before its first sync, and its pin is empty until then.
+        print(f"WARNING Fleet canon: not synced from the Coordinator ({pin.get('coordinator')}) yet; "
+              "it runs `just sync` for this Mech.")
+        return 0
+    print(f"Fleet canon: matches fleet/pin.yaml, at {ref[:12]}" + (" and on the Coordinator." if args.online
+                                                                   else "."))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

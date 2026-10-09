@@ -1,0 +1,62 @@
+# CLAUDE.md
+
+This repository is the Coordinator of {{ fleet_name }}, a Fleet of Mechs.
+It holds no records. Each member is its own repository, with its own
+`CLAUDE.md`; inside a member, that file governs.
+
+## What lives here
+
+| Path | What it is |
+|---|---|
+| `fleet.yaml` | The one list of members and the relationships between them. Every command reads it |
+| `src/{{ fleet_slug }}_coordinator/schema/fleet_schema.yaml` | The Fleet model `fleet.yaml` follows |
+| `canon/` | The files every member carries byte for byte, and `manifest.yaml` with their sha256 |
+| `src/{{ fleet_slug }}_coordinator/` | The `fleet` command (`uv run fleet --help`) |
+| `cache/members/` | Read-only clones of the members, from `just fetch`. Not committed |
+
+## Rules
+
+- `fleet.yaml` is the source of truth for what a member is and how its
+  records link to other members'. A member's own Copier answers follow it:
+  `just answers <member>` prints them. Never change a member's
+  `fleet_links` by hand.
+- A relationship is declared before any record uses it. Links outside a
+  declared relationship fail `just audit`.
+- A shared ontology term between two records is a lead for a link, not a
+  link. A link states a relation, how it was established (its basis), and
+  the target's commit that was checked.
+- Canon files change here, and only here. Then `just canon-refresh`, merge,
+  and sync every member (`change-canon`). Never edit a canon file in a member.
+- Nothing here pushes to a member. Changes reach a member by a pull request
+  in that member, made from its own checkout.
+- `just qc` must pass before a commit here. `just audit` is the Fleet's
+  check, and needs `just fetch` first.
+- Agents that read text anyone can write (member records, issues) get no
+  write permission. The audit workflow runs no agent; a plain step opens
+  its issue.
+
+## Skills
+
+Skills are in `.claude/skills/`.
+
+| Skill | Use it to |
+|---|---|
+| `onboard-mech` | add a Mech to the Fleet, new or existing |
+| `add-relationship` | declare how one member's records link to another's, and carry it into the subject member |
+| `change-canon` | change a shared file and release it to every member |
+
+## Commands
+
+| Command | What it does |
+|---|---|
+| `just qc` | Lint, `fleet.yaml`, the canon, tests, docs build |
+| `just fetch [member...]` | Clone or refresh members under `cache/members/` |
+| `just audit [--root id=PATH]` | Every member: answers agree, one canon pin, links resolve |
+| `just check-links` | Only the links |
+| `just status` | One row per member |
+| `just answers <member>` | The member's Copier answers |
+| `just sync <member> <path> [--apply]` | The canon into a member's checkout |
+| `just canon-refresh` | Rewrite the manifest's sha256s after a canon change |
+
+`--root id=PATH` points a command at a local checkout of a member instead of
+its clone, for work not yet pushed.

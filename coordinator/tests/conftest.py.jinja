@@ -1,0 +1,109 @@
+"""A throwaway Coordinator and members, in git, for the tests."""
+
+from __future__ import annotations
+
+import os
+import shutil
+import subprocess
+from pathlib import Path
+
+import pytest
+import yaml
+
+from {{ fleet_slug }}_coordinator import answers
+from {{ fleet_slug }}_coordinator.manifest import load
+
+REPO = Path(__file__).resolve().parents[1]
+
+FLEET = {
+    "id": "testfleet",
+    "name": "TestFleet",
+    "description": "Two members for the tests.",
+    "coordinator": "example/testfleet-coordinator",
+    "members": {
+        "alphamech": {
+            "name": "AlphaMech", "github": "example/alphamech", "status": "active",
+            "owns": "One alpha.", "record_class": "Alpha", "records_dir": "data/alphas",
+        },
+        "betamech": {
+            "name": "BetaMech", "github": "example/betamech", "status": "active",
+            "owns": "One beta.", "record_class": "Beta", "records_dir": "data/betas",
+        },
+    },
+    "relationships": {
+        "alphamech-betas": {
+            "subject": "alphamech", "object": "betamech", "slot": "betas",
+            "description": "Betas an alpha is part of.",
+            "relations": {"PART_OF": {"description": "The alpha is part of the beta."}},
+            "bases": {"LITERATURE": {"description": "A cited source says so."}},
+        },
+    },
+}
+
+
+@pytest.fixture(autouse=True)
+def git_identity(monkeypatch):
+    for key in ("GIT_AUTHOR_NAME", "GIT_COMMITTER_NAME"):
+        monkeypatch.setenv(key, "Test")
+    for key in ("GIT_AUTHOR_EMAIL", "GIT_COMMITTER_EMAIL"):
+        monkeypatch.setenv(key, "test@example.org")
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", os.devnull)
+
+
+def git(cwd: Path, *args: str) -> str:
+    return subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True, text=True).stdout.strip()
+
+
+def commit(cwd: Path, message: str = "change") -> str:
+    git(cwd, "add", "-A")
+    git(cwd, "commit", "-q", "--allow-empty", "-m", message)
+    return git(cwd, "rev-parse", "HEAD")
+
+
+def write_yaml(path: Path, data: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(yaml.safe_dump(data, sort_keys=False))
+
+
+@pytest.fixture
+def coordinator(tmp_path) -> Path:
+    """A Coordinator with TestFleet, committed and pushed to a bare origin."""
+    root = tmp_path / "coordinator"
+    root.mkdir()
+    shutil.copytree(REPO / "canon", root / "canon")
+    write_yaml(root / "fleet.yaml", FLEET)
+    git(root, "init", "-q", "-b", "main")
+    commit(root, "the Fleet")
+    origin = tmp_path / "coordinator.git"
+    git(tmp_path, "init", "-q", "--bare", str(origin))
+    git(root, "remote", "add", "origin", str(origin))
+    git(root, "push", "-q", "origin", "main")
+    git(root, "fetch", "-q", "origin")
+    return root
+
+
+@pytest.fixture
+def fleet(coordinator):
+    return load(coordinator)
+
+
+@pytest.fixture
+def make_member(tmp_path, coordinator, fleet):
+    """Make a member's repository: its answers from fleet.yaml, the canon, and these records."""
+
+    def make(member_id: str, records: dict[str, dict] | None = None) -> Path:
+        member = fleet.members[member_id]
+        root = tmp_path / member_id
+        root.mkdir()
+        write_yaml(root / ".copier-answers.yml", answers.member_answers(fleet, member))
+        for name in ("mech_shared.yaml", "history.yaml"):
+            target = root / member.package_path / "schema" / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy(coordinator / "canon" / "schema" / name, target)
+        for stem, data in (records or {}).items():
+            write_yaml(root / member.records_dir / f"{stem}.yaml", data)
+        git(root, "init", "-q", "-b", "main")
+        commit(root, "the member")
+        return root
+
+    return make

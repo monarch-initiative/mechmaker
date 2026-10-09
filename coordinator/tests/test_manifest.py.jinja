@@ -1,0 +1,108 @@
+"""fleet.yaml: the schema, the rules, and this repository's own copy."""
+
+import copy
+
+import pytest
+import yaml
+from conftest import FLEET, REPO, write_yaml
+
+from {{ fleet_slug }}_coordinator.manifest import FleetError, load
+
+
+def write(tmp_path, data):
+    write_yaml(tmp_path / "fleet.yaml", data)
+    return tmp_path
+
+
+def test_this_repository_fleet_is_valid():
+    load(REPO)
+
+
+def test_test_fleet_loads(fleet):
+    assert set(fleet.members) == {"alphamech", "betamech"}
+    rel = fleet.relationships["alphamech-betas"]
+    assert rel.class_name == "BetaMechLink"
+    assert rel.relations == {"PART_OF": "The alpha is part of the beta."}
+    assert fleet.members["alphamech"].package_path == "src/alphamech"
+    assert fleet.members["alphamech"].uri == "https://w3id.org/example/alphamech/"
+
+
+def test_repeated_key_is_refused(tmp_path):
+    text = yaml.safe_dump(FLEET, sort_keys=False).replace("members:\n", "members:\n  alphamech: {}\n", 1)
+    (tmp_path / "fleet.yaml").write_text(text)
+    with pytest.raises(FleetError, match="appears twice"):
+        load(tmp_path)
+
+
+def test_unknown_status_is_a_schema_error(tmp_path):
+    data = copy.deepcopy(FLEET)
+    data["members"]["alphamech"]["status"] = "sleeping"
+    with pytest.raises(FleetError):
+        load(write(tmp_path, data))
+
+
+def test_unknown_field_is_a_schema_error(tmp_path):
+    data = copy.deepcopy(FLEET)
+    data["members"]["alphamech"]["colour"] = "blue"
+    with pytest.raises(FleetError):
+        load(write(tmp_path, data))
+
+
+def test_relationship_to_a_non_member_is_refused(tmp_path):
+    data = copy.deepcopy(FLEET)
+    data["relationships"]["alphamech-betas"]["object"] = "gammamech"
+    with pytest.raises(FleetError, match="not a member"):
+        load(write(tmp_path, data))
+
+
+def test_relationship_within_one_mech_is_refused(tmp_path):
+    data = copy.deepcopy(FLEET)
+    data["relationships"]["alphamech-betas"]["object"] = "alphamech"
+    with pytest.raises(FleetError, match="within one Mech"):
+        load(write(tmp_path, data))
+
+
+def test_one_slot_used_twice_is_refused(tmp_path):
+    data = copy.deepcopy(FLEET)
+    data["relationships"]["again"] = dict(data["relationships"]["alphamech-betas"], class_name="OtherLink")
+    with pytest.raises(FleetError, match="both use"):
+        load(write(tmp_path, data))
+
+
+def test_two_links_to_one_object_need_a_class_name(tmp_path):
+    data = copy.deepcopy(FLEET)
+    data["relationships"]["again"] = dict(data["relationships"]["alphamech-betas"], slot="more_betas")
+    with pytest.raises(FleetError, match="class_name"):
+        load(write(tmp_path, data))
+
+
+def test_shared_names_are_refused(tmp_path):
+    data = copy.deepcopy(FLEET)
+    data["members"]["betamech"]["name"] = "AlphaMech"
+    with pytest.raises(FleetError, match="share the name"):
+        load(write(tmp_path, data))
+
+
+@pytest.mark.parametrize("change,message", [
+    ({"slot": "evidence"}, "already a slot of every Mech"),
+    ({"slot": "target"}, "already a slot of every Mech"),
+    ({"class_name": "Alpha"}, "already in alphamech's schema"),
+    ({"class_name": "SupportingReference"}, "already in alphamech's schema"),
+])
+def test_a_name_the_member_schema_already_has_is_refused(tmp_path, change, message):
+    """mechmaker would refuse these answers; refuse them here, before `fleet answers` prints them."""
+    data = copy.deepcopy(FLEET)
+    data["relationships"]["alphamech-betas"].update(change)
+    with pytest.raises(FleetError, match=message):
+        load(write(tmp_path, data))
+
+
+@pytest.mark.parametrize("field,value", [
+    ("package_path", "../outside"), ("package_path", "/etc"), ("records_dir", "data/../../x"),
+    ("records_dir", "data/alphas/"), ("records_dir", "./data"),
+])
+def test_a_path_out_of_the_member_is_refused(tmp_path, field, value):
+    data = copy.deepcopy(FLEET)
+    data["members"]["alphamech"][field] = value
+    with pytest.raises(FleetError):
+        load(write(tmp_path, data))

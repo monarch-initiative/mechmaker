@@ -284,4 +284,10 @@ qc-full:
 # To see each change and choose, use mechmaker's sync-mech skill instead.
 update-template:
     uvx copier update --skip-answered
-{% endraw %}
+{% endraw -%}
+{%- if fleet_name %}
+# The Fleet canon: each shared file matches fleet/pin.yaml. --online also
+# checks the pin against {{ fleet_name }}'s Coordinator on GitHub.
+check-fleet *args:
+    uv run python -m {{ mech_slug }}.fleet "$@"
+{% endif -%}

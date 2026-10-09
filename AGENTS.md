@@ -22,6 +22,12 @@ inside this repository.
 The documentation, indexed for agents:
 https://monarch-initiative.github.io/mechmaker/llms.txt
 
+## If a person wants several linked Mechs
+
+They want a Fleet: Mechs whose records link to each other's, each in its
+own repository, with a Coordinator repository for what they share. Install
+the skills as above, and follow `make-fleet` from its step 0.
+
 ## If a person wants to update a Mech
 
 They have a Mech made from mechmaker and want its newer features. Work in

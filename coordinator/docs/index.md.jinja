@@ -1,0 +1,49 @@
+# {{ fleet_name }}
+
+{{ fleet_description }}
+
+{{ fleet_name }} is a Fleet: a set of Mechs, each a knowledge base in its own
+repository, with declared relationships between them. This repository is the
+Fleet's Coordinator. It holds no records. It holds:
+
+- **the Fleet's definition**, `fleet.yaml`: the [members](members.md), what one
+  record of each is, and the [relationships](relationships.md) through which
+  one member's records may link to another's;
+- **the canon**, the files every member carries byte for byte, and the
+  commit each member is pinned to ([the canon](canon.md));
+- **the checks** that read every member together: that each member's own
+  answers agree with `fleet.yaml`, that every member carries the canon at
+  one shared pin, and that every link between records points at a record
+  that exists.
+
+[The Fleet model](model.md) is the schema `fleet.yaml` follows.
+
+## A link between records
+
+A record in one member links to a record in another with a
+`CrossCorpusLink`, from the shared module `mech_shared`:
+
+```yaml
+habitats:
+  - corpus: HabitatMech              # the target member's name
+    identifier: ENVO:00002149        # the target record's id, verbatim
+    relation: FOUND_IN               # one of the relationship's relations
+    basis: LITERATURE                # one of its bases
+    source_version: 0123456789abcdef0123456789abcdef01234567   # the target's commit that was checked
+```
+
+Each member's schema has one link class per relationship it is the subject
+of, made by mechmaker from the member's fleet answers, so the relation and
+basis are checked in the member already. `just audit` here checks the rest:
+that the target exists at that commit, and is still on the target's main.
+
+## Commands
+
+| Command | What it does |
+|---|---|
+| `just qc` | This repository: lint, `fleet.yaml`, the canon, tests, docs |
+| `just fetch` | Clone or refresh every member under `cache/members/` |
+| `just audit` | The Fleet: answers, canon pins and links, for every member |
+| `just status` | One row per member |
+| `just answers <member>` | The member's Copier answers, from `fleet.yaml` |
+| `just sync <member> <path>` | Copy the canon into a member's checkout (dry run; `--apply` writes) |

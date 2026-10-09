@@ -1,0 +1,59 @@
+---
+name: change-canon
+description: >-
+  Change a file every {{ fleet_name }} member shares (canon/), or take a new
+  canon from mechmaker, and release it: refresh the manifest, merge, sync
+  every member to the new commit, and audit. Use when asked to change the
+  shared schema modules or any canon file, to update the canon, re-pin the
+  Fleet, or roll a canon change back.
+---
+
+# Change the canon
+
+The canon is in `canon/`, listed in `canon/manifest.yaml`. Each member pins
+one commit of this repository in `fleet/pin.yaml`. A release moves every
+member's pin to one new commit.
+
+## 1. Change
+
+On a branch here, either:
+
+- **edit a file under `canon/`** (or add one, with its manifest entry), or
+- **take mechmaker's**: follow mechmaker's `sync-mech` skill here. It shows
+  each mechmaker change, and brings mechmaker's new `mech_shared.yaml` and
+  `history.yaml` and their sha256s. (`just update-template` does the same
+  in one go, asking any new question at a terminal; it is for a person,
+  not an agent.)
+
+Then `just canon-refresh` (rewrites the sha256 of what you changed) and
+`just qc`. A change to `mech_shared.yaml` or `history.yaml` is a change to
+every member's data model: say in the pull request what records must do.
+
+## 2. Release
+
+Merge the pull request. Its merge commit on `main` is the release.
+
+## 3. Sync each member
+
+For each active member, in its checkout on a fresh branch:
+
+```bash
+just sync <member> <checkout>           # the plan
+just sync <member> <checkout> --apply
+```
+
+Then, in the member: `just qc`, migrate any records the change requires,
+commit the canon files and `fleet/pin.yaml`, and open a pull request. In a
+member, sync-mech from mechmaker must not take canon files: they come from
+here.
+
+## 4. Audit
+
+As members merge, `just fetch && just audit`. It reports members on
+different pins until the last one merges; that is the release in progress.
+It passes when all are on the new commit.
+
+## Rolling back
+
+Sync every member to the earlier commit: `just sync <member> <checkout>
+--ref <full commit> --apply`. Then revert the change here.

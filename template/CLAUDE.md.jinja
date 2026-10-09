@@ -144,6 +144,42 @@ vendored-sync check. Adding a consumer re-pins the whole fleet, so coordinate
 it with claw's maintainers.
 
 {% endif %}
+{%- if fleet_name %}
+## The Fleet
+
+This Mech is a member of {{ fleet_name }}. Its Coordinator,
+[{{ fleet_coordinator }}](https://github.com/{{ fleet_coordinator }}), declares the
+members in its `fleet.yaml`, and the relationships through which one
+member's records link to another's.
+
+- **The canon is the Coordinator's.** `src/{{ mech_slug }}/schema/mech_shared.yaml`
+  and `history.yaml` are written by the Coordinator's `fleet sync`, with
+  `fleet/pin.yaml`, which names the Coordinator commit they came from. Never
+  edit them here; an update from mechmaker leaves them alone. `just qc`
+  checks them against the pin; `just check-fleet --online` checks the pin
+  against the Coordinator.
+- **The Fleet answers are the Coordinator's.** `mech_name`, `mech_slug`,
+  `github_org`, `repo_name`, `record_class`, `records_dir`, `fleet_name`,
+  `fleet_coordinator` and `fleet_links` follow `fleet.yaml`. To change one,
+  change `fleet.yaml` there, then take `fleet answers {{ mech_slug }}` here with
+  `uvx copier update --vcs-ref=:current: --skip-answered --defaults --data-file`.
+{%- if fleet_link_selection %}
+- **Links to other members.** Each is a `CrossCorpusLink`: the target
+  Mech's name, the target record's id verbatim, a relation, a basis, and
+  the full commit of the target that was checked. Look the target up in
+  that Mech at that commit; never type an id from memory. A shared ontology
+  term is a lead for a link, not a link.
+
+| Slot | Links to | Class | Relations |
+|---|---|---|---|
+{%- for l in fleet_link_selection %}
+| `{{ l.slot }}` | {{ l.target }} | `{{ l.class }}` | {{ l.relations | list | sort | map('regex_replace', '^(.*)$', '`\\1`') | join(', ') }} |
+{%- endfor %}
+{%- endif %}
+
+The Coordinator's audit, run there, checks every member together:
+answers, canon pins, and that each link's target exists.
+{% endif %}
 ## Workflows
 
 `docs/WORKFLOWS.md` lists every GitHub workflow, on or off.

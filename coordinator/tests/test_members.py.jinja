@@ -1,0 +1,36 @@
+"""Fetching members: one that cannot be fetched does not stop the rest."""
+
+from conftest import git
+
+from {{ fleet_slug }}_coordinator import members
+from {{ fleet_slug }}_coordinator.paths import MEMBERS_CACHE
+
+
+def bare(source, dest):
+    """A bare copy of the repository at source, at dest: a stand-in for its GitHub repository."""
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    git(dest.parent, "clone", "-q", "--bare", str(source), str(dest))
+    return dest
+
+
+def test_a_member_that_cannot_be_fetched_does_not_stop_the_rest(coordinator, fleet, make_member,
+                                                               tmp_path, monkeypatch):
+    remotes = {"alphamech": tmp_path / "gone.git",
+               "betamech": bare(make_member("betamech"), tmp_path / "remotes" / "betamech.git")}
+    monkeypatch.setattr(members, "clone_url", lambda m: str(remotes[m.id]))
+    lines, errors = members.fetch(fleet, coordinator)
+    assert [line.split(":")[0] for line in lines] == ["betamech"]
+    assert len(errors) == 1
+    assert errors[0].startswith("alphamech: could not fetch example/alphamech")
+
+
+def test_a_moved_member_is_fetched_from_its_new_repository(coordinator, fleet, make_member,
+                                                           tmp_path, monkeypatch):
+    first = bare(make_member("alphamech"), tmp_path / "first" / "alphamech.git")
+    remotes = {"alphamech": first}
+    monkeypatch.setattr(members, "clone_url", lambda m: str(remotes[m.id]))
+    assert members.fetch(fleet, coordinator, ["alphamech"])[1] == []
+    remotes["alphamech"] = bare(first, tmp_path / "moved" / "alphamech.git")
+    assert members.fetch(fleet, coordinator, ["alphamech"])[1] == []
+    clone = coordinator / MEMBERS_CACHE / "alphamech"
+    assert git(clone, "remote", "get-url", "origin") == str(remotes["alphamech"])

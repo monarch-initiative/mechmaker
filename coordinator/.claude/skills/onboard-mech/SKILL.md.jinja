@@ -1,0 +1,92 @@
+---
+name: onboard-mech
+description: >-
+  Add a Mech to {{ fleet_name }}: declare it in fleet.yaml, make it with
+  mechmaker from its fleet answers (or bring an existing Mech's answers in
+  line), sync the canon into it, and set it active. Use when asked to add,
+  admit, onboard or join a Mech to the Fleet.
+---
+
+# Onboard a Mech
+
+| Step | Where | Output |
+|---|---|---|
+| 1. Declare | here | a `planned` entry in `fleet.yaml` |
+| 2. Relationships | here | its relationships, with `add-relationship` |
+| 3. Make or align | the member | a Mech whose answers match `just answers <member>` |
+| 4. Sync the canon | here, writing into the member | `fleet/pin.yaml` and the canon files in the member |
+| 5. Activate | here | `status: active`; `just audit` passes |
+
+## 1. Declare
+
+Add the member to `fleet.yaml` with `status: planned`. Each field must
+match the Mech's Copier answers, or will once it is made:
+
+| fleet.yaml | Copier answer |
+|---|---|
+| key (`habitatmech`) | `mech_slug`, also its CURIE prefix |
+| `name` | `mech_name` |
+| `github` | `github_org`/`repo_name` |
+| `record_class`, `records_dir` | the same names |
+| `identity_prefix` | the same name, when records are keyed by an ontology |
+
+`owns` is one sentence: what one record is. No two members own the same
+kind of thing. When the new Mech's scope touches another member's, say
+which Mech owns what in `scope_notes`, on both. Run `just validate`.
+
+## 2. Relationships
+
+For each kind of link the new Mech's records will make to another member's,
+or another member's will make to it, follow `add-relationship`. Declare them
+now, before records exist: they become the Mech's link classes.
+
+## 3. Make or align
+
+`just answers <member>` prints the answers fleet.yaml implies.
+
+- **A new Mech.** Follow mechmaker's `make-mech` skill, and merge these
+  answers into its `answers.yml` before `copier copy`. They fix the name,
+  slug, repository, record class and records folder, and they add the
+  `fleet_name`, `fleet_coordinator` and `fleet_links` answers.
+- **An existing Mech made with mechmaker.** In its checkout, on a branch:
+  1. Bring it up to a mechmaker that knows Fleets, with mechmaker's
+     `sync-mech` skill, and merge that first. `--vcs-ref=:current:` below
+     renders the mechmaker the Mech was last updated from; one from before
+     Fleets has no Fleet questions and drops these answers without a word.
+     The same update gives it a shared schema with `CrossCorpusLink`, which
+     the link classes build on.
+  2. `just answers <member> > /tmp/<member>-fleet.yml` here, then there:
+
+     ```bash
+     uvx copier update --vcs-ref=:current: --skip-answered --defaults --data-file /tmp/<member>-fleet.yml
+     ```
+
+     Its schema gains the link classes, and it gains `fleet/pin.yaml`,
+     empty until step 4. Run its `just qc`, and open a pull request in it.
+- **A Mech not made with mechmaker** cannot take these answers. Convert it
+  first (mechmaker's `convert-knowledge-base`), or leave it out.
+
+## 4. Sync the canon
+
+From here, with the member's checkout on a branch:
+
+```bash
+just sync <member> <path to its checkout>            # the plan
+just sync <member> <path to its checkout> --apply    # write it
+```
+
+The canon commit must be on this repository's `origin/main`; merge and push
+first. In the member: `just qc`, commit `fleet/pin.yaml` and the canon files,
+and open a pull request.
+
+## 5. Activate
+
+After the member's pull requests merge, set `status: active` in
+`fleet.yaml`, then:
+
+```bash
+just fetch <member> && just audit
+```
+
+Every error names the member and what to do. Members on another pin than
+the new one is expected only during a canon release (`change-canon`).

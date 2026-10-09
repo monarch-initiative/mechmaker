@@ -1,0 +1,17 @@
+# The files every member of the Fleet carries byte for byte. This
+# Coordinator is their canon: change one here, then `just canon-refresh`,
+# merge, and `fleet sync` it into every member (the change-canon skill).
+#
+#   id:      stable name of the artifact
+#   source:  the canonical copy, in this repository
+#   target:  where a member keeps it; {package_path} is the member's package
+#   sha256:  of the source; `just canon-check` fails when it differs
+artifacts:
+  - id: mech_shared
+    source: canon/schema/mech_shared.yaml
+    target: "{package_path}/schema/mech_shared.yaml"
+    sha256: c2e7054fd32635e380c698282bd886a9105861009b9f0474f02bb1b80865e895
+  - id: history
+    source: canon/schema/history.yaml
+    target: "{package_path}/schema/history.yaml"
+    sha256: b01b06f1b9a37db205c26c31ec0fd910690848507c7e1bfb73b424ac0829c52d
