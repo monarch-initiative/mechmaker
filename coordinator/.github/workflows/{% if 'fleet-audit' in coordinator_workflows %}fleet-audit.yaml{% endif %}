@@ -25,8 +25,6 @@ jobs:
   audit:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    outputs:
-      failed: ${{ steps.audit.outputs.failed }}
     steps:
       # The full history: a member's pin must be a commit of this repository.
       - uses: actions/checkout@v7
@@ -44,19 +42,16 @@ jobs:
       - name: Install
         run: just install
 
-      - name: Fetch the members
-        run: just fetch
-
-      - name: Audit
-        id: audit
+      # A member that cannot be fetched (renamed, deleted, made private, or a
+      # network failure) is reported, and the audit still runs on the rest.
+      # Both steps' errors go into the report.
+      - name: Fetch the members and audit them
         run: |
           set -o pipefail
-          if just audit | tee audit.txt; then
-            echo "failed=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "failed=true" >> "$GITHUB_OUTPUT"
-            exit 1
-          fi
+          status=0
+          just fetch 2>&1 | tee audit.txt || status=1
+          just audit 2>&1 | tee -a audit.txt || status=1
+          exit "$status"
 
       - name: Keep the report
         if: always()
@@ -66,14 +61,16 @@ jobs:
           path: audit.txt
           if-no-files-found: ignore
 
+  # Any failure of the audit job counts, including one before the audit ran.
   report:
     needs: audit
-    if: always() && needs.audit.outputs.failed == 'true' && github.event_name == 'schedule'
+    if: always() && needs.audit.result == 'failure' && github.event_name == 'schedule'
     runs-on: ubuntu-latest
     permissions:
       issues: write
     steps:
       - uses: actions/download-artifact@v8
+        continue-on-error: true
         with:
           name: fleet-audit
 
@@ -87,9 +84,13 @@ jobs:
           {
             echo "The daily Fleet audit failed: $RUN"
             echo
-            echo '```text'
-            tail -n 200 audit.txt
-            echo '```'
+            if [ -f audit.txt ]; then
+              echo '```text'
+              tail -n 200 audit.txt
+              echo '```'
+            else
+              echo "The run stopped before the audit; its log says why."
+            fi
           } > body.md
           gh label create fleet-audit --repo "$REPO" --color B60205 \
             --description "The daily Fleet audit failed" 2>/dev/null || true

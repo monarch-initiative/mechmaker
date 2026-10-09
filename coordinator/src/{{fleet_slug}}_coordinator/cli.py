@@ -113,9 +113,15 @@ def main(argv: list[str] | None = None) -> int:
             sys.stdout.write(answers.render(fleet, _member(fleet, args.member)))
             return 0
         if args.command == "fetch":
-            for line in fetch(fleet, root, args.members):
+            unknown = set(args.members) - set(fleet.members)
+            if unknown:
+                raise SystemExit(f"{', '.join(sorted(unknown))}: not in fleet.yaml")
+            lines, errors = fetch(fleet, root, args.members)
+            for line in lines:
                 print(line)
-            return 0
+            for e in errors:
+                print(f"ERROR {e}")
+            return 1 if errors else 0
         if args.command == "status":
             head = git(root, "rev-parse", "HEAD", check=False)
             sys.stdout.write(report.status(fleet, _roots(fleet, root, args.root), head))

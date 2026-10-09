@@ -47,26 +47,36 @@ def clone_url(member: Member) -> str:
     return f"https://github.com/{member.github}.git"
 
 
-def fetch(fleet: Fleet, root: Path, only: list[str] | None = None) -> list[str]:
-    """Clone or refresh each checked member under cache/members/. Returns one line per member."""
-    lines = []
+def fetch(fleet: Fleet, root: Path, only: list[str] | None = None) -> tuple[list[str], list[str]]:
+    """Clone or refresh each fetched member under cache/members/. Returns a line per member fetched,
+    and an error per member that could not be: one failure does not stop the rest."""
+    lines, errors = [], []
     for m in fleet.fetched():
         if only and m.id not in only:
             continue
-        dest = root / MEMBERS_CACHE / m.id
-        if (dest / ".git").exists():
-            git(dest, "fetch", "--quiet", "--prune", "origin")
-            head = git(dest, "symbolic-ref", "--short", "refs/remotes/origin/HEAD", check=False)
-            git(dest, "reset", "--quiet", "--hard", head or "origin/main")
-            lines.append(f"{m.id}: updated to {git(dest, 'rev-parse', '--short', 'HEAD')}")
-        else:
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            # A full clone: links pin a member's commit, and checking one reads
-            # every record at that commit. A blobless clone would fetch each
-            # record file in a request of its own.
-            git(root, "clone", "--quiet", clone_url(m), str(dest))
-            lines.append(f"{m.id}: cloned at {git(dest, 'rev-parse', '--short', 'HEAD')}")
-    return lines
+        try:
+            lines.append(_fetch_one(m, root / MEMBERS_CACHE / m.id, root))
+        except MemberError as exc:
+            errors.append(f"{m.id}: could not fetch {m.github}: {exc}")
+    return lines, errors
+
+
+def _fetch_one(m: Member, dest: Path, root: Path) -> str:
+    if (dest / ".git").exists():
+        # fleet.yaml may have moved the member to another repository since the clone.
+        if not same_repository(git(dest, "remote", "get-url", "origin", check=False), m.github):
+            git(dest, "remote", "set-url", "origin", clone_url(m))
+        git(dest, "fetch", "--quiet", "--prune", "origin")
+        git(dest, "remote", "set-head", "origin", "--auto", check=False)
+        head = git(dest, "symbolic-ref", "--short", "refs/remotes/origin/HEAD", check=False)
+        git(dest, "reset", "--quiet", "--hard", head or "origin/main")
+        return f"{m.id}: updated to {git(dest, 'rev-parse', '--short', 'HEAD')}"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    # A full clone: links pin a member's commit, and checking one reads
+    # every record at that commit. A blobless clone would fetch each
+    # record file in a request of its own.
+    git(root, "clone", "--quiet", clone_url(m), str(dest))
+    return f"{m.id}: cloned at {git(dest, 'rev-parse', '--short', 'HEAD')}"
 
 
 def inside(mroot: Path, path: Path) -> bool:
