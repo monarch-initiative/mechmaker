@@ -259,7 +259,10 @@ def notes_in_tree(repo: Path) -> dict[str, dict]:
 
 
 def applies(note: dict, answers: dict) -> bool:
-    """A note with `when: <answer>` applies only where that answer is set and not false or empty."""
+    """A note is for one kind of repository (`kind:`, a Mech unless it says coordinator). With
+    `when: <answer>`, it applies only where that answer is set and not false or empty."""
+    if note.get("kind", "mech") != answers.get("kind", "mech"):
+        return False
     when = note.get("when")
     return not when or bool(answers.get(str(when)))
 

@@ -60,9 +60,10 @@ not copy it into the Mech.
   identity answers) follow the Coordinator's `fleet.yaml`; do not change
   them here.
 - **A Coordinator** (its answers set `kind: coordinator`) syncs the same
-  way, from its own folder. The script follows `coordinator/` for it. A
-  change to the canon then needs a release to every member: the
-  Coordinator's `change-canon` skill.
+  way, from its own folder. The script follows `coordinator/` for it, and
+  shows it only the upgrade notes marked `kind: coordinator`. A change to
+  the canon then needs a release to every member: the Coordinator's
+  `change-canon` skill.
 
 ## 1. Check
 

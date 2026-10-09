@@ -10,6 +10,9 @@
 #   pr:      the pull request that made the change. The note reaches a Mech
 #            when that pull request is among its updates. Without pr, it
 #            reaches a Mech when the note is new since the Mech's commit.
+#   kind:    optional: coordinator for a note to Fleet Coordinators. A note
+#            without one is for Mechs; a Coordinator never sees it, though
+#            most template changes touch copier.yml, which it follows too.
 #   when:    optional: an answer that must be set (not false or empty)
 #   summary: one line, for the person choosing updates
 #   action:  what the agent does, step by step. Say how to tell whether the
