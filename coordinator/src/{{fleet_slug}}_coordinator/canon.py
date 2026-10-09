@@ -26,7 +26,7 @@ from pathlib import Path
 import yaml
 
 from .manifest import Fleet, Member
-from .members import git, identity_errors
+from .members import git, identity_errors, inside, readable
 from .paths import CANON_MANIFEST, PIN_FILE
 
 FULL_SHA = re.compile(r"^[0-9a-f]{40}$")
@@ -152,6 +152,8 @@ def read_pin(mroot: Path) -> dict | None:
     path = mroot / PIN_FILE
     if not path.exists():
         return None
+    if not readable(mroot, path):
+        raise CanonError(f"{PIN_FILE} in {mroot} is not a file in that checkout")
     data = yaml.safe_load(path.read_text())
     return data if isinstance(data, dict) else {}
 
@@ -192,6 +194,11 @@ def sync(root: Path, fleet: Fleet, member: Member, mroot: Path, ref: str | None 
         raise CanonError(f"at {sha[:12]} the manifest's sha256 does not match {', '.join(bad)}")
     plan = []
     writes: list[tuple[Path, bytes]] = []
+    outside = [str(p) for p in [mroot / a.target_for(member) for a in arts] + [mroot / PIN_FILE]
+               if not inside(mroot, p) or (p.exists() and not p.is_file())]
+    if outside:
+        raise CanonError(f"{member.id}: will not write {', '.join(outside)}: not a file within {mroot}. "
+                         "Check its package_path in fleet.yaml, and the checkout for symlinks.")
     for art in arts:
         target = mroot / art.target_for(member)
         same = target.exists() and target.read_bytes() == data[art.id]
@@ -225,7 +232,11 @@ def audit(root: Path, fleet: Fleet, roots: dict[str, Path]) -> tuple[list[str], 
         if ident:
             errors += [f"{who}: {e}" for e in ident]
             continue
-        pin = read_pin(mroot)
+        try:
+            pin = read_pin(mroot)
+        except CanonError as exc:
+            errors.append(f"{who}: {exc}")
+            continue
         if pin is None:
             errors.append(f"{who}: no {PIN_FILE}. Run `fleet sync {who} --root <its checkout>`.")
             continue
@@ -248,6 +259,9 @@ def audit(root: Path, fleet: Fleet, roots: dict[str, Path]) -> tuple[list[str], 
             target = mroot / art.target_for(member)
             if not target.exists():
                 errors.append(f"{who}: {art.target_for(member)} is missing")
+                continue
+            if not readable(mroot, target):
+                errors.append(f"{who}: {art.target_for(member)} is not a file within the checkout")
                 continue
             got = sha256(target.read_bytes())
             if got != art.sha256:

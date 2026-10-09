@@ -117,3 +117,22 @@ def test_a_planned_member_can_be_synced(coordinator, fleet, make_member):
     planned = type(member)(**{**member.__dict__, "status": "planned"})
     canon.sync(coordinator, fleet, planned, root, apply=True)
     assert (root / PIN_FILE).exists()
+
+
+def test_sync_will_not_write_through_a_symlink_out_of_the_member(coordinator, fleet, make_member, tmp_path):
+    root = make_member("alphamech")
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    (root / "fleet").symlink_to(elsewhere)
+    with pytest.raises(canon.CanonError, match="will not write"):
+        canon.sync(coordinator, fleet, fleet.members["alphamech"], root, apply=True)
+    assert list(elsewhere.iterdir()) == []
+
+
+def test_audit_will_not_read_a_canon_file_linked_out_of_the_member(coordinator, fleet, make_member):
+    roots = synced(coordinator, fleet, make_member)
+    path = roots["alphamech"] / "src" / "alphamech" / "schema" / "history.yaml"
+    path.unlink()
+    path.symlink_to("/dev/zero")
+    errors, _ = canon.audit(coordinator, fleet, roots)
+    assert any("not a file within the checkout" in e for e in errors)

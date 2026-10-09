@@ -143,9 +143,14 @@ slots:
     description: The Mech's record class, as in its record_class answer.
   records_dir:
     required: true
-    description: The Mech's records folder, as in its records_dir answer.
+    pattern: "^[A-Za-z0-9_-][A-Za-z0-9_.-]*(/[A-Za-z0-9_-][A-Za-z0-9_.-]*)*$"
+    description: >-
+      The Mech's records folder, as in its records_dir answer: a path within
+      the repository, with no leading "/", no trailing "/", and no "." or ".."
   package_path:
-    description: Where the Mech's package lives. Default src/<id>.
+    pattern: "^[A-Za-z0-9_-][A-Za-z0-9_.-]*(/[A-Za-z0-9_-][A-Za-z0-9_.-]*)*$"
+    description: >-
+      Where the Mech's package lives, within its repository. Default src/<id>.
   uri:
     description: URI expansion of the Mech's prefix. Default https://w3id.org/<owner>/<id>/.
   identity_prefix:

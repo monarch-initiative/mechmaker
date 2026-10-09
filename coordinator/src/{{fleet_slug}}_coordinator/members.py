@@ -69,9 +69,20 @@ def fetch(fleet: Fleet, root: Path, only: list[str] | None = None) -> list[str]:
     return lines
 
 
+def inside(mroot: Path, path: Path) -> bool:
+    """Is path within mroot once symlinks are followed? Anyone can push a symlink to a member's
+    repository: one could aim a sync's write at a file elsewhere, or the audit's read at /dev/zero."""
+    return path.resolve().is_relative_to(mroot.resolve())
+
+
+def readable(mroot: Path, path: Path) -> bool:
+    """A regular file within mroot."""
+    return path.is_file() and inside(mroot, path)
+
+
 def read_answers(mroot: Path) -> dict:
     path = mroot / ANSWERS_FILE
-    if not path.exists():
+    if not readable(mroot, path):
         return {}
     data = yaml.safe_load(path.read_text())
     return data if isinstance(data, dict) else {}
@@ -102,7 +113,9 @@ def identity_errors(member: Member, mroot: Path) -> list[str]:
 
 def record_files(mroot: Path, records_dir: str) -> list[Path]:
     base = mroot / records_dir
-    return sorted(base.rglob("*.yaml")) if base.is_dir() else []
+    if not (base.is_dir() and inside(mroot, base)):
+        return []
+    return sorted(p for p in base.rglob("*.yaml") if readable(mroot, p))
 
 
 def iter_records(mroot: Path, records_dir: str) -> Iterator[tuple[str, dict]]:

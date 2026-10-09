@@ -95,3 +95,14 @@ def test_a_name_the_member_schema_already_has_is_refused(tmp_path, change, messa
     data["relationships"]["alphamech-betas"].update(change)
     with pytest.raises(FleetError, match=message):
         load(write(tmp_path, data))
+
+
+@pytest.mark.parametrize("field,value", [
+    ("package_path", "../outside"), ("package_path", "/etc"), ("records_dir", "data/../../x"),
+    ("records_dir", "data/alphas/"), ("records_dir", "./data"),
+])
+def test_a_path_out_of_the_member_is_refused(tmp_path, field, value):
+    data = copy.deepcopy(FLEET)
+    data["members"]["alphamech"][field] = value
+    with pytest.raises(FleetError):
+        load(write(tmp_path, data))
