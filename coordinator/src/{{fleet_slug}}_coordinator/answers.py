@@ -84,10 +84,11 @@ def disagreements(fleet: Fleet, member: Member, mroot: Path) -> list[str]:
         return [f"{member.id}: no .copier-answers.yml; was it made with mechmaker?"]
     want = member_answers(fleet, member)
     out = []
+    # fleet.yaml gives identity_prefix only when the member's records are keyed by an
+    # ontology; when it gives none, the member's answer must be empty too.
+    want.setdefault("identity_prefix", "")
     for key, value in want.items():
-        if key == "identity_prefix" and not value:
-            continue
-        got = have.get(key, [] if key == "fleet_links" else None)
+        got = have.get(key, [] if key == "fleet_links" else "" if key == "identity_prefix" else None)
         if _norm(got) != _norm(value):
             if key == "fleet_links":
                 out.append(f"{member.id}: its fleet_links differ from fleet.yaml's relationships. "

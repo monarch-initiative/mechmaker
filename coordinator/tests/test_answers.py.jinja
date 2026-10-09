@@ -42,3 +42,13 @@ def test_drift_is_reported(fleet, make_member):
     found = answers.disagreements(fleet, fleet.members["alphamech"], root)
     assert any("record_class" in f for f in found)
     assert any("fleet_links" in f for f in found)
+
+
+def test_an_identity_prefix_fleet_yaml_lacks_is_reported(fleet, make_member):
+    root = make_member("alphamech")
+    data = read_answers(root)
+    data["identity_prefix"] = "CHEBI"
+    write_yaml(root / ".copier-answers.yml", data)
+    commit(root, "drift")
+    found = answers.disagreements(fleet, fleet.members["alphamech"], root)
+    assert found == ["alphamech: answer identity_prefix is 'CHEBI'; fleet.yaml says ''"]
