@@ -54,9 +54,9 @@ not copy it into the Mech.
   `git switch -c sync-mechmaker`.
 - **A Fleet member** (its answers set `fleet_name`) takes its shared schema
   modules and `fleet/pin.yaml` from its Coordinator, not from mechmaker: an
-  update leaves them alone, and a plan that shows them changed is
-  mechmaker's newer canon, which reaches the member through the
-  Coordinator's `change-canon`. Its fleet answers (`fleet_links` and the
+  update leaves them alone, and the plan lists them under "Left alone" when
+  mechmaker's newer canon changed them. That canon reaches the member
+  through the Coordinator's `change-canon`. Its fleet answers (`fleet_links` and the
   identity answers) follow the Coordinator's `fleet.yaml`; do not change
   them here.
 - **A Coordinator** (its answers set `kind: coordinator`) syncs the same

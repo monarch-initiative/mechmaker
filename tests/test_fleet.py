@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import re
 import shutil
@@ -69,7 +70,7 @@ def test_coordinator_answers_hold_no_mech_questions(coordinator):
 def template_snapshot(dest: Path) -> Path:
     """The template as it is in the working tree, committed, for a test that runs `copier update`."""
     dest.mkdir(parents=True)
-    for name in ("copier.yml", "template", "coordinator"):
+    for name in ("copier.yml", "template", "coordinator", "upgrade-notes.yml"):
         src = ROOT / name
         if src.is_dir():
             shutil.copytree(src, dest / name, symlinks=True)
@@ -520,3 +521,22 @@ def test_sync_mech_follows_the_coordinator_folder_for_a_coordinator():
     for path in paths:
         assert (ROOT / path).exists(), path
     assert sync_mech.template_paths({"mech_slug": "x"}) == sync_mech.TEMPLATE_PATHS
+
+
+def test_sync_mech_leaves_a_members_canon_to_its_coordinator(tmp_path):
+    """mechmaker's newer canon reaches a member through its Coordinator, so the plan does not offer it."""
+    template = template_snapshot(tmp_path / "template")
+    dest = tmp_path / "m"
+    copier.run_copy(str(template), str(dest), data=SCENARIOS["fleet-member"], defaults=True, quiet=True)
+    run(dest, "git", "init", "-q", "-b", "main", check=True)
+    commit(dest, "a member")
+    shared = template / "template" / "src" / "{{mech_slug}}" / "schema" / "mech_shared.yaml"
+    shared.write_text(shared.read_text() + "# a newer canon\n")
+    report = template / "template" / "src" / "{{mech_slug}}" / "report.py"
+    report.write_text(report.read_text() + "# a newer report\n")
+    commit(template, "A newer canon and report")
+    out = run(ROOT, sys.executable, str(ROOT / "skills" / "sync-mech" / "scripts" / "sync_mech.py"),
+              "plan", str(dest), "--json")
+    plan = json.loads(out.stdout)
+    assert [f["path"] for f in plan["files"]] == ["src/alphafleetmembermech/report.py"]
+    assert plan["coordinator_owned"] == ["src/alphafleetmembermech/schema/mech_shared.yaml"]
