@@ -117,6 +117,10 @@ def test_text_changed_after_the_label_is_withheld():
     assert queue.withheld(stranger, relabelled, "2026-10-03T00:00:00Z") == {}
     assert set(queue.withheld(stranger, [labelled("2026-10-09T00:00:00Z", "low_effort")], None)) == {
         "title", "body"}
+    # A label a bot adds says nobody read it.
+    by_bot = {**labelled("2026-10-05T00:00:00Z"), "actor": {"login": "github-actions[bot]", "type": "Bot"}}
+    assert set(queue.withheld(stranger, [by_bot], None)) == {"title", "body"}
+    assert set(queue.withheld(stranger, renamed + [by_bot], None)) == {"title"}
     # A writer's own text is theirs to change.
     assert queue.withheld(issue(), [], "2026-10-03T00:00:00Z") == {}
 

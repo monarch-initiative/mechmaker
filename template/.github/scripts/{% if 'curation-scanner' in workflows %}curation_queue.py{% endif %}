@@ -19,7 +19,7 @@ App of its own: a `github-actions[bot]` review that approves, requests
 changes or carries the review marker is kept, with its inline comments.
 
 A person puts the `curation` label on an item after reading it (triage adds
-it only for authors with write access). When the author cannot write, a
+it only for authors with write access, and a label a bot adds does not count). When the author cannot write, a
 title or body changed after the latest `curation` label is withheld: nobody
 has read the new text. Adding the label again accepts it.
 """
@@ -85,8 +85,11 @@ def withheld(item: dict, events: list[dict], edited_at: str | None) -> dict[str,
     """The title and body a person has not read: changed after the latest `curation` label."""
     if item.get("author_association") in WRITERS:
         return {}
+    # Only a person's label says someone read it: a bot (triage, an App, another
+    # workflow) adds labels without reading.
     labelled = [e.get("created_at", "") for e in events
-                if e.get("event") == "labeled" and (e.get("label") or {}).get("name") == LABEL]
+                if e.get("event") == "labeled" and (e.get("label") or {}).get("name") == LABEL
+                and (e.get("actor") or {}).get("type") != "Bot"]
     if not labelled:
         why = f"withheld: the `{LABEL}` label was not found, so nobody is known to have read it"
         return {"title": why, "body": why}
