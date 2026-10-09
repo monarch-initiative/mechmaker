@@ -1,57 +1,180 @@
 # The DaTMech domain model
 
 This file is the design record for what DaTMech knows. mechmaker
-wrote the skeleton. mechmaker's `design-mech-schema` skill fills it in, and every
-later schema change updates it. Sections marked TODO are not done.
+wrote the skeleton; the `design-mech-schema` skill filled it in from the
+domain survey (mechmaker's `example/dat-survey-brief.md`). Every later
+schema change updates it.
 
 ## What a record is
 
-One record is one ZIP code area.
+One record is one US ZIP code area: where its water drains, where its
+drinking water and wastewater are treated, and what has gone wrong with
+its water.
 
-TODO: Define a ZIP code area in two or three sentences. Say what counts
-as one and what does not. Name the nearest things that are *not* records
-here, and where they go instead (a field on a record, another Mech, nowhere).
+A ZIP code is a Postal Service delivery route, not an area. The area a
+record means is the Census Bureau's ZIP Code Tabulation Area (ZCTA) for
+that code, 2020 vintage. A ZIP code with no ZCTA (post office boxes, a
+single large building) is not a record: it has no area to drain.
+
+Not records here:
+
+| Candidate | Where it goes |
+|---|---|
+| A watershed | `watersheds`, on each ZIP area it drains |
+| A treatment plant | `treatment_facilities`, on each ZIP area it serves |
+| An incident, such as the Flint water crisis | `incidents`, on each ZIP area it touched |
+| A city or county | Nowhere. Cities span several ZIP areas; the ZIP area is the unit |
 
 ## Identity
 
-No ontology keys records. A record takes a stable identifier from a source
-when one names it uniquely, else a minted id, `datmech:<uuid>`
-(`just new-record` mints one when given no `--id`).
+No ontology names ZIP areas. The id is minted from the ZIP code itself:
+`datmech:<ZIP>`, for example `datmech:48502`. The id is the ZIP code,
+and no other field repeats it.
 
 An id never changes when a record is renamed, and no two records share one.
+A ZIP code the Postal Service retires keeps its record, `DEPRECATED`.
 
-The filename stem is derived from `name`: lowercase, runs of non-alphanumerics
-become one underscore.
+`name` is the ZIP code and the place the Postal Service names for it:
+`48502 Flint, Michigan`. The filename stem is derived from `name`:
+`48502_flint_michigan.yaml`.
 
-TODO: State the granularity rule. When are two candidates one record, and
-when are they two? When is a subtype its own record?
+Granularity: one ZIP code, one record. Two ZIP codes in one city are two
+records, and share their watersheds, plants and incidents by repeating
+them. When records start repeating the same incident many times, that is
+the signal to give incidents their own Mech (see Related Mechs).
+
+## Priority
+
+Most ZIP areas have no recorded incident, and a record without one says
+little a database lookup would not. **A ZIP area is curated when an
+incident touched its water**, and `curation_priority` says how urgently:
+
+| Value | Rule |
+|---|---|
+| `HIGH` | At least one incident with an advisory to the public (boil water, do not drink, bottled water) or a declared emergency |
+| `MEDIUM` | At least one incident, none with an advisory |
+| `LOW` | Searched (see `curation/record_queue.tsv`), no incident found |
+| `UNASSESSED` | Not searched yet |
+
+`validate.py` enforces the rule against `incidents`: a record with an
+advisory must be `HIGH`, a record with incidents cannot be `LOW` or
+`UNASSESSED`, and a `LOW` record has no incidents. `curation/record_queue.tsv`
+lists candidate ZIP areas, each with the incident that puts it in the
+queue, so the next record curated is the one with the most to say.
 
 ## Sections
 
-TODO: For each section of a record, give its purpose, its ontology, and one
-worked example. Start from the scaffold below and cut what the domain does
-not need.
+### `zcta`: the area
 
-| Section | Ontology | Purpose |
-|---|---|---|
-| `chemical_entities` | CHEBI under `CHEBI:24431`, checked with `ols:chebi` | TODO |
-| `organisms` | NCBITaxon under `NCBITaxon:1`, checked with `ols:ncbitaxon` | TODO |
-| `environments` | ENVO under `ENVO:01000254`, checked with `ols:envo` | TODO |
-| `evidence` | PMID, DOI | Record-level citations |
-| `discussions` | none | Open questions and knowledge gaps (mech_shared) |
-| `datasets` | accessions | Public datasets (mech_shared) |
+The Census ZCTA for the ZIP code: vintage, interior point, land and water
+area. One. Filled from Census TIGERweb (`PUMA_TAD_TAZ_UGA_ZCTA/MapServer/1`,
+queried by `ZCTA5`), quoted from the query's JSON.
+
+Example, 48502: vintage 2020, interior point 43.0146449, -83.6891591,
+1,185,564 m² of land, 17,992 m² of water.
+
+### `watersheds`: where the water drains
+
+The USGS hydrologic units (HUC) the area lies in. Many: the HUC12 at the
+ZCTA's interior point and its HUC8, and others the area crosses. Each
+`Watershed` is a drainage basin (`class_uri` ENVO:00000291, *drainage
+basin*). ENVO's *watershed* (ENVO:00000292) is the divide between basins,
+not the basin, so it is not used. Filled from the USGS Watershed Boundary
+Dataset (`hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer`,
+layer 4 for HUC8, layer 6 for HUC12), queried at the interior point.
+
+Each watershed links to the Water Quality Portal's monitoring locations in
+it (`water_quality_portal`), by HUC: the place to look for measurements.
+`water_bodies` names the main rivers and lakes, bound to ENVO under
+`ENVO:00000063` (*water body*).
+
+Example, 48502: HUC12 `040802040410` Gilkey Creek-Flint River, in HUC8
+`04080204` Flint; water body Flint River, ENVO:00000022 *river*.
+
+### `treatment_facilities`: where the water is treated
+
+The plants that treat the area's drinking water and its wastewater. Many.
+`facility_type` binds ENVO under `ENVO:00003861` (*industrial building*):
+ENVO:03600004 *drinking water treatment plant* or ENVO:00002043
+*wastewater treatment plant*. A facility names its operator, its EPA
+identifier (`PWSID` for a public water system, NPDES permit for a
+discharger), its `service_status` (current, former, emergency backup), and
+its waters: `source_waters` for drinking water, with the EPA source type,
+and `receiving_waters` for wastewater, both water bodies under ENVO.
+
+A plant outside the ZIP area that serves it belongs here. A ZIP area on
+private wells with no public system has no drinking water facility; say so
+in a discussion.
+
+Example, 48502: the Flint Water Treatment Plant, a former primary source
+(2014 to 2015) now backup to water purchased from the Great Lakes Water
+Authority.
+
+### `incidents`: what went wrong
+
+Events that harmed, or threatened, the safety or quality of the area's
+water. Many. Each has a kind (contamination, treatment failure, spill,
+toxic bloom, outbreak, infrastructure failure), dates, a cause in prose,
+and the following, each bound where an ontology covers it:
+
+| Field | Ontology, root |
+|---|---|
+| `processes` | ENVO under `ENVO:02500000` (*environmental system process*), e.g. ENVO:02500039 *water pollution* |
+| `contaminants` | CHEBI under `CHEBI:24431` (*chemical entity*), e.g. CHEBI:25016 *lead atom* |
+| `organisms` | NCBITaxon under `NCBITaxon:1`, e.g. NCBITaxon:446 *Legionella pneumophila* |
+| `affected_waters` | ENVO under `ENVO:00000063` (*water body*) |
+| `advisories` | none: `AdvisoryKindEnum`, with who issued it, when, and how many people |
+
+Filled from Wikipedia first (its articles cite the primary reports), then
+from government reports, the literature, news and deep research. Every
+date and number is quoted.
+
+Example, 48502: the Flint water crisis, April 2014 to 2019, lead and
+Legionella; a state of emergency declared on January 5, 2016.
+
+### `curation_priority`
+
+See Priority.
+
+### `evidence`, `discussions`, `datasets`
+
+Record-level citations, open questions (mech_shared `Discussion`), and
+public datasets (mech_shared `Dataset`).
+
+## Evidence sources
+
+`evidence_source` says what kind of source a quote comes from:
+`GOVERNMENT_RECORD`, `GEOSPATIAL_DATASET`, `MONITORING_DATA`,
+`UTILITY_RECORD`, `ENCYCLOPEDIA`, `NEWS`, `PUBLICATION`, `OTHER`.
+
+References are PMIDs and DOIs for the literature, `WIKIPEDIA:<title>` for
+Wikipedia (fetched as plain text through Wikipedia's API; see
+`.linkml-reference-validator-sources.yaml`), and `url:` for everything else,
+including the Census and USGS queries.
 
 ## Sources
 
-TODO: What feeds curation: literature queries, databases, existing
-knowledge bases, ontologies. Each source goes in
-`curation/source_queue.tsv` with its license.
+Ranked in `curation/source_queue.tsv`: Census TIGERweb, the USGS
+Watershed Boundary Dataset, the Water Quality Portal
+(https://www.waterqualitydata.us/, beta at https://waterqualitydata.us/beta/),
+EPA ECHO and SDWIS, Wikipedia, government reports, the literature, news,
+and deep research reports (leads only, never cited).
 
 ## Out of scope
 
-TODO: What this Mech will not record, and why.
+- Water quality measurements themselves. The Water Quality Portal holds
+  them; records link to it by watershed.
+- Health outcomes of an incident beyond what the incident's sources say.
+  Lead poisoning and Legionnaires' disease are DisMech's.
+- Legal proceedings, except as a source of facts about the incident.
+- Places outside the United States: ZIP codes are American.
 
 ## Related Mechs
 
-TODO: Mechs whose records this one links to or overlaps with. See
-https://monarch-initiative.github.io/mechregistry/.
+- **HabitatMech** (ENVO): shares vocabulary for water bodies and
+  environmental materials.
+- **SOMAMech**: extracts environmental health papers; a paper about an
+  incident here may be one of its records.
+- **DisMech**: the disorders an incident can cause.
+
+None is linked by id yet.

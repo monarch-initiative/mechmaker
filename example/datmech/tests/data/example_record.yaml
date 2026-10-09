@@ -1,24 +1,86 @@
 # A schema-shaped example for the tests. It is not a curated record and
 # carries no citations. Real records live under data/zip_areas/.
-id: datmech:example
+id: datmech:00000
 name: Example ZIP code area
 description: A placeholder that exercises the record structure.
 status: DRAFT
-chemical_entities:
-  - preferred_term: "chemical entity"
-    term:
-      id: CHEBI:24431
-      label: "chemical entity"
-organisms:
-  - preferred_term: "root"
-    term:
-      id: NCBITaxon:1
-      label: "root"
-environments:
-  - preferred_term: "environmental system"
-    term:
-      id: ENVO:01000254
-      label: "environmental system"
+place_name: Example
+state: ZZ
+curation_priority: HIGH
+zcta:
+  vintage: 2020
+  interior_latitude: 43.0
+  interior_longitude: -83.0
+  land_area_m2: 1000000
+  water_area_m2: 10000
+watersheds:
+  - huc: "04080204"
+    name: Example subbasin
+    water_quality_portal: https://www.waterqualitydata.us/wqx3/Station/search?huc=04080204&mimeType=csv
+    water_bodies:
+      - preferred_term: Example River
+        term:
+          id: ENVO:00000022
+          label: river
+treatment_facilities:
+  - name: Example Water Treatment Plant
+    facility_type:
+      id: ENVO:03600004
+      label: drinking water treatment plant
+    operator: Example Water Authority
+    system_id: ZZ0000000
+    service_status: CURRENT
+    source_type: SURFACE_WATER
+    source_waters:
+      - preferred_term: Example Lake
+        term:
+          id: ENVO:00000020
+          label: lake
+  - name: Example Wastewater Treatment Plant
+    facility_type:
+      id: ENVO:00002043
+      label: wastewater treatment plant
+    system_id: ZZ0000001
+    service_status: CURRENT
+    receiving_waters:
+      - preferred_term: Example River
+        term:
+          id: ENVO:00000022
+          label: river
+incidents:
+  - name: Example contamination
+    incident_kind: CONTAMINATION
+    start_date: "2014-04"
+    end_date: "2015-10-16"
+    cause: A placeholder cause.
+    processes:
+      - preferred_term: water pollution
+        term:
+          id: ENVO:02500039
+          label: water pollution
+    contaminants:
+      - preferred_term: lead
+        term:
+          id: CHEBI:25016
+          label: lead atom
+    organisms:
+      - preferred_term: Legionella pneumophila
+        term:
+          id: NCBITaxon:446
+          label: Legionella pneumophila
+    affected_waters:
+      - preferred_term: Example River
+        term:
+          id: ENVO:00000022
+          label: river
+    affected_facilities:
+      - Example Water Treatment Plant
+    advisories:
+      - advisory_kind: BOIL_WATER
+        issued_by: Example City
+        start_date: "2014-08-14"
+        end_date: "2014-08-20"
+        population_affected: 1000
 discussions:
   - discussion_id: example-gap-1
     prompt: Which sources should seed this record?

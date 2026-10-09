@@ -50,6 +50,30 @@ def schema_errors(data: object, target_class: str = RECORD_CLASS, schema: Path =
     return [r.message for r in report.results if r.severity in (Severity.ERROR, Severity.FATAL)]
 
 
+def zip_area_errors(data: dict) -> list[str]:
+    """DaTMech's rules: curation_priority follows from incidents
+    (docs/DOMAIN.md, Priority), and an incident names only facilities the
+    record lists."""
+    errors: list[str] = []
+    incidents = [i for i in data.get("incidents") or [] if isinstance(i, dict)]
+    advised = any(i.get("advisories") for i in incidents)
+    priority = data.get("curation_priority")
+    if advised and priority != "HIGH":
+        errors.append(f"curation_priority is {priority}, but an incident has an advisory, so it is HIGH")
+    elif incidents and not advised and priority != "MEDIUM":
+        errors.append(f"curation_priority is {priority}, but incidents without an advisory make it MEDIUM")
+    elif not incidents and priority in ("HIGH", "MEDIUM"):
+        errors.append(f"curation_priority is {priority} with no incidents; LOW if searched, else UNASSESSED")
+
+    facilities = {f.get("name") for f in data.get("treatment_facilities") or [] if isinstance(f, dict)}
+    for incident in incidents:
+        for name in incident.get("affected_facilities") or []:
+            if name not in facilities:
+                errors.append(f"incident {incident.get('name')!r} names facility {name!r}, "
+                              "which is not in treatment_facilities")
+    return errors
+
+
 def rule_errors(data: dict, path: Path | None = None) -> list[str]:
     """Rules the schema cannot express. Add domain rules here."""
     errors: list[str] = []
@@ -85,6 +109,8 @@ def rule_errors(data: dict, path: Path | None = None) -> list[str]:
             target = edge.get("target")
             if target not in known:
                 errors.append(f"edge {node.get('name')!r} -> {target!r}: no node has that name")
+
+    errors.extend(zip_area_errors(data))
 
     if data.get("status") == "REVIEWED":
         events = data.get("curation_history") or []
