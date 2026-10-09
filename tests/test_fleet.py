@@ -380,21 +380,55 @@ def test_clashing_fleet_links_rejected(tmp_path, second, message):
 
 
 def test_an_update_leaves_the_coordinators_files(tmp_path):
-    """In a member, the canon and the pin belong to the Coordinator: a later render skips them."""
-    dest = render(tmp_path / "m", SCENARIOS["fleet-member"])
-    schema = dest / "src" / "alphafleetmembermech" / "schema"
-    for path in (dest / "fleet" / "pin.yaml", schema / "mech_shared.yaml", schema / "history.yaml"):
+    """In a member, the canon and the pin belong to the Coordinator: `copier update` leaves them,
+    while a Mech outside any Fleet takes mechmaker's newer canon."""
+    template = template_snapshot(tmp_path / "template")
+    made = {}
+    for name in ("fleet-member", "minimal"):
+        dest = made[name] = tmp_path / name
+        copier.run_copy(str(template), str(dest), data=SCENARIOS[name], defaults=True, quiet=True)
+        run(dest, "git", "init", "-q", "-b", "main", check=True)
+        commit(dest, "made")
+    schema = made["fleet-member"] / "src" / "alphafleetmembermech" / "schema"
+    synced = [made["fleet-member"] / "fleet" / "pin.yaml", schema / "mech_shared.yaml",
+              schema / "history.yaml"]
+    for path in synced:
         path.write_text(path.read_text() + "# from the Coordinator\n")
-    copier.run_copy(str(ROOT), str(dest), data=SCENARIOS["fleet-member"], defaults=True, unsafe=True,
-                    quiet=True, vcs_ref="HEAD", overwrite=True)
-    for path in (dest / "fleet" / "pin.yaml", schema / "mech_shared.yaml", schema / "history.yaml"):
+    commit(made["fleet-member"], "synced")
+    shared = template / "template" / "src" / "{{mech_slug}}" / "schema" / "mech_shared.yaml"
+    shared.write_text(shared.read_text() + "# a newer canon\n")
+    commit(template, "a newer canon")
+    for dest in made.values():
+        copier.run_update(str(dest), defaults=True, skip_answered=True, quiet=True, overwrite=True)
+    for path in synced:
         assert path.read_text().endswith("# from the Coordinator\n"), path
-    other = render(tmp_path / "o", SCENARIOS["minimal"])
-    shared = other / "src" / "minimalmech" / "schema" / "mech_shared.yaml"
-    shared.write_text("# edited\n")
-    copier.run_copy(str(ROOT), str(other), data=SCENARIOS["minimal"], defaults=True, unsafe=True, quiet=True,
-                    vcs_ref="HEAD", overwrite=True)
-    assert shared.read_bytes() == (CANON / "mech_shared.yaml").read_bytes()
+    other = made["minimal"] / "src" / "minimalmech" / "schema" / "mech_shared.yaml"
+    assert other.read_text().endswith("# a newer canon\n")
+
+
+def test_sync_mech_plans_a_coordinators_update(tmp_path):
+    """A Coordinator follows coordinator/ and the canon it links to, not the Mech template."""
+    template = template_snapshot(tmp_path / "template")
+    dest = tmp_path / "coordinator"
+    copier.run_copy(str(template), str(dest), data=COORDINATOR, defaults=True, quiet=True)
+    run(dest, "git", "init", "-q", "-b", "main", check=True)
+    commit(dest, "made")
+    script = str(ROOT / "skills" / "sync-mech" / "scripts" / "sync_mech.py")
+
+    def plan() -> dict:
+        return json.loads(run(ROOT, sys.executable, script, "plan", str(dest), "--json").stdout)
+
+    report = template / "template" / "src" / "{{mech_slug}}" / "report.py"
+    report.write_text(report.read_text() + "# Mechs only\n")
+    commit(template, "A change for Mechs only")
+    assert plan()["files"] == []
+    readme = template / "coordinator" / "README.md.jinja"
+    readme.write_text(readme.read_text() + "\nA new line.\n")
+    shared = template / "template" / "src" / "{{mech_slug}}" / "schema" / "mech_shared.yaml"
+    shared.write_text(shared.read_text() + "# a newer canon\n")
+    commit(template, "A change for Coordinators")
+    assert {(f["path"], f["status"]) for f in plan()["files"]} == {
+        ("README.md", "take"), ("canon/schema/mech_shared.yaml", "take")}
 
 
 # ---------------------------------------------------------------- the two together

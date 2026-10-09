@@ -1,5 +1,6 @@
 """The `fleet` command, as the justfile and the audit workflow run it."""
 
+import pytest
 from conftest import git
 
 from {{ fleet_slug }}_coordinator.cli import main
@@ -32,3 +33,29 @@ def test_status_lists_every_member(coordinator, make_member, capsys):
     assert code == 0
     assert git(alpha, "rev-parse", "--short=12", "HEAD") in out
     assert "| BetaMech | active | not fetched |" in out
+
+
+def test_validate_and_answers(coordinator, capsys):
+    assert run(coordinator, capsys, "validate") == (0, "fleet.yaml: 2 member(s), 1 relationship(s). Valid.\n")
+    code, out = run(coordinator, capsys, "answers", "alphamech")
+    assert code == 0 and out.startswith("# AlphaMech's answers") and "fleet_links:" in out
+
+
+@pytest.mark.parametrize("args,message", [
+    (["answers", "gammamech"], "gammamech is not a member"),
+    (["audit", "--root", "gammamech=/tmp"], "--root names gammamech, not in fleet.yaml"),
+    (["audit", "--root", "alphamech"], "--root takes id=PATH"),
+    (["fetch", "gammamech"], "gammamech: not in fleet.yaml"),
+])
+def test_bad_arguments_are_refused_with_a_reason(coordinator, args, message):
+    with pytest.raises(SystemExit, match=message):
+        main(["--repo", str(coordinator), *args])
+
+
+def test_a_good_fleet_audits_clean_from_the_command_line(coordinator, fleet, make_member, capsys):
+    from test_canon import synced
+
+    roots = synced(coordinator, fleet, make_member)
+    code, out = run(coordinator, capsys, "audit", *[f"--root={k}={v}" for k, v in roots.items()])
+    assert code == 0, out
+    assert out.endswith("fleet audit: passed, 0 warning(s).\n")
