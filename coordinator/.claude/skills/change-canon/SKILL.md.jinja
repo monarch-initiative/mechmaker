@@ -19,9 +19,11 @@ member's pin to one new commit.
 On a branch here, either:
 
 - **edit a file under `canon/`** (or add one, with its manifest entry), or
-- **take mechmaker's**: `just update-template`. It brings mechmaker's new
-  `mech_shared.yaml` and `history.yaml` and their sha256s. Read the
-  mechmaker release notes for what changed.
+- **take mechmaker's**: follow mechmaker's `sync-mech` skill here. It shows
+  each mechmaker change, and brings mechmaker's new `mech_shared.yaml` and
+  `history.yaml` and their sha256s. (`just update-template` does the same
+  in one go, asking any new question at a terminal; it is for a person,
+  not an agent.)
 
 Then `just canon-refresh` (rewrites the sha256 of what you changed) and
 `just qc`. A change to `mech_shared.yaml` or `history.yaml` is a change to

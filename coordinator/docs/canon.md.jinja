@@ -30,8 +30,9 @@ of each copy.
 4. When every member has merged, `just fetch && just audit` passes again.
    Until then it reports the members on different pins.
 
-A change from mechmaker arrives the same way: `just update-template` here
-brings the new canon and its manifest, and steps 2 to 4 release it. Members
+A change from mechmaker arrives the same way: mechmaker's `sync-mech` skill
+(or `just update-template`) here brings the new canon and its manifest, and
+steps 2 to 4 release it. Members
 take canon files from this repository, not from mechmaker.
 
 To roll back, sync every member to an earlier commit with `--ref`.

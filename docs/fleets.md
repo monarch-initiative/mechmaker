@@ -110,8 +110,9 @@ warning.
 A change to a shared file is made once, in the Coordinator, merged, then
 synced into every member (the Coordinator's `change-canon` skill). In a
 member, an update from mechmaker leaves the canon files and the pin alone.
-The Coordinator itself takes a newer canon from mechmaker with
-`just update-template`, and releases it the same way.
+The Coordinator itself takes a newer canon from mechmaker with the
+`sync-mech` skill (or, for a person at a terminal, `just update-template`),
+and releases it the same way.
 
 ## What the Coordinator contains
 

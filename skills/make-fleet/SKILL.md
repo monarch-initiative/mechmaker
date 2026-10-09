@@ -133,7 +133,7 @@ header comment shows the shape; the Coordinator's `onboard-mech` and
 
 ```bash
 just validate        # fleet.yaml against the Fleet model and its rules
-just docs-serve      # the members and the relationship diagram
+just docs-build      # the site, with the members and the relationship diagram
 ```
 
 Commit.
@@ -178,6 +178,12 @@ just sync <member> <path to the member> --apply
 
 In the member, `just qc`, then commit `fleet/pin.yaml`. Then set the
 member's `status: active` in `fleet.yaml` and commit that.
+
+The sync takes the canon from the Coordinator's `origin/main`, so it needs
+step 4. If the person chose not to publish yet, add `--unpublished` to both
+commands: they then take the Coordinator's local `HEAD`, and each member's
+`just check-fleet --online` fails until the Coordinator is on GitHub and
+the members are synced again.
 
 ## 7. Link and audit
 
