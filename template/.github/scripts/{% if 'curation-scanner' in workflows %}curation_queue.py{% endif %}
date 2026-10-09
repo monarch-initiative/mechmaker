@@ -39,6 +39,7 @@ ACTIONS_BOT = "github-actions[bot]"
 REVIEW_MARKER = "<!-- mech-review:v1 -->"  # review-publish.js ends every review with it
 LABEL = "curation"
 LIMIT = 50
+UNKNOWN = "unknown"  # last_edited could not be read
 
 EDITED_QUERY = """query($owner: String!, $name: String!, $n: Int!) {
   repository(owner: $owner, name: $name) {
@@ -58,11 +59,15 @@ def gh_api(path: str, *fields: str, paginate: bool = False):
 
 
 def last_edited(repo: str, n: int) -> str | None:
-    """When the item's body was last edited, or None if never. REST does not say."""
+    """When the item's body was last edited, None if never, or UNKNOWN if GitHub did not say (a
+    rate limit, an item moved): one item's failure withholds its body, not the whole queue."""
     owner, name = repo.split("/", 1)
     args = ["gh", "api", "graphql", "-f", f"query={EDITED_QUERY}",
             "-f", f"owner={owner}", "-f", f"name={name}", "-F", f"n={n}"]
-    out = json.loads(subprocess.run(args, capture_output=True, text=True, check=True).stdout)
+    try:
+        out = json.loads(subprocess.run(args, capture_output=True, text=True, check=True).stdout)
+    except (subprocess.CalledProcessError, json.JSONDecodeError):
+        return UNKNOWN
     item = ((out.get("data") or {}).get("repository") or {}).get("issueOrPullRequest") or {}
     return item.get("lastEditedAt")
 
@@ -100,7 +105,9 @@ def withheld(item: dict, events: list[dict], edited_at: str | None) -> dict[str,
     if renamed:
         late["title"] = (f"withheld: the title changed at {max(renamed)}, after the `{LABEL}` label "
                          f"at {last}. Adding the label again accepts it")
-    if edited_at and edited_at > last:
+    if edited_at == UNKNOWN:
+        late["body"] = "withheld: GitHub did not say when the body was last edited"
+    elif edited_at and edited_at > last:
         late["body"] = (f"withheld: the body was edited at {edited_at}, after the `{LABEL}` label "
                         f"at {last}. Adding the label again accepts it")
     return late

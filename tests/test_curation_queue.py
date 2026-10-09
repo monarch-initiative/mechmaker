@@ -117,6 +117,8 @@ def test_text_changed_after_the_label_is_withheld():
     assert queue.withheld(stranger, relabelled, "2026-10-03T00:00:00Z") == {}
     assert set(queue.withheld(stranger, [labelled("2026-10-09T00:00:00Z", "low_effort")], None)) == {
         "title", "body"}
+    # When GitHub does not say when the body was edited, it is withheld.
+    assert set(queue.withheld(stranger, events, queue.UNKNOWN)) == {"body"}
     # A label a bot adds says nobody read it.
     by_bot = {**labelled("2026-10-05T00:00:00Z"), "actor": {"login": "github-actions[bot]", "type": "Bot"}}
     assert set(queue.withheld(stranger, [by_bot], None)) == {"title", "body"}
@@ -180,3 +182,11 @@ def test_main_writes_the_queue(tmp_path, monkeypatch):
     assert "Push to main" not in index and "[#10](10.md) | issue | (title withheld)" in index
     assert out_file.read_text() == "count=3\n"
     assert any("q=repo:o/r is:open no:assignee label:curation label:low_effort" in a for a in calls[0])
+
+
+def test_a_failed_edit_lookup_withholds_one_body(monkeypatch):
+    def fail(args, **_):
+        raise subprocess.CalledProcessError(1, args, "", "rate limited")
+
+    monkeypatch.setattr(queue.subprocess, "run", fail)
+    assert queue.last_edited(REPO, 7) == queue.UNKNOWN
