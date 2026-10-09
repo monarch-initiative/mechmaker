@@ -18,18 +18,38 @@ repository: https://github.com/monarch-initiative/datmech
 schema_url: https://github.com/monarch-initiative/datmech/blob/main/src/datmech/schema/datmech.yaml
 domains:
   - environment
-record_type: a ZIP code area
-record_count: 0
+record_type: a US ZIP code area (its 2020 Census ZCTA)
+record_count: 3
 record_count_date: 2026-10-09
 record_identifier_policy: >-
-  Records take a stable identifier from a source when one names them
-  uniquely, otherwise a minted datmech:<uuid> CURIE.
+  Records are keyed by datmech: and the five-digit ZIP code, e.g.
+  datmech:48502.
 identifier_prefix: datmech
 ontologies:
   - CHEBI
   - NCBITaxon
   - ENVO
 data_sources:
+  - name: Census TIGERweb, 2020 ZIP Code Tabulation Areas
+    url: https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/PUMA_TAD_TAZ_UGA_ZCTA/MapServer/1
+    relation_type: prov:hadPrimarySource
+    description: The area each record means.
+  - name: USGS Watershed Boundary Dataset
+    url: https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer
+    relation_type: prov:hadPrimarySource
+    description: The HUC8 and HUC12 watersheds of each area.
+  - name: Water Quality Portal
+    url: https://www.waterqualitydata.us/
+    relation_type: prov:used
+    description: Each watershed links to its monitoring locations.
+  - name: EPA SDWIS (Envirofacts) and ECHO
+    url: https://data.epa.gov/efservice/
+    relation_type: prov:hadPrimarySource
+    description: Public water systems, their plants and sellers, and wastewater permits.
+  - name: Wikipedia
+    url: https://en.wikipedia.org/
+    relation_type: prov:hadPrimarySource
+    description: First accounts of incidents, quoted from the article's plain text.
   - name: PubMed
     url: https://pubmed.ncbi.nlm.nih.gov/
     relation_type: prov:hadPrimarySource
@@ -104,7 +124,9 @@ products:
 cross_references:
   - target: dismech
     relation: follows_pattern_of
+  - target: habitatmech
+    relation: shares_vocabulary_with
 creation_date: 2026-10-09
 last_modified_date: 2026-10-09
 ---
-DaTMech was created with mechmaker. It holds no records yet.
+DaTMech was created with mechmaker on 2026-10-09 as an example of a Mech with no single ontology to key its records and no list of entries to convert. It holds three ZIP code areas (Flint, Michigan; Toledo, Ohio; East Palestine, Ohio), each PROPOSED and none yet reviewed by a person.
