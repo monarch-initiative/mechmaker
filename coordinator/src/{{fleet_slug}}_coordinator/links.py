@@ -4,7 +4,7 @@ A link is any object in a record with `corpus` and `identifier`: the shape of
 CrossCorpusLink in mech_shared. For each one, in each checked member:
 
   - `corpus` names a member, and fleet.yaml declares a relationship from this
-    member to it (through the slot that holds the link, when there are several);
+    member to it through the slot that holds the link;
   - `relation`, and `basis` when the relationship lists bases, are allowed values;
   - `source_version` is a full commit of the target member;
   - the target record exists at that commit, and on the target's main.
@@ -52,12 +52,12 @@ def _relationship(fleet: Fleet, member: Member, target: Member, slot: str) -> Re
     options = [r for r in fleet.links_from(member.id) if r.object == target.id]
     if not options:
         return f"fleet.yaml declares no relationship from {member.id} to {target.id}"
-    if len(options) == 1:
-        return options[0]
     match = [r for r in options if r.slot == slot]
     if len(match) == 1:
         return match[0]
-    return f"{member.id} has {len(options)} relationships to {target.id}, and none uses the slot {slot!r}"
+    slots = ", ".join(sorted(r.slot for r in options))
+    return (f"held in {slot!r}, but links from {member.id} to {target.id} go through "
+            f"{'the slot' if len(options) == 1 else 'one of the slots'} {slots}")
 
 
 class _Ids:

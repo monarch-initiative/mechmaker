@@ -85,3 +85,12 @@ def test_a_target_whose_file_name_is_not_ascii_is_found(fleet, make_member):
     version = git(beta_root, "rev-parse", "HEAD")
     alpha_root = make_member("alphamech", alpha_with(link("betamech:b2", source_version=version)))
     assert links.check(fleet, {"alphamech": alpha_root, "betamech": beta_root}) == []
+
+
+def test_a_link_in_another_slot_is_refused(fleet, make_member):
+    beta_root = make_member("betamech", {"b1": beta("betamech:b1")})
+    version = git(beta_root, "rev-parse", "HEAD")
+    record = {"a1": {"id": "alphamech:a1", "name": "a1", "random_slot": [link(source_version=version)]}}
+    alpha_root = make_member("alphamech", record)
+    found = messages(fleet, {"alphamech": alpha_root, "betamech": beta_root})
+    assert any("held in 'random_slot'" in m and "the slot betas" in m for m in found)
