@@ -53,6 +53,9 @@ header .badge { background: rgba(255, 255, 255, .85); color: #1d1d1f; }
 .v-partial, .v-proposed, .v-open, .v-under_discussion, .v-knowledge_gap { background: var(--warn-bg); color: var(--warn); }
 .v-refute, .v-wrong_statement, .v-deprecated { background: var(--bad-bg); color: var(--bad); }
 .badge.source { font-weight: 500; }
+.map { margin: 1rem 0; }
+.map-view { height: 22rem; border: 1px solid var(--line); border-radius: 8px; background: var(--plain-bg); }
+.map-view .leaflet-control-layers { font: inherit; font-size: .85rem; color: #1d1d1f; }
 .toc { display: flex; flex-wrap: wrap; gap: .4rem; margin: 1rem 0 .5rem; }
 .toc a { padding: .2rem .65rem; border: 1px solid var(--line); border-radius: 999px; text-decoration: none;
   background: var(--card); font-size: .9rem; }

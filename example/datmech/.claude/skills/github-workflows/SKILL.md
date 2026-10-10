@@ -1,0 +1,70 @@
+---
+name: github-workflows
+description: >-
+  Turn on, configure, adapt or debug the GitHub workflows of DaTMech:
+  the QC check, the scheduled sweep, and the agent workflows (review, triage,
+  dedupe, PR shepherd, curation scanner, literature scan, compliance,
+  post-review). Use when asked to set up automation, enable an agent, set
+  secrets, change a schedule or a model, tune a prompt, or find out why a
+  workflow failed.
+---
+
+# GitHub workflows
+
+The catalog is `docs/WORKFLOWS.md`: every workflow mechmaker knows, on or
+off, with what it needs. Read it first.
+
+## Turning a workflow on or off
+
+Workflows are Copier answers, so their files stay in step with the template:
+
+```bash
+uvx copier update --vcs-ref=:current: --skip-answered --defaults --data 'workflows=["sweep","docs","comment-guard","review"]'
+```
+
+List every workflow to keep; the list replaces the old one. Copier writes
+and deletes the files, and merges your edits to prompts and workflows you
+kept. Review the diff. To run agent workflows on their schedules, add
+`--data agent_schedules=true`.
+
+Do not copy workflow files in by hand. Copier would not know about them.
+
+## Setting up an agent workflow
+
+1. **Credential.** A repository secret: `ANTHROPIC_API_KEY` (preferred), or
+   `CLAUDE_CODE_OAUTH_TOKEN` from `claude setup-token`.
+   ```bash
+   gh secret set ANTHROPIC_API_KEY
+   ```
+2. **Identity**, from the catalog's Identities section:
+   - `claude`: install the Claude GitHub App.
+   - `review`: create a reviewer App and set `MECH_REVIEWER_APP_ID` and
+     `MECH_REVIEWER_PRIVATE_KEY`, or allow Actions to approve pull requests.
+   - `curation-scanner`, `compliance`: create an agent App with contents,
+     issues and pull requests write, install it, and set
+     `MECH_AGENT_APP_ID` and `MECH_AGENT_PRIVATE_KEY`.
+3. **Labels.** `just labels` once. Triage, the scanner and the literature
+   scan rely on them.
+4. **First run by hand**, from the Actions tab or
+   `gh workflow run <file> -f dry_run=true` where there is a dry run. Read
+   the run summary before letting it run on a schedule.
+
+Creating Apps, setting secrets and starting workflows act on the live
+repository. Ask the person before doing any of them.
+
+## Adapting to the domain
+
+- **Prompts and models** come with the first agent workflow: turning one on
+  adds `.github/prompts/` and `.github/agent-config.yaml`.
+- **Literature scan** is off for this Mech. Turning on the `literature-scan`
+  workflow adds its terms file, `conf/literature_scan.yaml`, and its recipe.
+- **Compliance weights** are `WEIGHTS` in `src/datmech/compliance.py`.
+
+Changes to prompts take effect from the default branch, so merge them before
+judging a run.
+
+## When a workflow fails
+
+For `qc.yaml`, run the failing recipe locally: `just qc`, or
+`just validate-changed <files>`. A term check that says the service is
+unreachable is an outage, not a data error; re-run later.

@@ -1,0 +1,26 @@
+history_version: 1
+target:
+  kind: record
+  slug: 48502_flint_michigan
+  path: data/zip_areas/48502_flint_michigan.yaml
+session:
+  id: 2026-10-09T201508Z-claude-code-eb2b63
+  timestamp: '2026-10-09T20:15:08Z'
+  actors:
+  - type: ai_agent
+    name: claude-code
+    model: claude-opus-5-5
+    agent_tool: claude-code
+events:
+- type: CREATE
+  outcome: changed
+  sections:
+  - zcta
+  - watersheds
+  - treatment_facilities
+  - incidents
+  summary: 'Seeded the record: area, watersheds, treatment facilities and incidents'
+  details: 'Curated from the Census ZCTA and USGS watershed queries at the ZCTA''s interior point, EPA
+    SDWIS facility and ECHO permit records, utility and EPA pages, Wikipedia (as plain text) and PubMed
+    abstracts. Incidents: Flint water crisis, boil-water advisories, Legionnaires'' outbreak and trihalomethane
+    violation; HIGH. Every quote checked by just validate.'

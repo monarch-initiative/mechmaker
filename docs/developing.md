@@ -11,7 +11,7 @@
 | `.claude-plugin/` | Makes the repository a Claude Code plugin and marketplace |
 | `upgrade-notes.yml` | What an existing Mech must do, beyond taking files, to follow a template change. `sync-mech` shows each note to the Mechs it reaches |
 | `AGENTS.md` | Where an agent pointed at this repository starts |
-| `example/` | Two Mechs made with the skills, with their answers and survey briefs |
+| `example/` | Three Mechs made with the skills, with their answers and survey briefs |
 | `docs/`, `mkdocs.yml`, `scripts/gen_docs.py` | This site. Reference pages are generated |
 | `tests/` | Tests that generate sample Mechs and check them |
 
@@ -29,7 +29,7 @@ just docs-serve       # this site, locally
 just docs-build       # this site, built strictly: a broken link fails
 ```
 
-`docs-serve` and `docs-build` first install and build both example Mechs
+`docs-serve` and `docs-build` first install and build every example Mech
 (`just example-sites`), which needs the network.
 
 `just test-generated` needs network access: each sample Mech installs its

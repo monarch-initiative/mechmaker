@@ -1,0 +1,28 @@
+history_version: 1
+target:
+  kind: schema
+  slug: datmech
+  path: src/datmech/schema/datmech.yaml
+session:
+  id: 2026-10-09T200129Z-claude-code-052664
+  timestamp: '2026-10-09T20:01:29Z'
+  actors:
+  - type: ai_agent
+    name: claude-code
+    model: claude-opus-5-5
+    agent_tool: claude-code
+events:
+- type: EDIT
+  outcome: changed
+  summary: Designed the ZIP code area schema from the domain survey
+  details: 'Replaced the scaffold''s record-level chemical_entities, organisms and environments with zcta,
+    watersheds (Watershed, class_uri ENVO:00000291 drainage basin), treatment_facilities (facility_type
+    under ENVO:00003861 industrial building), incidents (processes under ENVO:02500000, contaminants under
+    CHEBI:24431, organisms under NCBITaxon:1, affected_waters under ENVO:00000063 water body, advisories)
+    and curation_priority, with each root checked against expected terms. The id is datmech:<ZIP>; no
+    field repeats it. validate.py checks that curation_priority follows from incidents and that incidents
+    name only listed facilities. Added a WIKIPEDIA reference source that fetches articles as plain text,
+    since the cached HTML of a url: reference cannot be quoted across inline tags. Rewrote the research
+    prompt in the record''s section order and tried it with the mock provider. ENVO:00000292 watershed
+    is the divide between basins and is not used; ENVO:00012408 aquifer is not under water body, so groundwater
+    sources leave term empty.'

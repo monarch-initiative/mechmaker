@@ -48,6 +48,7 @@ nav:
   - Getting started: getting-started.md
   - "Walkthrough: GoatMech": walkthrough.md
   - "Walkthrough: converting a knowledge base": walkthrough-conversion.md
+  - "Walkthrough: no ontology, no list": walkthrough-datmech.md
   - Already have a knowledge base?: existing-knowledge-base.md
   - Starting from an existing schema: existing-schema.md
   - What a Mech contains: what-you-get.md
@@ -66,6 +67,8 @@ nav:
       - convert-knowledge-base: skills/convert-knowledge-base.md
       - register-mech: skills/register-mech.md
       - audit-mech: skills/audit-mech.md
+      - add-record-map: skills/add-record-map.md
+      - ingest-news: skills/ingest-news.md
       - sync-mech: skills/sync-mech.md
   - Reference:
       - Copier questions: reference/questions.md

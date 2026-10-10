@@ -1,0 +1,71 @@
+"""just fill-titles: titles come from the cache, and nothing else changes."""
+
+from pathlib import Path
+
+import pytest
+
+from datmech import titles, validate
+from datmech.evidence import _yaml
+from datmech.validate import load, slugify
+
+EXAMPLE = Path(__file__).parent / "data" / "example_record.yaml"
+EVENT = {"timestamp": "2026-01-02T00:00:00+00:00", "curator": "tester", "llm_assisted": False,
+         "action": "EDIT", "description": "Filled titles."}
+CACHE = {
+    "PMID:1": "A Paper About Things",
+    "url:https://example.org/notes.txt": "https://example.org/notes.txt",  # a url: source's own URL
+}
+
+
+@pytest.fixture
+def record(tmp_path, monkeypatch):
+    monkeypatch.setattr(titles, "cached_title", CACHE.get)
+    path = tmp_path / f"{slugify(load(EXAMPLE)['name'])}.yaml"
+    y = _yaml()
+    data = y.load(EXAMPLE.read_text(encoding="utf-8"))
+    data["evidence"] = [
+        {"reference": "PMID:1", "supports": "SUPPORT", "snippet": "A quote."},
+        {"reference": "PMID:2", "supports": "SUPPORT", "snippet": "Another quote."},
+        {"reference": "url:https://example.org/notes.txt", "supports": "SUPPORT", "snippet": "A line."},
+        {"reference": "PMID:1", "reference_title": "Kept As Given", "supports": "SUPPORT",
+         "snippet": "More."},
+    ]
+    with path.open("w", encoding="utf-8") as fh:
+        y.dump(data, fh)
+    return path
+
+
+def test_fills_from_cache_and_lists_what_is_missing(record):
+    old, new, filled, uncached, problems = titles.fill(record, dict(EVENT))
+    assert (filled, uncached, problems) == (1, ["PMID:2"], [])
+    record.write_text(new, encoding="utf-8")
+    ev = load(record)["evidence"]
+    assert ev[0]["reference_title"] == "A Paper About Things"
+    assert list(ev[0])[:2] == ["reference", "reference_title"]
+    assert "reference_title" not in ev[1]
+    assert "reference_title" not in ev[2]  # the URL is not a title
+    assert ev[3]["reference_title"] == "Kept As Given"
+    assert load(record)["curation_history"][-1]["description"] == "Filled titles."
+
+
+def test_only_additions_in_the_diff(record):
+    old, new, *_ = titles.fill(record, dict(EVENT))
+    removed = [line for line in old.splitlines() if line not in new.splitlines()]
+    assert removed in ([], ["updated_date: '2026-01-01'"], ["updated_date: 2026-01-01"])
+
+
+def test_nothing_to_fill_changes_nothing(record):
+    _, new, *_ = titles.fill(record, dict(EVENT))
+    record.write_text(new, encoding="utf-8")
+    old, again, filled, _, _ = titles.fill(record, dict(EVENT))
+    assert filled == 0 and again == old
+
+
+def test_cached_title_finds_the_validators_file(tmp_path, monkeypatch):
+    # pmid:1 is cached as PMID_1.md, in the cache_dir the validator's config names.
+    fetcher = validate._fetcher()
+    monkeypatch.setattr(fetcher.config, "cache_dir", tmp_path)
+    (tmp_path / "PMID_1.md").write_text("---\nreference_id: PMID:1\ntitle: A Paper About Things\n---\n",
+                                        encoding="utf-8")
+    assert validate.cached_title("pmid:1") == "A Paper About Things"
+    assert validate.cached_title("PMID:2") is None

@@ -263,6 +263,11 @@ reader (`curation_history` is hidden by default). The Mech's `site-design`
 skill covers each setting; run `just site-check`, and look with
 `just docs-serve`.
 
+If records describe places (areas, regions, watersheds, sites), give them
+bounding boxes, and each record page gets a map. The `add-record-map`
+skill says how; it is the default for a Mech with a geography, not an
+extra to wait for a request.
+
 ## 5. Seed
 
 Pick three to five records that span the domain: one typical, one hard, one
@@ -274,6 +279,10 @@ Real sources, real quotes, `status: PROPOSED`. Run `just qc-full`.
 
 Seeding tests the design. When a record will not fit, change the schema now
 with `extend-schema`, while there are five records and not five hundred.
+
+If the survey named news as a source, run the `ingest-news` skill on one
+seed record: it finds dated news about the record's events, as leads, and
+the archived copies to quote.
 
 ## 6. Register
 

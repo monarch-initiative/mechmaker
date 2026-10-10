@@ -1,0 +1,306 @@
+id: datmech:43604
+name: 43604 Toledo, Ohio
+description: ZIP code 43604 is downtown Toledo, Ohio. The city's Collins Park plant treats Lake Erie water for about 500,000 people in and around Toledo. In August 2014 microcystin from harmful algal blooms in Lake Erie reached the city's water, and residents were told not to use it.
+description_evidence:
+  - reference: url:https://toledo.oh.gov/departments/public-utilities/water-treatment
+    reference_title: City of Toledo | Water Treatment
+    supports: SUPPORT
+    evidence_source: UTILITY_RECORD
+    snippet: The city of Toledo supplies water to a population of approximately 500,000 people located in the city and surrounding areas including parts of Lucas, Wood, and Fulton Counties, and south Monroe County in Michigan.
+  - reference: WIKIPEDIA:Microcystin
+    reference_title: Microcystin
+    supports: SUPPORT
+    evidence_source: ENCYCLOPEDIA
+    snippet: In August 2014, the City of Toledo, Ohio detected unsafe levels of microcystin in its water supply due to harmful algal blooms in Lake Erie
+status: PROPOSED
+place_name: Toledo
+state: OH
+curation_priority: HIGH
+zcta:
+  vintage: 2020
+  interior_latitude: 41.6523886
+  interior_longitude: -83.5388972
+  land_area_m2: 7296593
+  water_area_m2: 652953
+  bounding_box:
+    west: -83.562654
+    south: 41.632551
+    east: -83.511064
+    north: 41.668898
+    evidence:
+      - reference: url:https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/PUMA_TAD_TAZ_UGA_ZCTA/MapServer/1/query?where=ZCTA5%3D%2743604%27&returnExtentOnly=true&outSR=4326&f=pjson
+        supports: SUPPORT
+        evidence_source: GEOSPATIAL_DATASET
+        snippet: '"xmin": -83.562653999869696, "ymin": 41.63255100029, "xmax": -83.511064000139427, "ymax": 41.668898000142427'
+        explanation: The extent of the ZCTA 43604 in WGS84, rounded to six decimals.
+  evidence:
+    - reference: url:https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/PUMA_TAD_TAZ_UGA_ZCTA/MapServer/1/query?where=ZCTA5%3D%2743604%27&outFields=ZCTA5,INTPTLAT,INTPTLON,AREALAND,AREAWATER&returnGeometry=false&f=pjson
+      supports: SUPPORT
+      evidence_source: GEOSPATIAL_DATASET
+      snippet: '"ZCTA5": "43604", "INTPTLAT": "+41.6523886", "INTPTLON": "-083.5388972", "AREALAND": 7296593, "AREAWATER": 652953'
+      explanation: The Census TIGERweb layer of 2020 ZIP Code Tabulation Areas, queried by ZCTA5.
+watersheds:
+  - huc: 04100009
+    name: Lower Maumee
+    bounding_box:
+      west: -84.384887
+      south: 41.047012
+      east: -83.465691
+      north: 41.69758
+      evidence:
+        - reference: url:https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer/4/query?where=huc8%3D%2704100009%27&returnExtentOnly=true&outSR=4326&f=pjson
+          supports: SUPPORT
+          evidence_source: GEOSPATIAL_DATASET
+          snippet: '"xmin": -84.384887237263655, "ymin": 41.047011712456928, "xmax": -83.465690798519418, "ymax": 41.697580039168024'
+          explanation: The extent of the HUC8 04100009 in WGS84, rounded to six decimals.
+    water_quality_portal: https://www.waterqualitydata.us/wqx3/Station/search?huc=04100009&mimeType=csv
+    evidence:
+      - reference: url:https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer/4/query?geometry=-83.5388972,41.6523886&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=huc8,name&returnGeometry=false&f=pjson
+        supports: SUPPORT
+        evidence_source: GEOSPATIAL_DATASET
+        snippet: '"huc8": "04100009", "name": "Lower Maumee"'
+        explanation: The Watershed Boundary Dataset's HUC8 at the ZCTA's interior point.
+  - huc: 041000090804
+    name: Heilman Ditch-Swan Creek
+    bounding_box:
+      west: -83.817007
+      south: 41.474186
+      east: -83.533101
+      north: 41.656974
+      evidence:
+        - reference: url:https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer/6/query?where=huc12%3D%27041000090804%27&returnExtentOnly=true&outSR=4326&f=pjson
+          supports: SUPPORT
+          evidence_source: GEOSPATIAL_DATASET
+          snippet: '"xmin": -83.817006579083184, "ymin": 41.474185918413902, "xmax": -83.533101052972839, "ymax": 41.656973530020949'
+          explanation: The extent of the HUC12 041000090804 in WGS84, rounded to six decimals.
+    water_bodies:
+      - preferred_term: Swan Creek
+        term:
+          id: ENVO:00000023
+          label: stream
+        notes: Named in the subwatershed's name; the kind (stream) is the curator's reading.
+        evidence:
+          - reference: url:https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer/6/query?geometry=-83.5388972,41.6523886&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=huc12,name&returnGeometry=false&f=pjson
+            supports: SUPPORT
+            evidence_source: GEOSPATIAL_DATASET
+            snippet: '"name": "Heilman Ditch-Swan Creek"'
+            explanation: Swan Creek is named in the subwatershed's name.
+    evidence:
+      - reference: url:https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer/6/query?geometry=-83.5388972,41.6523886&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=huc12,name&returnGeometry=false&f=pjson
+        supports: SUPPORT
+        evidence_source: GEOSPATIAL_DATASET
+        snippet: '"huc12": "041000090804", "name": "Heilman Ditch-Swan Creek"'
+        explanation: The Watershed Boundary Dataset's HUC12 at the ZCTA's interior point.
+treatment_facilities:
+  - name: Collins Park Water Treatment Plant
+    facility_type:
+      id: ENVO:03600004
+      label: drinking water treatment plant
+    operator: City of Toledo
+    system_id: OH4801411
+    service_status: CURRENT
+    source_type: SURFACE_WATER
+    source_waters:
+      - preferred_term: Lake Erie
+        term: &id001
+          id: ENVO:00000020
+          label: lake
+        evidence:
+          - reference: url:https://toledo.oh.gov/residents/water/raw-water-main
+            reference_title: City of Toledo | Raw Water Main Project
+            supports: SUPPORT
+            evidence_source: UTILITY_RECORD
+            snippet: constructing a new 72-inch raw water main to carry untreated water form Lake Erie and the Low Service Pump Station to the Collins Park Water Treatment Plant
+            explanation: The page's own spelling, 'form', is kept.
+          - reference: url:https://data.epa.gov/efservice/WATER_SYSTEM_FACILITY/PWSID/OH4801411/JSON
+            supports: SUPPORT
+            evidence_source: GOVERNMENT_RECORD
+            snippet: '"facility_name": "IN FROM TOLEDO CITY LAKE ERIE INTAKE"'
+            explanation: The system's active intake, in EPA's inventory.
+    description: Treats Lake Erie water for Toledo and parts of Lucas, Wood and Fulton Counties and south Monroe County, Michigan; ozone treatment for algal toxins began in 2021.
+    evidence:
+      - reference: url:https://data.epa.gov/efservice/WATER_SYSTEM_FACILITY/PWSID/OH4801411/JSON
+        supports: SUPPORT
+        evidence_source: GOVERNMENT_RECORD
+        snippet: '"facility_name": "TOLEDO WTP"'
+        explanation: 'EPA''s name for the plant: an active (A) treatment plant (TP).'
+      - reference: url:https://toledo.oh.gov/departments/public-utilities/water-treatment
+        reference_title: City of Toledo | Water Treatment
+        supports: SUPPORT
+        evidence_source: UTILITY_RECORD
+        snippet: We operate and maintain the largest water softening plant on Lake Erie.
+      - reference: url:https://toledo.oh.gov/news/2021/07/01/ozone-treatment-begins-at-collins-park-water-treatment-plant
+        reference_title: City of Toledo | Ozone Treatment Begins at Collins Park Water…
+        supports: SUPPORT
+        evidence_source: UTILITY_RECORD
+        snippet: Ozone provides additional measures of protection for the pretreatment and mitigation of the effects of harmful algal blooms within Lake Erie to further protect the city’s drinking water supply.
+    notes: The plant serves many ZIP areas besides this one, and is outside it.
+  - name: Bay View Wastewater Treatment Plant
+    facility_type:
+      id: ENVO:00002043
+      label: wastewater treatment plant
+    operator: City of Toledo Division of Water Reclamation
+    system_id: OH0027740
+    service_status: CURRENT
+    receiving_waters:
+      - preferred_term: Maumee River
+        term:
+          id: ENVO:00000022
+          label: river
+        evidence:
+          - reference: url:https://echodata.epa.gov/echo/dfr_rest_services.get_dfr?output=JSON&p_id=OH0027740
+            supports: SUPPORT
+            evidence_source: GOVERNMENT_RECORD
+            snippet: '"ICISWaterBodyNames":"MAUMEE RIVER"'
+            explanation: The receiving water on the permit, in EPA's facility report.
+          - reference: url:https://toledo.oh.gov/residents/water/water-system-improvements/bay-view-wastewater-treatment-plant-improvements
+            reference_title: City of Toledo | Water Reclamation Plant Improvements Program
+            supports: SUPPORT
+            evidence_source: UTILITY_RECORD
+            snippet: disinfect treated effluent before it is discharged to the Maumee River.
+    evidence:
+      - reference: url:https://echodata.epa.gov/echo/dfr_rest_services.get_dfr?output=JSON&p_id=OH0027740
+        supports: SUPPORT
+        evidence_source: GOVERNMENT_RECORD
+        snippet: '"FacilityName":"TOLEDO BAY VIEW PARK WWTP"'
+        explanation: EPA's facility report for NPDES permit OH0027740.
+      - reference: url:https://toledo.oh.gov/residents/water/water-system-improvements/bay-view-wastewater-treatment-plant-improvements
+        reference_title: City of Toledo | Water Reclamation Plant Improvements Program
+        supports: SUPPORT
+        evidence_source: UTILITY_RECORD
+        snippet: Bay View treats all of the City's and some surrounding suburbs' residential, commercial, and industrial wastewater before it returns to Lake Erie
+    notes: The city calls it both Bay View Wastewater Treatment Plant and Bay View Water Reclamation Plant; EPA, TOLEDO BAY VIEW PARK WWTP. It is at 3900 N Summit St, in ZIP 43611.
+incidents:
+  - name: Toledo do-not-drink advisory of August 2014
+    incident_kind: TOXIC_BLOOM
+    start_date: '2014-08-01'
+    end_date: '2014-08-04'
+    description: Microcystin in water from the Collins Park plant reached 3.19 μg/L, and the city told almost 500,000 people in northwest Ohio and southeast Michigan not to drink it.
+    cause: A bloom dominated by Microcystis in western Lake Erie; a wind event carried microcystin-rich water from Maumee Bay along the shore past the city's intake.
+    processes:
+      - preferred_term: cyanobacterial bloom
+        term:
+          id: ENVO:02500018
+          label: algal bloom process
+        evidence:
+          - reference: PMID:28535339
+            reference_title: 'Ecophysiological Examination of the Lake Erie Microcystis Bloom in 2014: Linkages between Biology and the Water Supply Shutdown of Toledo, OH.'
+            supports: SUPPORT
+            evidence_source: PUBLICATION
+            snippet: Annual cyanobacterial blooms dominated by Microcystis have occurred in western Lake Erie
+    contaminants:
+      - preferred_term: microcystin
+        term:
+          id: CHEBI:48041
+          label: microcystin
+        evidence:
+          - reference: PMID:27607896
+            reference_title: Community Needs Assessment After Microcystin Toxin Contamination of a Municipal Water Supply - Lucas County, Ohio, September 2014.
+            supports: SUPPORT
+            evidence_source: PUBLICATION
+            snippet: routine testing at the Collins Park Water Treatment Plant in Lucas County, Ohio, revealed microcystin toxin levels in drinking water had reached 3.19 μg/L
+        notes: The sources name microcystin, not a congener; microcystin-LR is not bound.
+    organisms:
+      - preferred_term: Microcystis
+        term:
+          id: NCBITaxon:1125
+          label: Microcystis <cyanobacteria>
+        evidence:
+          - reference: PMID:28535339
+            reference_title: 'Ecophysiological Examination of the Lake Erie Microcystis Bloom in 2014: Linkages between Biology and the Water Supply Shutdown of Toledo, OH.'
+            supports: SUPPORT
+            evidence_source: PUBLICATION
+            snippet: These data were used to generate a basin-wide ecophysiological fingerprint of Lake Erie Microcystis populations in August 2014
+        notes: The sources name the genus; Microcystis aeruginosa is not bound.
+    affected_waters:
+      - preferred_term: Lake Erie
+        term: *id001
+        evidence:
+          - reference: PMID:28535339
+            reference_title: 'Ecophysiological Examination of the Lake Erie Microcystis Bloom in 2014: Linkages between Biology and the Water Supply Shutdown of Toledo, OH.'
+            supports: SUPPORT
+            evidence_source: PUBLICATION
+            snippet: simulation data suggest a wind event caused microcystin-rich water from Maumee Bay to be transported east along the southern shoreline past the Toledo water intake.
+    affected_facilities:
+      - Collins Park Water Treatment Plant
+    advisories:
+      - advisory_kind: DO_NOT_DRINK
+        issued_by: City of Toledo
+        start_date: '2014-08-02'
+        end_date: '2014-08-04'
+        population_affected: 500000
+        description: Given as almost 500,000 people (US EPA) and more than half a million (Wikipedia); recorded as 500,000.
+        evidence:
+          - reference: PMID:27607896
+            reference_title: Community Needs Assessment After Microcystin Toxin Contamination of a Municipal Water Supply - Lucas County, Ohio, September 2014.
+            supports: SUPPORT
+            evidence_source: PUBLICATION
+            snippet: On August 2, a do-not-drink advisory was issued
+          - reference: PMID:27607896
+            reference_title: Community Needs Assessment After Microcystin Toxin Contamination of a Municipal Water Supply - Lucas County, Ohio, September 2014.
+            supports: SUPPORT
+            evidence_source: PUBLICATION
+            snippet: On August 4, 2014, the advisory was lifted after multiple water samples confirmed microcystin toxin levels had dropped below the advisory threshold.
+          - reference: url:https://www.epa.gov/archive/epapages/newsroom_archive/newsreleases/bde0db3444ccc70685257d480067d3ff.html
+            reference_title: '09/03/2014: Great Lakes Restoration Initiative Provides Funding to Target Harmful Algal Blooms in Lake Erie'
+            supports: SUPPORT
+            evidence_source: GOVERNMENT_RECORD
+            snippet: the City of Toledo issued a "Do Not Drink" order for almost 500,000 people in northwest Ohio and southeast Michigan
+          - reference: WIKIPEDIA:Toledo,_Ohio
+            reference_title: Toledo, Ohio
+            supports: SUPPORT
+            evidence_source: ENCYCLOPEDIA
+            snippet: On the evening of August 1, 2014, the city of Toledo issued a warning to citizens advising against the use of city water, leaving more than half a million people suddenly without water.
+    evidence:
+      - reference: PMID:28535339
+        reference_title: 'Ecophysiological Examination of the Lake Erie Microcystis Bloom in 2014: Linkages between Biology and the Water Supply Shutdown of Toledo, OH.'
+        supports: SUPPORT
+        evidence_source: PUBLICATION
+        snippet: the one experienced by the city of Toledo in August of 2014, when the city was rendered without drinking water for >2 days
+discussions:
+  - discussion_id: toledo-2014-advisory-start
+    prompt: Did the 2014 advisory begin on August 1 or August 2?
+    kind: CONTROVERSY
+    status: OPEN
+    attaches_to:
+      - incidents
+    rationale: Wikipedia says the city warned residents on the evening of August 1; CDC's MMWR says the do-not-drink advisory was issued on August 2. The record keeps August 2 for the advisory and August 1 for the incident's start.
+  - discussion_id: toledo-second-huc8
+    prompt: Add the second subbasin the ZIP area crosses, HUC8 04100001 Ottawa-Stony.
+    kind: CURATION_TODO
+    status: OPEN
+    attaches_to:
+      - watersheds
+    rationale: The ZCTA's polygon, intersected with the Watershed Boundary Dataset on 2026-10-09, touches HUC8s 04100009 and 04100001; only the one at the interior point is cited. A citable query for the second is still to be written.
+creation_date: '2026-10-09'
+updated_date: '2026-10-09'
+curation_history:
+  - timestamp: '2026-10-09T20:08:34+00:00'
+    curator: claude-code
+    llm_assisted: true
+    model: claude-opus-5-5
+    action: CREATE
+    description: Scaffolded with `just new-record`.
+  - timestamp: '2026-10-09T20:12:35+00:00'
+    curator: claude-code
+    llm_assisted: true
+    model: claude-opus-5-5
+    action: EDIT
+    description: Curated the area, watersheds, treatment facilities and the 2014 microcystin incident from Census, USGS and EPA records, city pages, Wikipedia and three papers; set curation_priority HIGH and status PROPOSED.
+  - timestamp: '2026-10-09T20:12:53+00:00'
+    curator: claude-code
+    llm_assisted: true
+    model: claude-opus-5-5
+    action: EDIT
+    description: Added evidence from url:https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer/6/query?geometry=-83.5388972,41.6523886&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=huc12,name&returnGeometry=false&f=pjson to watersheds[1].water_bodies[0].
+  - timestamp: '2026-10-09T20:14:01+00:00'
+    curator: claude-code
+    llm_assisted: false
+    action: EDIT
+    description: Filled reference_title from references_cache/ with `just fill-titles`.
+  - timestamp: '2026-10-09T20:41:51+00:00'
+    curator: claude-code
+    llm_assisted: true
+    model: claude-opus-5-5
+    action: EDIT
+    description: Added a bounding box to the ZCTA and to each watershed, quoted from the extent Census TIGERweb and the Watershed Boundary Dataset report.

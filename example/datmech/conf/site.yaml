@@ -1,0 +1,42 @@
+# How the documentation site and the record browser look.
+# `just site-check` validates this file and reports text contrast.
+# `just render` and `just docs-build` apply it. The `site-design` skill
+# explains every setting.
+
+# Title of the record browser's front page.
+title: "DaTMech records"
+
+# Main color, for the docs site's header and the browser's header band and
+# links. A Material for MkDocs color name: red, pink, purple, deep-purple,
+# indigo, blue, light-blue, cyan, teal, green, light-green, lime, yellow,
+# amber, orange, deep-orange, brown, grey, blue-grey.
+palette: blue
+
+# Highlight color, for hover and focus. A Material accent name: the palette
+# names above except brown, grey and blue-grey.
+accent: cyan
+
+# auto follows each visitor's system setting; light or dark fixes it.
+theme: auto
+
+# Columns of the browser's front-page table: fields of the record, in order.
+# A field holding an ontology term shows its label.
+index_columns:
+  - name
+  - state
+  - curation_priority
+  - status
+
+# Record sections left off the browser's record pages. They stay in the data.
+hidden_sections:
+  - curation_history
+
+# A map on each record page that holds a bounding box: an object with west,
+# south, east and north in decimal degrees. OpenStreetMap tiles, through
+# Leaflet. A record with no box has no map; false turns maps off everywhere.
+map: true
+
+# Footer text on every browser page.
+footer: >-
+  AI-curated. Validation checks that citations exist, quotes are exact and
+  ontology terms are real. It does not check that the science is right.

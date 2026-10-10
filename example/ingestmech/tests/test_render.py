@@ -59,3 +59,30 @@ def test_record_body_splits_overview_and_sections():
     assert [name for name, _, _ in body["overview"]] == ["Repository", "Horn status"]
     assert [s["key"] for s in body["sections"]] == ["origins", "curation_history"]
     assert "<details" in body["sections"][1]["html"]
+
+
+def test_every_bounding_box_is_on_the_map_named_by_what_holds_it():
+    box = {"west": -83.7, "south": 43.0, "east": -83.6, "north": 43.1}
+    data = {"name": "X", "area": {"vintage": 2020, "bounding_box": box},
+            "watersheds": [{"name": "Flint", "bounding_box": box}, {"name": "<b>Swan</b>", "extent": box}],
+            "secret": {"bounding_box": box}}
+    found = render.map_boxes(data, hidden=["secret"])
+    assert [b["name"] for b in found] == ["Area", "Watersheds: Flint", "Watersheds: &lt;b&gt;Swan&lt;/b&gt;"]
+    assert [b["group"] for b in found] == [0, 1, 1]
+    assert found[0]["bounds"] == [[43.0, -83.7], [43.1, -83.6]]
+
+
+def test_no_box_no_map_and_map_can_be_turned_off():
+    box = {"west": 1, "south": 2, "east": 3, "north": 4}
+    assert render.record_body({"name": "X", "area": {"name": "a"}}, hidden=[])["map"] is None
+    placed = {"name": "X", "area": {"bounding_box": box}}
+    assert render.record_body(placed, hidden=[], show_map=False)["map"] is None
+    shown = render.record_body(placed, hidden=[])["map"]
+    assert '"bounds": [[2, 1], [4, 3]]' in shown
+
+
+def test_a_box_the_validator_rejects_is_left_off_and_json_cannot_end_the_script():
+    bad = {"west": 10, "south": 0, "east": -10, "north": 1}
+    assert render.map_boxes({"area": {"bounding_box": bad}}) == []
+    box = {"name": "</script><script>alert(1)</script>", "west": 0, "south": 0, "east": 1, "north": 1}
+    assert "</" not in render.map_data({"area": box})

@@ -1,0 +1,70 @@
+[project]
+name = "datmech"
+# The version comes from the latest git tag (v1.2.3); see [tool.uv-dynamic-versioning].
+dynamic = ["version"]
+description = "DaTMech records US ZIP code areas by their water: the watersheds they drain to, the plants that treat their drinking water and wastewater, and the incidents that have harmed its safety or quality, with every claim quoted from its source."
+authors = [{ name = "J. Harry Caufield", email = "jhc@lbl.gov" }]
+readme = "README.md"
+license = { text = "BSD-3-Clause" }
+requires-python = ">=3.11"
+keywords = ["mech", "knowledge base", "linkml", "ontology", "curation"]
+
+dependencies = [
+    "linkml>=1.11.1",
+    "linkml-runtime>=1.9.4",
+    # Checks that every bound CURIE exists, sits under its enum root, and
+    # carries the ontology's own label.
+    "linkml-term-validator>=0.4.5",
+    # Checks that every snippet appears verbatim in its cited source.
+    "linkml-reference-validator>=0.2.1",
+    "oaklib>=0.7.3",
+    # oaklib imports eutils, which still imports pkg_resources.
+    "setuptools<82",
+    "pyyaml>=6.0",
+    # Edits records in place with their layout kept (just add-evidence).
+    "ruamel.yaml>=0.18",
+    "jinja2>=3.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.6",
+    # The documentation site. MkDocs 2 drops the plugin and theme system
+    # Material relies on, so stay on 1.x.
+    "mkdocs>=1.6,<2",
+    "mkdocs-material>=9.7",
+]
+
+[project.urls]
+Homepage = "https://github.com/monarch-initiative/datmech"
+Repository = "https://github.com/monarch-initiative/datmech"
+
+[build-system]
+requires = ["hatchling", "uv-dynamic-versioning>=0.8"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.uv-dynamic-versioning]
+# Without a tag, or outside a git checkout, the version is this.
+fallback-version = "0.0.0"
+
+[tool.uv]
+# Rebuild the installed package when a commit or tag changes its version.
+cache-keys = [{ file = "pyproject.toml" }, { git = { commit = true, tags = true } }]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/datmech"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "."]
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
