@@ -89,6 +89,7 @@ classes:
       - interior_longitude
       - land_area_m2
       - water_area_m2
+      - bounding_box
       - evidence
     slot_usage:
       vintage:
@@ -108,6 +109,7 @@ classes:
     slots:
       - huc
       - name
+      - bounding_box
       - water_bodies
       - water_quality_portal
       - evidence
@@ -168,6 +170,28 @@ classes:
         description: The incident's common name, e.g. Flint water crisis.
       description:
         description: What happened, in a sentence or two.
+
+  BoundingBox:
+    description: >-
+      The smallest box, in decimal degrees (WGS84), that holds an area: the
+      extent its source reports, rounded to six decimals. The record browser
+      draws every one on a map. A box across the antimeridian is not
+      supported.
+    slots:
+      - west
+      - south
+      - east
+      - north
+      - evidence
+    slot_usage:
+      west:
+        required: true
+      south:
+        required: true
+      east:
+        required: true
+      north:
+        required: true
 
   Advisory:
     description: >-
@@ -328,6 +352,7 @@ slots:
       rule in docs/DOMAIN.md and checked by validate.py. Required once the
       record leaves DRAFT.
   zcta:
+    title: ZCTA
     range: Zcta
     inlined: true
     recommended: true
@@ -347,6 +372,31 @@ slots:
   water_area_m2:
     range: integer
     description: Water area in square meters (AWATER).
+  bounding_box:
+    range: BoundingBox
+    inlined: true
+    recommended: true
+    description: The area's extent, from the source that defines the area; drawn on the record's map.
+  west:
+    range: float
+    minimum_value: -180
+    maximum_value: 180
+    description: Westernmost longitude (xmin), decimal degrees.
+  south:
+    range: float
+    minimum_value: -90
+    maximum_value: 90
+    description: Southernmost latitude (ymin), decimal degrees.
+  east:
+    range: float
+    minimum_value: -180
+    maximum_value: 180
+    description: Easternmost longitude (xmax), decimal degrees.
+  north:
+    range: float
+    minimum_value: -90
+    maximum_value: 90
+    description: Northernmost latitude (ymax), decimal degrees.
   watersheds:
     range: Watershed
     multivalued: true

@@ -250,7 +250,7 @@ The rest of this README is about working on mechmaker itself.
 | `copier.yml` | The questions Copier asks, and a table of supported ontologies with their root terms |
 | `template/` | The files that become a new Mech. Files ending `.jinja` are filled in from the answers; the rest are copied as they are |
 | `coordinator/` | The files that become a Fleet's Coordinator (`kind: coordinator`). `copier.yml` chooses this folder or `template/`; its canon links to the template's shared schema modules |
-| `skills/` | Skills for the agent that makes a Mech or a Fleet: `make-mech`, `make-fleet`, `survey-domain`, `design-mech-schema`, `convert-knowledge-base`, `register-mech`, `audit-mech`, `sync-mech`, `ingest-news` |
+| `skills/` | Skills for the agent that makes a Mech or a Fleet: `make-mech`, `make-fleet`, `survey-domain`, `design-mech-schema`, `convert-knowledge-base`, `register-mech`, `audit-mech`, `sync-mech`, `add-record-map`, `ingest-news` |
 | `upgrade-notes.yml` | What an existing Mech must do, beyond taking files, to follow a template change; `sync-mech` shows each note |
 | `.claude-plugin/` | Makes this repository installable as a Claude Code plugin |
 | `AGENTS.md` | Where an agent pointed at this repository starts |

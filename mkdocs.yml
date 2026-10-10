@@ -67,6 +67,7 @@ nav:
       - convert-knowledge-base: skills/convert-knowledge-base.md
       - register-mech: skills/register-mech.md
       - audit-mech: skills/audit-mech.md
+      - add-record-map: skills/add-record-map.md
       - ingest-news: skills/ingest-news.md
       - sync-mech: skills/sync-mech.md
   - Reference:

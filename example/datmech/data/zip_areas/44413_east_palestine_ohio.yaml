@@ -31,6 +31,17 @@ zcta:
   interior_longitude: -80.551539
   land_area_m2: 63459069
   water_area_m2: 25409
+  bounding_box:
+    west: -80.609745
+    south: 40.790303
+    east: -80.518899
+    north: 40.900291
+    evidence:
+      - reference: url:https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/PUMA_TAD_TAZ_UGA_ZCTA/MapServer/1/query?where=ZCTA5%3D%2744413%27&returnExtentOnly=true&outSR=4326&f=pjson
+        supports: SUPPORT
+        evidence_source: GEOSPATIAL_DATASET
+        snippet: '"xmin": -80.609745000218922, "ymin": 40.790302999853246, "xmax": -80.51889899986503, "ymax": 40.900290999743255'
+        explanation: The extent of the ZCTA 44413 in WGS84, rounded to six decimals.
   evidence:
     - reference: url:https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/PUMA_TAD_TAZ_UGA_ZCTA/MapServer/1/query?where=ZCTA5%3D%2744413%27&outFields=ZCTA5,INTPTLAT,INTPTLON,AREALAND,AREAWATER&returnGeometry=false&f=pjson
       supports: SUPPORT
@@ -40,6 +51,17 @@ zcta:
 watersheds:
   - huc: '05030101'
     name: Upper Ohio
+    bounding_box:
+      west: -81.039035
+      south: 40.082166
+      east: -79.974694
+      north: 40.978695
+      evidence:
+        - reference: url:https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer/4/query?where=huc8%3D%2705030101%27&returnExtentOnly=true&outSR=4326&f=pjson
+          supports: SUPPORT
+          evidence_source: GEOSPATIAL_DATASET
+          snippet: '"xmin": -81.039034699259531, "ymin": 40.082165509245698, "xmax": -79.974693829069722, "ymax": 40.978695177591753'
+          explanation: The extent of the HUC8 05030101 in WGS84, rounded to six decimals.
     water_quality_portal: https://www.waterqualitydata.us/wqx3/Station/search?huc=05030101&mimeType=csv
     evidence:
       - reference: url:https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer/4/query?geometry=-80.5515390,40.8489473&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=huc8,name&returnGeometry=false&f=pjson
@@ -49,6 +71,17 @@ watersheds:
         explanation: The Watershed Boundary Dataset's HUC8 at the ZCTA's interior point.
   - huc: '050301010606'
     name: Leslie Run-Bull Creek
+    bounding_box:
+      west: -80.609699
+      south: 40.773807
+      east: -80.498711
+      north: 40.879387
+      evidence:
+        - reference: url:https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer/6/query?where=huc12%3D%27050301010606%27&returnExtentOnly=true&outSR=4326&f=pjson
+          supports: SUPPORT
+          evidence_source: GEOSPATIAL_DATASET
+          snippet: '"xmin": -80.60969896964545, "ymin": 40.773807222296568, "xmax": -80.498711003279851, "ymax": 40.879387005921487'
+          explanation: The extent of the HUC12 050301010606 in WGS84, rounded to six decimals.
     water_bodies:
       - preferred_term: Leslie Run
         term: &id001
@@ -309,6 +342,12 @@ curation_history:
     llm_assisted: false
     action: EDIT
     description: Filled reference_title from references_cache/ with `just fill-titles`.
+  - timestamp: '2026-10-09T20:41:51+00:00'
+    curator: claude-code
+    llm_assisted: true
+    model: claude-opus-5-5
+    action: EDIT
+    description: Added a bounding box to the ZCTA and to each watershed, quoted from the extent Census TIGERweb and the Watershed Boundary Dataset report.
   - timestamp: '2026-10-09T21:52:10+00:00'
     curator: claude-code
     llm_assisted: true

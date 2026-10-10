@@ -32,6 +32,17 @@ zcta:
   interior_longitude: -83.6891591
   land_area_m2: 1185564
   water_area_m2: 17992
+  bounding_box:
+    west: -83.696946
+    south: 43.006408
+    east: -83.679611
+    north: 43.02246
+    evidence:
+      - reference: url:https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/PUMA_TAD_TAZ_UGA_ZCTA/MapServer/1/query?where=ZCTA5%3D%2748502%27&returnExtentOnly=true&outSR=4326&f=pjson
+        supports: SUPPORT
+        evidence_source: GEOSPATIAL_DATASET
+        snippet: '"xmin": -83.696946000250492, "ymin": 43.006408000305854, "xmax": -83.679611000007057, "ymax": 43.022459999735389'
+        explanation: The extent of the ZCTA 48502 in WGS84, rounded to six decimals.
   evidence:
     - reference: url:https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/PUMA_TAD_TAZ_UGA_ZCTA/MapServer/1/query?where=ZCTA5%3D%2748502%27&outFields=ZCTA5,INTPTLAT,INTPTLON,AREALAND,AREAWATER&returnGeometry=false&f=pjson
       supports: SUPPORT
@@ -41,6 +52,17 @@ zcta:
 watersheds:
   - huc: 04080204
     name: Flint
+    bounding_box:
+      west: -84.114369
+      south: 42.767919
+      east: -83.052288
+      north: 43.358555
+      evidence:
+        - reference: url:https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer/4/query?where=huc8%3D%2704080204%27&returnExtentOnly=true&outSR=4326&f=pjson
+          supports: SUPPORT
+          evidence_source: GEOSPATIAL_DATASET
+          snippet: '"xmin": -84.114368513315085, "ymin": 42.767919377063521, "xmax": -83.052288376606967, "ymax": 43.358554698567062'
+          explanation: The extent of the HUC8 04080204 in WGS84, rounded to six decimals.
     water_quality_portal: https://www.waterqualitydata.us/wqx3/Station/search?huc=04080204&mimeType=csv
     evidence:
       - reference: url:https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer/4/query?geometry=-83.6891591,43.0146449&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=huc8,name&returnGeometry=false&f=pjson
@@ -50,6 +72,17 @@ watersheds:
         explanation: The Watershed Boundary Dataset's HUC8 at the ZCTA's interior point.
   - huc: 040802040410
     name: Gilkey Creek-Flint River
+    bounding_box:
+      west: -83.705542
+      south: 42.954409
+      east: -83.559276
+      north: 43.06154
+      evidence:
+        - reference: url:https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer/6/query?where=huc12%3D%27040802040410%27&returnExtentOnly=true&outSR=4326&f=pjson
+          supports: SUPPORT
+          evidence_source: GEOSPATIAL_DATASET
+          snippet: '"xmin": -83.705541702523121, "ymin": 42.954409043159693, "xmax": -83.559276232891776, "ymax": 43.061539821794142'
+          explanation: The extent of the HUC12 040802040410 in WGS84, rounded to six decimals.
     water_bodies:
       - preferred_term: Flint River
         term: &id001
@@ -415,6 +448,12 @@ curation_history:
     llm_assisted: false
     action: EDIT
     description: Filled reference_title from references_cache/ with `just fill-titles`.
+  - timestamp: '2026-10-09T20:41:52+00:00'
+    curator: claude-code
+    llm_assisted: true
+    model: claude-opus-5-5
+    action: EDIT
+    description: Added a bounding box to the ZCTA and to each watershed, quoted from the extent Census TIGERweb and the Watershed Boundary Dataset report.
   - timestamp: '2026-10-09T21:52:11+00:00'
     curator: claude-code
     llm_assisted: true
