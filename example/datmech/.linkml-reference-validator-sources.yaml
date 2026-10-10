@@ -1,0 +1,16 @@
+# Reference sources beyond the validator's built-in ones (PMID, DOI, url:).
+# The validator reads this file from the Mech's root.
+sources:
+  # WIKIPEDIA:<article title, underscores for spaces>, e.g.
+  # WIKIPEDIA:Flint_water_crisis. Fetched as plain text from Wikipedia's API,
+  # so a quote is checked against the article's words and not its HTML. The
+  # article changes; the committed cache in references_cache/ keeps the text
+  # each quote was checked against.
+  WIKIPEDIA:
+    url_template: "https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&redirects=1&format=json&formatversion=2&titles={id}"
+    fields:
+      title: "$.query.pages[0].title"
+      content: "$.query.pages[0].extract"
+    headers:
+      # Wikimedia refuses requests without a descriptive User-Agent.
+      User-Agent: "DaTMech/0.1 (https://github.com/monarch-initiative/mechmaker)"

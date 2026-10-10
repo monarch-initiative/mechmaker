@@ -1,0 +1,11 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    # The workflows, and the composite actions under .github/actions/ (such as
+    # setup-agent), whose pins Dependabot does not find from "/" alone.
+    directories: ["/", "/.github/actions/*"]
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]

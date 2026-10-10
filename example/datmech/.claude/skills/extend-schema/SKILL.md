@@ -1,0 +1,62 @@
+---
+name: extend-schema
+description: >-
+  Change the DaTMech data model in src/datmech/schema/datmech.yaml:
+  add, narrow, rename or remove a class, slot or enum, and migrate existing
+  records. Use when a curation need has no place in the schema, or when
+  deciding whether it warrants one. Not for filling existing slots.
+---
+
+# Extend the schema
+
+## First, decide whether to
+
+A new slot is cheap to add and costly to fill. Before proposing one:
+
+- Search the schema. The need may already have a place.
+- Check `mech_shared.yaml`. Open questions and gaps are `Discussion`, and
+  datasets are `Dataset`. Do not rebuild them.
+- Write the population strategy. Who fills the slot, from what source, by
+  what rule? If an agent fills it by judgment, the rule must be written down
+  well enough that two agents fill it the same way.
+
+## Never edit these
+
+`mech_shared.yaml` and `history.yaml` are vendored. A test pins their
+hashes. Changes go upstream to the fleet canon and come back by re-vendoring.
+
+## Making the change
+
+1. Edit `src/datmech/schema/datmech.yaml`. Give every new
+   element a `description`.
+2. For an ontology-bound slot, use the descriptor pattern: a `Descriptor`
+   subclass whose `term` binds to a dynamic enum with a verified root. See
+   the `ontology-terms` skill.
+3. For evidence, reuse `EvidenceItem`. It carries the `implements` markers
+   the reference validator looks for.
+4. A new prefix goes in the schema's `prefixes` with its full URI, looked
+   up, not composed. RDF exports turn CURIEs into IRIs through it, and
+   `just export` fails on one that does not expand. A slot that means what a
+   standard property means gets that `slot_uri` (`dcterms:description`,
+   `skos:altLabel`).
+5. A new section whose items bind terms gets an entry in `conf/kgx.yaml`
+   (predicate and category), or the KGX export leaves it out.
+6. Update `tests/data/example_record.yaml` to exercise the change.
+7. Run `just lint`, `just test` and `just export`.
+
+## Migrating records
+
+A change that makes existing records invalid ships with its migration in
+the same pull request:
+
+1. Write the migration as a script under `scripts/migrations/`, named for
+   the change. It reads each record, transforms it, and writes through
+   `write_validated_record` in `src/datmech/records.py`.
+2. Run it. Run `just validate-all`. Commit the script and the records.
+3. Add one history record with `--kind schema` describing the change, and
+   one with `--kind record` per record changed by hand.
+
+## Afterward
+
+Update `docs/DOMAIN.md` so the design record matches the schema. Update
+`CLAUDE.md` if a rule changed.

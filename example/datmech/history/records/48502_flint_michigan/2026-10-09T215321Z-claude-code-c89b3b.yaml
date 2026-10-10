@@ -1,0 +1,24 @@
+history_version: 1
+target:
+  kind: record
+  slug: 48502_flint_michigan
+  path: data/zip_areas/48502_flint_michigan.yaml
+session:
+  id: 2026-10-09T215321Z-claude-code-c89b3b
+  timestamp: '2026-10-09T21:53:21Z'
+  actors:
+  - type: ai_agent
+    name: claude-code
+    model: claude-opus-5-5
+    agent_tool: claude-code
+events:
+- type: EDIT
+  outcome: changed
+  sections:
+  - incidents
+  summary: Added the March 2026 Flint River sewage release, from archived news
+  details: news_leads.py found ABC12 (WJRT)'s story among 2026 leads; Google News dated it 2026-02-10,
+    the page says Mar 9, 2026. Quoted from its Wayback snapshot of 2026-03-11. Incident 2026-03-07 to
+    2026-03-08 with the Genesee County Health Department's no-contact advisory downstream of the plant;
+    added NO_CONTACT to AdvisoryKindEnum for it. WNEM's story of the same date describes the same release
+    and has no snapshot.

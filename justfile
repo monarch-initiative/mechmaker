@@ -31,7 +31,7 @@ docs-serve: example-sites
     uv run mkdocs serve
 
 # Build every example Mech's site (its docs and record browser) into docs/example/
-example-sites: (example-site "goatmech") (example-site "ingestmech")
+example-sites: (example-site "goatmech") (example-site "ingestmech") (example-site "datmech")
 
 # Build one example Mech's site into docs/example/<name>/
 example-site name:

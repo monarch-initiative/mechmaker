@@ -1,6 +1,6 @@
 # Examples
 
-Two Mechs made with mechmaker's skills and template, to show the whole path
+Three Mechs made with mechmaker's skills and template, to show the whole path
 from a request to curated records. mechmaker's git history shows each step
 as its own commit, starting with the untouched template output.
 
@@ -31,8 +31,26 @@ Site and record browser: https://monarch-initiative.github.io/mechmaker/example/
 | `ingest-answers.yml` | The Copier answers the Mech was first generated from; its current answers are in `ingestmech/.copier-answers.yml` |
 | `ingestmech/` | The Mech: template output, the design, the conversion script, three converted and curated records |
 
-Both are examples. Neither is a published knowledge base, and their records
-are not surveys of goat breeds or of Monarch's ingests.
+## DaTMech: a Mech with no ontology and no list
+
+A Mech for US ZIP code areas by their water: the watersheds they drain to,
+the plants that treat their water, and the incidents that harmed it. No
+ontology names its records and no list says which to curate; a ZIP area is
+curated when an incident touched its water. Walkthrough:
+https://monarch-initiative.github.io/mechmaker/walkthrough-datmech/
+
+Site and record browser: https://monarch-initiative.github.io/mechmaker/example/datmech/
+
+| Path | What it is |
+|---|---|
+| `dat-survey-brief.md` | The domain survey, from the `survey-domain` skill |
+| `dat-answers.yml` | The Copier answers the Mech was first generated from; its current answers are in `datmech/.copier-answers.yml` |
+| `dat-requests.yml` | What was asked for, in the asker's words, for the `audit-mech` checklist |
+| `datmech/` | The Mech: template output, the design, three curated records |
+
+All three are examples. None is a published knowledge base, and their
+records are not surveys of goat breeds, of Monarch's ingests, or of US
+water.
 
 ## Keeping them in step with the template
 
@@ -46,7 +64,7 @@ After a template change:
 
 ```bash
 just sync-examples                 # render each example's answers, copy the template's files in
-cd example/goatmech && just qc     # and the same in example/ingestmech
+cd example/goatmech && just qc     # and the same in example/ingestmech and example/datmech
 ```
 
 `just test` fails while an example has drifted. A change the template makes

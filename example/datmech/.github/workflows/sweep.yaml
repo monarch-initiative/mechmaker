@@ -1,0 +1,36 @@
+# Weekly check of the whole corpus against the live ontology services and the
+# cited sources. Pull requests check only what they change and read the
+# caches first; this finds drift: a term renamed or obsoleted upstream, a
+# source that moved. A red run blocks nobody. It says where to look.
+name: Sweep
+
+on:
+  schedule:
+    - cron: "17 6 * * 1"  # Mondays 06:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sweep
+  cancel-in-progress: false
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: true
+      - run: uv tool install rust-just
+      - run: just install
+      - name: Full check (network)
+        run: just qc-full
+      - name: Cache changes the sweep would add
+        if: always()
+        run: git status --short cache references_cache | tee -a "$GITHUB_STEP_SUMMARY"

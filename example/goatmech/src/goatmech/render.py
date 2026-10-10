@@ -19,7 +19,11 @@ text from the schema:
   - evidence is a quote card: source, title, support, snippet; the
     description's own evidence folds under the description;
   - discussions are cards with their kind and status;
-  - curation history is a table, folded away.
+  - curation history is a table, folded away;
+  - every bounding box in the record (an object with west, south, east and
+    north, in decimal degrees) is drawn on a map above the sections, with
+    OpenStreetMap tiles through Leaflet. conf/site.yaml `map: false` turns
+    it off; a record with no box has no map.
 
 A field's label is its schema `title` if it has one, else its name with
 underscores as spaces. Its schema description is shown as help. URLs and
@@ -29,6 +33,7 @@ CURIEs are links.
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sys
 from functools import cache
@@ -39,7 +44,7 @@ from markupsafe import Markup, escape
 
 from . import site
 from .paths import MECH_NAME, PACKAGE_DIR, PAGES_DIR, RECORD_NOUN, REPO_ROOT, REPO_URL, SCHEMA_PATH, SLUG
-from .validate import iter_records, load
+from .validate import box_errors, boxes, iter_records, load
 
 CURIE_BASES = {
     "PMID": "https://pubmed.ncbi.nlm.nih.gov/",
@@ -315,10 +320,44 @@ def history(v: list) -> Markup:
         len(v), "" if len(v) == 1 else "s", rows)
 
 
+def map_boxes(data: dict, hidden: list[str] = ()) -> list[dict]:
+    """The record's bounding boxes, for the map: a name from what holds each, its section, its bounds.
+    A box that box_errors rejects is left off; `just validate` reports it."""
+    out, groups = [], []
+    for _, parents, box in boxes(data):
+        if box_errors({"box": box}):
+            continue
+        section = parents[0][0] if parents else None
+        if section in hidden:
+            continue
+        holder = parents[-1][1] if parents else data
+        _, title = card_title(box)
+        if not title and holder is not data:
+            _, title = card_title(holder)
+        group = label(section) if section else MECH_NAME
+        if group not in groups:
+            groups.append(group)
+        name = f"{group}: {title}" if title else group
+        taken = sum(b["text"] == name for b in out)
+        out.append({"text": name, "name": str(escape(name if not taken else f"{name} ({taken + 1})")),
+                    "group": groups.index(group),
+                    "bounds": [[box["south"], box["west"]], [box["north"], box["east"]]]})
+    for b in out:
+        del b["text"]
+    return out
+
+
+def map_data(data: dict, hidden: list[str] = ()) -> Markup | None:
+    """The map's boxes as JSON to embed in the page, or None when the record has none."""
+    found = map_boxes(data, hidden)
+    # "</" would end the script element the JSON sits in.
+    return Markup(json.dumps(found).replace("</", "<\\/")) if found else None
+
+
 HEADER_KEYS = ("id", "name", "description", "description_evidence", "status", "record_term", "synonyms")
 
 
-def record_body(data: dict, hidden: list[str]) -> dict:
+def record_body(data: dict, hidden: list[str], show_map: bool = True) -> dict:
     """The parts of a record page: overview rows, then sections."""
     overview, sections = [], []
     for k, v in data.items():
@@ -341,7 +380,7 @@ def record_body(data: dict, hidden: list[str]) -> dict:
                          "count": len(v) if isinstance(v, list) else None})
     ev = data.get("description_evidence") or []
     lead = evidence_list(ev) if ev else None
-    return {"overview": overview, "sections": sections,
+    return {"overview": overview, "sections": sections, "map": map_data(data, hidden) if show_map else None,
             "description_evidence": lead, "description_quotes": len(ev)}
 
 
@@ -389,7 +428,7 @@ def build() -> dict[Path, str]:
         records=records, statuses=sorted(statuses.items()), **ctx)}
     tmpl = env.get_template("record.html")
     for r in records:
-        body = record_body(r["data"], settings["hidden_sections"])
+        body = record_body(r["data"], settings["hidden_sections"], settings["map"])
         out[PAGES_DIR / "records" / f"{r['stem']}.html"] = tmpl.render(record=r, body=body, **ctx)
     css = env.get_template("style.css").render(theme=settings["theme"], **site.colors(settings))
     out[PAGES_DIR / "style.css"] = css

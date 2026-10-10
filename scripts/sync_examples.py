@@ -60,6 +60,16 @@ OWN = {
         "curation/source_queue.tsv": "the converted knowledge base and its sources",
         "registry/ingestmech.md": "the filled-in registry entry",
     },
+    "datmech": {
+        **SHARED_OWN,
+        "src/datmech/paths.py": "REPO_URL is mechmaker",
+        "src/datmech/schema/datmech.yaml": "the designed schema",
+        "src/datmech/validate.py": "the curation priority rule",
+        "research/templates/record.md": "sections in a ZIP code area's order",
+        "curation/source_queue.tsv": "the sources that feed curation",
+        "curation/README.md": "adds the record queue",
+        "registry/datmech.md": "the filled-in registry entry",
+    },
 }
 
 

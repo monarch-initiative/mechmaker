@@ -120,6 +120,13 @@ Mech and how the link is checked.
 **Quantity.** A measured value is a small class: `value` (float), `unit`
 (bound to UO), `conditions`, `evidence`. Never a string like "5 mg/L".
 
+**Place.** When a record, or something it describes, is an area a source
+draws (a county, a postal area, a watershed, a sampling region), give that
+object a `bounding_box` of class `BoundingBox`, with `west`, `south`,
+`east` and `north` in decimal degrees. The record browser draws every box
+on a map. The `add-record-map` skill has the class, where boxes come from,
+and how to quote them.
+
 **Closed vocabulary.** When the values are the Mech's own and small, use a
 static enum with a `description` on each value. When they come from an
 ontology, use a dynamic enum. Do not copy ontology terms into a static enum.

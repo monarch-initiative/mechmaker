@@ -168,3 +168,16 @@ def test_a_broken_history_file_is_reported(tmp_path):
 def test_history_schema_loads():
     sv = SchemaView(str(HISTORY_SCHEMA_PATH))
     assert "HistoryRecord" in sv.all_classes()
+
+
+@pytest.mark.parametrize("box,ok", [
+    ({"west": -83.7, "south": 43.0, "east": -83.6, "north": 43.1}, True),
+    ({"west": -83.6, "south": 43.0, "east": -83.7, "north": 43.1}, False),  # west east of east
+    ({"west": -83.7, "south": 43.1, "east": -83.6, "north": 43.0}, False),  # south north of north
+    ({"west": -200, "south": 0, "east": 0, "north": 1}, False),
+    ({"west": -83.7, "south": 43.0, "east": -83.6}, False),  # a side missing
+    ({"west": "far", "south": 43.0, "east": -83.6, "north": 43.1}, False),
+])
+def test_bounding_boxes_are_checked_wherever_they_are(box, ok):
+    errors = rule_errors({"name": "X", "places": [{"name": "p", "bounding_box": box}]})
+    assert (not any("bounding box" in e or "must lie" in e for e in errors)) == ok, errors

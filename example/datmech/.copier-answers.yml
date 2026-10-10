@@ -1,0 +1,55 @@
+# Changes here will be overwritten by Copier. Do not edit by hand.
+_commit: 0.2.0-12-g79c8d17
+_src_path: gh:monarch-initiative/mechmaker
+author_email: jhc@lbl.gov
+author_name: J. Harry Caufield
+author_orcid: 0000-0001-5705-7831
+causal_graphs: false
+code_license: BSD-3-Clause
+collection: none
+copyright_year: '2026'
+data_license: CC-BY-4.0
+deep_research: true
+description: 'DaTMech records US ZIP code areas by their water: the watersheds they
+    drain to, the plants that treat their drinking water and wastewater, and the incidents
+    that have harmed its safety or quality, with every claim quoted from its source.'
+domains:
+- environment
+extra_ontologies: []
+fleet_name: ''
+full_title: Drainage and Treatment Knowledge Base
+github_org: monarch-initiative
+github_user: caufieldjh
+identity_prefix: ''
+include_claude_hook: true
+include_site: true
+load_targets: []
+mech_name: DaTMech
+mech_slug: datmech
+ontologies:
+- CHEBI
+- NCBITaxon
+- ENVO
+output_formats:
+- yaml
+- json
+- jsonld
+- ttl
+- sqlite
+- sql
+- csv
+python_min: '3.11'
+record_class: ZipArea
+record_noun: ZIP code area
+records_dir: data/zip_areas
+repo_name: datmech
+site_accent: cyan
+site_palette: blue
+site_theme: auto
+tabular_layout: per_class
+taxon_scope: ''
+term_backend: ols
+workflows:
+- sweep
+- docs
+- comment-guard

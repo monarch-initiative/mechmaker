@@ -75,6 +75,10 @@ identifiers are CURIEs the Mech can use, and a size measured on a sample.
   papers and report its hit count.
 - Existing databases and knowledge bases can seed records but never replace
   evidence. A seeded claim still needs a quoted source.
+- News is a source when records are about events: incidents, outbreaks,
+  spills, closures. Local news reports many that papers never do. Try one
+  dated search for a known event (the `ingest-news` skill's script) and
+  say whether the stories it finds are archived and quotable.
 
 These rows become `curation/source_queue.tsv` in the new Mech.
 

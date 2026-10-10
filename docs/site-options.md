@@ -25,6 +25,7 @@ accent: amber
 theme: auto
 index_columns: [name, record_term, status]
 hidden_sections: [curation_history]
+map: true
 footer: >-
   AI-curated. Validation checks that citations exist, quotes are exact and
   ontology terms are real. It does not check that the science is right.
@@ -38,6 +39,7 @@ footer: >-
 | `theme` | Light or dark pages, for both sites | `auto`, `light`, `dark` |
 | `index_columns` | Columns of the browser's front-page table, in order; the first links to the record. A field holding an ontology term shows its label | record field names |
 | `hidden_sections` | Record sections left off browser record pages; the data keeps them | record field names |
+| `map` | A map on each record page that holds a bounding box | `true` (the default), `false` |
 | `footer` | Footer on every browser page | text |
 
 The color names are Material for MkDocs' own, so one name colors both the
@@ -80,6 +82,12 @@ Mech gets a readable browser with no work:
 - URLs and identifiers are links. Values from the schema's enums are
   small labels in plain words, with the enum's description on hover.
 - On a phone, tables become one block per row.
+- A record that holds a bounding box (an object with `west`, `south`,
+  `east` and `north` in decimal degrees) gets a map above its sections:
+  each box a rectangle on OpenStreetMap, named by what holds it, with a
+  list to turn each off. A record with no box has no map. The
+  [`add-record-map`](skills/add-record-map.md) skill adds boxes to a Mech;
+  [DaTMech](example/datmech/records/index.html) shows the result.
 
 The front page table sorts by any column and filters as you type.
 

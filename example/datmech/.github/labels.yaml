@@ -1,0 +1,21 @@
+# Labels the workflows and skills use. `just labels` creates or updates them.
+# Add your own; the sync never deletes a label that is not listed here.
+
+- {name: curation, color: "0e8a16", description: "Work on records"}
+- {name: low_effort, color: "c2e0c6", description: "Bounded change to an existing record"}
+- {name: medium_effort, color: "7fc97f", description: "Less mechanical change to a record"}
+- {name: high_effort, color: "1d7a3a", description: "New record, or a change that needs judgment"}
+- {name: high-priority, color: "b60205", description: "Do this first"}
+- {name: low-priority, color: "fef2c0", description: "Do this when nothing else is waiting"}
+- {name: schema, color: "5319e7", description: "Change to the data model"}
+- {name: literature, color: "1d76db", description: "Lead from the literature scan"}
+- {name: preprint, color: "bfdadc", description: "Lead from a preprint; not peer reviewed"}
+- {name: knowledge_gaps, color: "d4c5f9", description: "An unresolved question the literature names"}
+- {name: editorial, color: "fbca04", description: "Pattern raised in review that spans records"}
+- {name: needs-human, color: "d93f0b", description: "Agents must leave this alone"}
+- {name: scope-override, color: "e99695", description: "Allow a curation PR to touch files outside the curation paths"}
+- {name: duplicate-pending, color: "fbca04", description: "Potential duplicate awaiting the three-day objection window"}
+- {name: bug, color: "d73a4a", description: "Something is broken"}
+- {name: enhancement, color: "a2eeef", description: "New feature or request"}
+- {name: question, color: "d876e3", description: "Further information is requested"}
+- {name: documentation, color: "0075ca", description: "Docs only"}

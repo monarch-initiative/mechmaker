@@ -1,0 +1,97 @@
+---
+name: ontology-terms
+description: >-
+  Choose, bind, check or repair ontology terms in DaTMech records and
+  in the schema's dynamic enums. Use when adding a `term`, fixing a label
+  mismatch or an enum-root failure, choosing an OAK adapter, or adding a new
+  ontology prefix to conf/oak_config.yaml.
+---
+
+# Ontology terms
+
+## Where the rules live
+
+- Each descriptor class in `src/datmech/schema/datmech.yaml`
+  binds `term.id` to a dynamic enum. The enum's `reachable_from` root says
+  which terms are allowed.
+- `conf/oak_config.yaml` says which OAK adapter answers for which prefix:
+  OLS, a downloaded SQLite file, BioPortal, or a file in `ontologies/`. A
+  prefix that is not listed is never checked. That is a silent hole.
+- `cache/` holds every answer the validator has received. It is committed.
+
+## Choosing a term
+
+1. Read the slot's range and its enum root in the schema.
+2. Search broadly, with synonyms. Give the prefix and the recipe uses the
+   adapter `conf/oak_config.yaml` gives it:
+
+   ```bash
+   just search-term <PREFIX> "<text>"
+   ```
+
+   Over a local file (`simpleobo:`, `pronto:`) search matches whole labels
+   only. Put `l~` in front for a partial match: `just search-term <PREFIX> "l~<part of a label>"`.
+
+3. Inspect each candidate before choosing. Definition, then ancestors:
+
+   ```bash
+   just term-info <PREFIX> <CURIE>
+   just term-ancestors <CURIE>              # is-a ancestors, through the same adapter
+   just term-under <CURIE> <enum-root>      # exit 0 if it sits under the root
+   just term-parents <CURIE>                # direct is-a parents only
+   ```
+
+   These go through the adapter the term checks use, so they answer the
+   question the checks ask. `runoak ancestors` does not work over `ols:`
+   adapters; the recipes handle that.
+
+4. Choose the most specific term that is accurate. If only a broad one fits,
+   bind the broad one and say in `notes` what you searched for.
+5. Copy the label exactly as the ontology gives it.
+
+"Nothing more specific exists" is a claim someone can check. Name the
+queries you ran in `notes` so they can.
+
+## Validating
+
+```bash
+just validate-terms data/zip_areas/<stem>.yaml
+just validate-terms-offline data/zip_areas/<stem>.yaml   # cache only
+```
+
+| Failure | Usual cause | Fix |
+|---|---|---|
+| label mismatch | label typed from memory | copy the ontology label |
+| not reachable from root | wrong term, or the right term under another branch | `just term-ancestors`; rechoose; change the root only through `extend-schema` |
+| term not found | invented or obsolete CURIE | search again; check for a replacement |
+| lookup timed out | the service did not answer | retry later; do not change the term |
+
+## Adding an ontology
+
+1. Add the prefix and its URI to `prefixes:` in the schema.
+2. Add the prefix and adapter to `conf/oak_config.yaml`. Any adapter OAK
+   accepts works:
+
+   | Adapter | When |
+   |---|---|
+   | `ols:<name>` | The ontology is on OLS. Nothing to download. |
+   | `sqlite:obo:<name>` | An OBO Foundry ontology, large or heavily used. One download, then offline. |
+   | `bioportal:<name>` | Only on BioPortal. Needs `BIOPORTAL_API_KEY` locally and as a repository secret for CI. Is-a only: BioPortal gives no part-of. |
+   | `simpleobo:ontologies/<file>.obo`, `pronto:ontologies/<file>.owl`, `sqlite:ontologies/<file>.db` | Your own or an unpublished ontology. Commit the file under `ontologies/`. |
+
+   Check the adapter answers before going further: `just term-info <PREFIX> <root>`.
+
+   Run term checks through `just`, never `runoak` or `linkml-term-validator`
+   directly. The recipes apply a workaround in `src/datmech/oak_compat.py`,
+   without which every BioPortal term fails its enum, and they hide the
+   BioPortal key, which a failed request prints inside its URL.
+3. Add a descriptor class and a dynamic enum with a verified root. Check
+   the root with `just term-info`, and check that the terms you expect to
+   bind sit under it with `just term-under`, before you write it down.
+4. Run `just qc` and `just validate-terms-all`.
+
+## Missing terms
+
+A missing term is a finding. Keep `preferred_term`, leave `term` out, and
+open a `CURATION_TODO` discussion naming the ontology and the concept. If it
+matters, draft a new-term request for the ontology's tracker and link it.

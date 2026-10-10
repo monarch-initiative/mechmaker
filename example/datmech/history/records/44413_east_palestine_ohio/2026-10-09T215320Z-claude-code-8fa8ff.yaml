@@ -1,0 +1,27 @@
+history_version: 1
+target:
+  kind: record
+  slug: 44413_east_palestine_ohio
+  path: data/zip_areas/44413_east_palestine_ohio.yaml
+session:
+  id: 2026-10-09T215320Z-claude-code-8fa8ff
+  timestamp: '2026-10-09T21:53:20Z'
+  actors:
+  - type: ai_agent
+    name: claude-code
+    model: claude-opus-5-5
+    agent_tool: claude-code
+events:
+- type: EDIT
+  outcome: changed
+  sections:
+  - incidents
+  - curation_priority
+  - discussions
+  summary: Added the bottled-water advisories from archived news; priority HIGH
+  details: 'news_leads.py, from a plan by scripts/news_plan.py, found the Statehouse News Bureau story
+    of 2023-02-14 (Google News) and Cleveland 19''s of 2023-02-15 (by search for the advice''s end). Both
+    quoted from Wayback Machine snapshots. Two BOTTLED_WATER advisories: the village''s, 2023-02-14 to
+    2023-02-15; the Ohio Department of Health''s for private wells, from 2023-02-15. The railroad''s bottled
+    water (WKBN) is evidence, not an advisory. Priority MEDIUM to HIGH; the knowledge gap resolved. GDELT
+    refused every request.'

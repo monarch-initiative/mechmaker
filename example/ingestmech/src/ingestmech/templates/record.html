@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{ record.data.name }} | {{ site.title }}</title>
 <link rel="stylesheet" href="../style.css">
+{%- if body.map %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+{%- endif %}
 </head>
 <body>
 <header>
@@ -36,8 +40,53 @@
 </table>
 </section>
 {%- endif %}
+{%- if body.map %}
+<section id="map" class="map">
+<div id="map-view" class="map-view" aria-label="Map of the record's bounding boxes"></div>
+<noscript><p class="muted">The map needs JavaScript. Each bounding box is listed in its section below.</p></noscript>
+<script type="application/json" id="map-data">{{ body.map }}</script>
+<script>
+(() => {
+  // Each box is a rectangle, colored by its section, named in a tooltip and
+  // in the layer list, where it can be turned off. Names arrive escaped.
+  if (!window.L) return;
+  const boxes = JSON.parse(document.getElementById("map-data").textContent);
+  const colors = ["#0072b2", "#d55e00", "#009e73", "#cc79a7", "#e69f00", "#56b4e9"];
+  const map = L.map("map-view", {scrollWheelZoom: false});
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  }).addTo(map);
+  const names = boxes.map(b => b.name);  // the list keeps the page's order
+  const all = boxes.flatMap(b => b.bounds);
+  const layers = Object.fromEntries(names.map(n => [n, L.featureGroup()]));
+  map.fitBounds(all, {padding: [12, 12]});
+  if (boxes.length > 1) {
+    // Fit the boxes beside the layer list, not under it.
+    // Folded into a button when long, or when the map is phone-narrow.
+    const fold = boxes.length > 5 || map.getSize().x < 600;
+    const list = L.control.layers(null, layers, {collapsed: fold}).addTo(map);
+    const room = Math.min(list.getContainer().offsetWidth + 24, map.getSize().x * 0.4);
+    map.fitBounds(all, {paddingTopLeft: [12, 12], paddingBottomRight: [room, 12]});
+  }
+  // Largest first, so a small box is drawn on top and can still be hovered.
+  const area = b => (b.bounds[1][0] - b.bounds[0][0]) * (b.bounds[1][1] - b.bounds[0][1]);
+  for (const b of [...boxes].sort((x, y) => area(y) - area(x))) {
+    const color = colors[b.group % colors.length];
+    const group = layers[b.name].addLayer(L.rectangle(b.bounds, {color: color, weight: 2, fillOpacity: 0.06}));
+    // A box a few pixels wide at this zoom gets a dot at its center, to be found.
+    const size = map.latLngToLayerPoint(b.bounds[1]).subtract(map.latLngToLayerPoint(b.bounds[0]));
+    if (Math.max(Math.abs(size.x), Math.abs(size.y)) < 12) {
+      group.addLayer(L.circleMarker(L.latLngBounds(b.bounds).getCenter(), {radius: 6, color: color, fillOpacity: 0.8}));
+    }
+    group.bindTooltip(b.name, {sticky: true}).addTo(map);
+  }
+})();
+</script>
+</section>
+{%- endif %}
 {%- if body.sections | length > 2 %}
-<nav class="toc">{% for s in body.sections %}<a href="#{{ s.key }}">{{ s.label }}{% if s.count %} <span class="count">{{ s.count }}</span>{% endif %}</a>{% endfor %}</nav>
+<nav class="toc">{% if body.map %}<a href="#map">Map</a>{% endif %}{% for s in body.sections %}<a href="#{{ s.key }}">{{ s.label }}{% if s.count %} <span class="count">{{ s.count }}</span>{% endif %}</a>{% endfor %}</nav>
 {%- endif %}
 {%- for s in body.sections %}
 <section id="{{ s.key }}">
