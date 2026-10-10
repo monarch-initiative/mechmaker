@@ -1,5 +1,6 @@
 ---
 reference_id: WIKIPEDIA:Saanen_goat
+extractor_version: 1
 title: Saanen goat
 content_type: abstract_only
 full_text_attempted: true
@@ -32,3 +33,7 @@ The Saanen is not well suited to extensive management, and is usually raised int
 
 
 == References ==
+
+
+== External links ==
+ Media related to Saanen Goat at Wikimedia Commons

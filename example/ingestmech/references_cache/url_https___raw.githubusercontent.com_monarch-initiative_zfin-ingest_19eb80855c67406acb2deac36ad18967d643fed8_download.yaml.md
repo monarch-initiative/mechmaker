@@ -1,5 +1,7 @@
 ---
 reference_id: url:https://raw.githubusercontent.com/monarch-initiative/zfin-ingest/19eb80855c67406acb2deac36ad18967d643fed8/download.yaml
+extractor_version: 1
+url_source_version: 1
 title: "https://raw.githubusercontent.com/monarch-initiative/zfin-ingest/19eb80855c67406acb2deac36ad18967d643fed8/download.yaml"
 content_type: url
 ---

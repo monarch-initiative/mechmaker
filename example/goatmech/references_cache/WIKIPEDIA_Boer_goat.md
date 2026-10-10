@@ -1,5 +1,6 @@
 ---
 reference_id: WIKIPEDIA:Boer_goat
+extractor_version: 1
 title: Boer goat
 content_type: abstract_only
 full_text_attempted: true

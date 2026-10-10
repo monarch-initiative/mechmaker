@@ -104,3 +104,17 @@
     `.github/workflows/pypi-publish.yaml`), check the versions it already
     holds: the next tag must be higher than any of them, and from now on
     a release is a new tag, not an edit to `pyproject.toml`.
+
+- id: reference-validator-0-3
+  pr: 91
+  summary: linkml-reference-validator 0.3.0 is required; it caches web pages without their scripts.
+  action: |
+    Check `uv.lock`: if `linkml-reference-validator` is already 0.3.0 or
+    newer, nothing more is needed. Otherwise run
+    `uv lock --upgrade-package linkml-reference-validator` and `just install`,
+    then `just qc-full`. The validator re-fetches every `url:` reference
+    cached by an older version and drops its scripts, styles and comments;
+    commit the changed `references_cache/` files with the lock. If a page no
+    longer answers, its old copy is kept: `grep -L url_source_version
+    references_cache/url_*` lists those, and each needs a source that still
+    answers, or a note in the record.

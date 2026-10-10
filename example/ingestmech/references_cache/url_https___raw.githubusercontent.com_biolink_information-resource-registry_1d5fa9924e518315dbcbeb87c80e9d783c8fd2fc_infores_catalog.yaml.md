@@ -1,5 +1,7 @@
 ---
 reference_id: url:https://raw.githubusercontent.com/biolink/information-resource-registry/1d5fa9924e518315dbcbeb87c80e9d783c8fd2fc/infores_catalog.yaml
+extractor_version: 1
+url_source_version: 1
 title: "https://raw.githubusercontent.com/biolink/information-resource-registry/1d5fa9924e518315dbcbeb87c80e9d783c8fd2fc/infores_catalog.yaml"
 content_type: url
 ---

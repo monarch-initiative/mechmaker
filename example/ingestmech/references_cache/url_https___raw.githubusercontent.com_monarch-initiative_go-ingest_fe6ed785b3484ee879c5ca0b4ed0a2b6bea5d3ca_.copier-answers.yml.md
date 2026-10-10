@@ -1,5 +1,7 @@
 ---
 reference_id: url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/.copier-answers.yml
+extractor_version: 1
+url_source_version: 1
 title: "https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/.copier-answers.yml"
 content_type: url
 ---

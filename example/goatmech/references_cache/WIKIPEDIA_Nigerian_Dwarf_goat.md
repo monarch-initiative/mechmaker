@@ -1,5 +1,6 @@
 ---
 reference_id: WIKIPEDIA:Nigerian_Dwarf_goat
+extractor_version: 1
 title: Nigerian Dwarf
 content_type: abstract_only
 full_text_attempted: true

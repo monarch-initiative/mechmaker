@@ -1,5 +1,7 @@
 ---
 reference_id: url:https://raw.githubusercontent.com/geneontology/geneontology.github.io/3911c58b7a09a5f925672debdc88ef20b78d32e4/_docs/go-citation-policy.md
+extractor_version: 1
+url_source_version: 1
 title: "https://raw.githubusercontent.com/geneontology/geneontology.github.io/3911c58b7a09a5f925672debdc88ef20b78d32e4/_docs/go-citation-policy.md"
 content_type: url
 ---
