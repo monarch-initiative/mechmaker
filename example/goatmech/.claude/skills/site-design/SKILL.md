@@ -4,7 +4,8 @@ description: >-
   Change how the GoatMech documentation site and record browser look:
   colors, light or dark mode, title, footer, the columns of the browser's
   front page, the sections shown on record pages, and deeper changes to the
-  page templates. Use when asked to restyle, rebrand, recolor or reorganize
+  page templates, and maps of the places records hold. Use when asked to
+  restyle, rebrand, recolor or reorganize
   the site, or when the site is hard to read.
 ---
 
@@ -23,6 +24,7 @@ templates only for what the settings cannot do.
 | `theme` | Light or dark pages, for both sites | `auto` (follows the visitor's system), `light`, `dark` |
 | `index_columns` | Columns of the browser's front-page table, in order; the first links to the record | record field names, e.g. `name`, `id`, `status`, `record_term` |
 | `hidden_sections` | Record sections left off browser record pages; the data keeps them | record field names |
+| `map` | A map on each record page that holds a bounding box | `true` (default), `false` |
 | `footer` | Footer on every browser page | text |
 
 The names are Material for MkDocs' own, so one name colors both sites.
@@ -47,6 +49,29 @@ just docs-serve     # look at both sites at http://127.0.0.1:8000
   readable.
 - Ask the person before changing an established color. It is part of how
   people recognize the site.
+
+## Maps
+
+A record page draws a map when the record holds a bounding box: any object,
+at any depth, with `west`, `south`, `east` and `north` as numbers in
+decimal degrees (WGS84). Nothing else names it. Each box is a rectangle on
+OpenStreetMap tiles, through Leaflet, named after what holds it (its
+`name` or preferred term, else the section) and colored by its section; a list
+beside the map turns each off. A box too small to see at the starting zoom
+gets a dot at its center. `just validate` rejects a box with a side
+missing, out of range, or with west east of east; a box across the
+antimeridian is not supported.
+
+If the person wants a map and the records have no boxes yet, the schema
+needs them: mechmaker's `add-record-map` skill says how to add a
+`BoundingBox`, where a box can come from, and how to quote it. Maps are on
+by default; `map: false` in `conf/site.yaml` turns them off.
+
+The map is drawn in `record.html`. Its box colors are a fixed set chosen to
+be told apart by color-blind readers, and the layer list keeps dark text,
+since Leaflet draws it on white in both themes. OpenStreetMap's tile
+policy asks for the attribution the map shows and for light use; a site
+with heavy traffic should use its own tile server.
 
 ## Beyond the settings
 
