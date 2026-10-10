@@ -16,7 +16,7 @@ dependencies = [
     # carries the ontology's own label.
     "linkml-term-validator>=0.4.5",
     # Checks that every snippet appears verbatim in its cited source.
-    "linkml-reference-validator>=0.2.1",
+    "linkml-reference-validator>=0.3.0",
     "oaklib>=0.7.3",
     # oaklib imports eutils, which still imports pkg_resources.
     "setuptools<82",
