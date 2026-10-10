@@ -1,5 +1,7 @@
 ---
 reference_id: url:https://raw.githubusercontent.com/OBOFoundry/OBOFoundry.github.io/3779db4e6678b5550c40efa2995359b84539d758/ontology/eco.md
+extractor_version: 1
+url_source_version: 1
 title: "https://raw.githubusercontent.com/OBOFoundry/OBOFoundry.github.io/3779db4e6678b5550c40efa2995359b84539d758/ontology/eco.md"
 content_type: url
 ---

@@ -1,5 +1,7 @@
 ---
 reference_id: url:https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/README.md
+extractor_version: 1
+url_source_version: 1
 title: "https://raw.githubusercontent.com/monarch-initiative/go-ingest/fe6ed785b3484ee879c5ca0b4ed0a2b6bea5d3ca/README.md"
 content_type: url
 ---

@@ -1,5 +1,7 @@
 ---
 reference_id: url:https://raw.githubusercontent.com/monarch-initiative/omim-ingest/de31fd083c8fd894eda3767085fa0452f581298c/.copier-answers.yml
+extractor_version: 1
+url_source_version: 1
 title: "https://raw.githubusercontent.com/monarch-initiative/omim-ingest/de31fd083c8fd894eda3767085fa0452f581298c/.copier-answers.yml"
 content_type: url
 ---
