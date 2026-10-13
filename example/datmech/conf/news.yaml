@@ -1,0 +1,127 @@
+# Settings for news leads: `just news-leads <record>` and `just news-plan
+# <record>`. The watch settings at the end are for `just news-watch` and the
+# news-watch workflow, which this example does not turn on.
+#
+# DaTMech's records are ZIP code areas. A story names the place and its
+# state, and is about water. Each recorded incident is searched in a window
+# around its dates with the words news uses for its kind, its advisories and
+# its contaminants. This file replaces the plan builder DaTMech had before
+# mechmaker made news a template feature (scripts/news_plan.py); it drops
+# that script's per-plant searches, which found almost nothing.
+#
+# A field is a dotted path from the record (or, under `events`, from one
+# incident). `just news-plan <record>` prints the searches a record gets.
+
+subject:
+  fields: [place_name, name]
+  qualifier_fields: [state]
+  qualifier_map:
+    state:
+      AL: Alabama
+      AK: Alaska
+      AZ: Arizona
+      AR: Arkansas
+      CA: California
+      CO: Colorado
+      CT: Connecticut
+      DE: Delaware
+      DC: District of Columbia
+      FL: Florida
+      GA: Georgia
+      HI: Hawaii
+      ID: Idaho
+      IL: Illinois
+      IN: Indiana
+      IA: Iowa
+      KS: Kansas
+      KY: Kentucky
+      LA: Louisiana
+      ME: Maine
+      MD: Maryland
+      MA: Massachusetts
+      MI: Michigan
+      MN: Minnesota
+      MS: Mississippi
+      MO: Missouri
+      MT: Montana
+      NE: Nebraska
+      NV: Nevada
+      NH: New Hampshire
+      NJ: New Jersey
+      NM: New Mexico
+      NY: New York
+      NC: North Carolina
+      ND: North Dakota
+      OH: Ohio
+      OK: Oklahoma
+      OR: Oregon
+      PA: Pennsylvania
+      RI: Rhode Island
+      SC: South Carolina
+      SD: South Dakota
+      TN: Tennessee
+      TX: Texas
+      UT: Utah
+      VT: Vermont
+      VA: Virginia
+      WA: Washington
+      WV: West Virginia
+      WI: Wisconsin
+      WY: Wyoming
+      PR: Puerto Rico
+
+topic: [water]
+
+events:
+  field: incidents
+  name: name
+  start: start_date
+  end: end_date
+  terms:
+    - field: incident_kind
+      map:
+        CONTAMINATION: [contamination, contaminated]
+        TREATMENT_FAILURE: [treatment, violation]
+        SPILL: [spill, chemicals]
+        TOXIC_BLOOM: [algae, toxin]
+        OUTBREAK: [outbreak, illness]
+        INFRASTRUCTURE_FAILURE: [main break, pressure]
+    - field: advisories.advisory_kind
+      map:
+        BOIL_WATER: [boil]
+        DO_NOT_DRINK: [do not drink]
+        DO_NOT_USE: [do not use]
+        BOTTLED_WATER: [bottled water]
+        EMERGENCY_DECLARATION: [emergency]
+        NO_CONTACT: [no contact, sewage]
+    - field: contaminants.preferred_term
+  before_days: 30
+  after_days: 365
+
+discovery:
+  years: 3
+  words: [boil, do not drink, contamination, advisory, spill, bottled water]
+  exclude: []
+
+wikipedia:
+  from_references: true
+  keywords: [water, drink, well, bottled, boil, advis, contamin, spill, creek, river, lake, run, fish,
+             toxin, algae, lead, epa, test, sample]
+
+# drink: advice about drinking water is what most records lack ("not to drink
+# the water", "safe to drink").
+rank: [drink, sewage, lead, toxin, contaminat, evacuat, test]
+
+sources: [google, wikipedia]
+per_search: 15
+max_splits: 4
+wayback: 60
+
+watch:
+  google: true
+  days: 7
+  max_records: 50
+  # Unset: a Google item is kept when its title holds a topic, discovery or
+  # rank word (water, boil, sewage ...).
+  require_qualifiers: false
+  feeds: []

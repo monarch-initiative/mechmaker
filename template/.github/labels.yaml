@@ -10,6 +10,7 @@
 - {name: schema, color: "5319e7", description: "Change to the data model"}
 - {name: literature, color: "1d76db", description: "Lead from the literature scan"}
 - {name: preprint, color: "bfdadc", description: "Lead from a preprint; not peer reviewed"}
+- {name: news, color: "c5def5", description: "Lead from the news watch"}
 - {name: knowledge_gaps, color: "d4c5f9", description: "An unresolved question the literature names"}
 - {name: editorial, color: "fbca04", description: "Pattern raised in review that spans records"}
 - {name: needs-human, color: "d93f0b", description: "Agents must leave this alone"}

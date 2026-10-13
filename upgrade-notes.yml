@@ -118,3 +118,17 @@
     longer answers, its old copy is kept: `grep -L url_source_version
     references_cache/url_*` lists those, and each needs a source that still
     answers, or a note in the record.
+
+- id: news-leads-feature
+  pr: 94
+  summary: News search is now a template feature (news_leads); the ingest-news skill's script is gone.
+  action: |
+    Only for a Mech that searched the news with the `ingest-news` skill's
+    `news_leads.py`, or keeps leads in `curation/news/`: if neither is true,
+    nothing to do. Otherwise turn the feature on with
+    `uvx copier update --vcs-ref=:current: --skip-answered --defaults --data news_leads=true`,
+    then write `conf/news.yaml` from the plans the Mech built (a plan
+    builder in `scripts/` becomes settings: its place fields, events, words
+    and rank words). Check it with `just news-plan <record>`, remove the old
+    plan builder and its tests, and run `just news-leads` on one record.
+    The `ingest-news` skill walks through it.

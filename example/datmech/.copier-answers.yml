@@ -1,5 +1,5 @@
 # Changes here will be overwritten by Copier. Do not edit by hand.
-_commit: 0.2.0-28-gb88834f
+_commit: 0.2.0-40-gb5a1c92
 _src_path: gh:monarch-initiative/mechmaker
 author_email: jhc@lbl.gov
 author_name: J. Harry Caufield
@@ -26,6 +26,7 @@ include_site: true
 load_targets: []
 mech_name: DaTMech
 mech_slug: datmech
+news_leads: true
 ontologies:
 - CHEBI
 - NCBITaxon

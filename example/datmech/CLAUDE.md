@@ -49,6 +49,8 @@ just docs-serve        # the documentation site at http://127.0.0.1:8000
 just site-check        # check conf/site.yaml: colors, theme, contrast
 just research-providers         # which deep-research providers are ready here
 just research PROVIDER TARGET   # a deep-research report on one record (costs a run)
+just news-leads STEM            # past news about one record: ranked leads in curation/news/
+just news-plan STEM             # the searches conf/news.yaml makes for a record
 ```
 
 Quote counts from `just report` or a live command, never from prose.
@@ -69,6 +71,8 @@ Quote counts from `just report` or a live command, never from prose.
   it and say so in `notes`. Do not bind a narrow term because it exists.
 - **A deep-research report is a lead, never a source.** Never cite one in a
   record. Fetch the primary source it points to and quote that.
+- **A news lead is a lead, never a source.** Never cite `curation/news/` or
+  a `news` issue. Read the story's archived copy and quote that.
 - **Declare every prefix.** Each CURIE prefix a record uses has its full
   URI in the schema's `prefixes`. The RDF exports depend on it, and
   `just export` fails on a prefix with no URI.
@@ -117,6 +121,7 @@ Project skills live in `.claude/skills/`. Use them.
 | `github-workflows` | turn on, configure, adapt or debug the GitHub workflows |
 | `site-design` | change how the documentation site and record browser look |
 | `deep-research` | run deep research on a record, and turn its leads into evidence |
+| `news-leads` | search a record's news, configure the searches, and quote what is found |
 
 
 ## Workflows

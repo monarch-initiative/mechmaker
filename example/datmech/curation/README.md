@@ -43,14 +43,14 @@ dated windows. Each file says when and how it was made. Leads are not
 evidence and are never cited; a curator reads the archived copy of an
 article and quotes that.
 
-To refresh one record's leads (mechmaker's `ingest-news` skill has the
-details and the script):
+To refresh one record's leads:
 
 ```bash
-uv run python scripts/news_plan.py data/zip_areas/<record>.yaml > /tmp/plan.json
-python3 <ingest-news scripts>/news_leads.py --plan /tmp/plan.json --out curation/news/<record>.md
+just news-plan 48502_flint_michigan     # the searches, read from conf/news.yaml
+just news-leads 48502_flint_michigan    # writes curation/news/48502_flint_michigan.md
 ```
 
-`scripts/news_plan.py` builds the searches from the record: its place, its
-incidents and their dates, its current plants, and the Wikipedia articles
-it cites.
+`conf/news.yaml` builds the searches from the record: its place and state,
+its incidents with their dates, kinds, advisories and contaminants, and the
+Wikipedia articles it cites. Each search keeps its 15 most promising leads
+and counts the rest. The `news-leads` skill has the details.

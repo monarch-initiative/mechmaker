@@ -62,7 +62,7 @@ SCENARIOS = {
 
 ALL_WORKFLOWS = [
     "sweep", "docs", "comment-guard", "close-fork-prs", "release-records", "warm-reference-cache",
-    "pypi-publish", "claude", "review", "triage", "dedupe", "pr-shepherd", "curation-scanner",
+    "pypi-publish", "news-watch", "claude", "review", "triage", "dedupe", "pr-shepherd", "curation-scanner",
     "literature-scan", "compliance", "post-review",
 ]
 AGENT_WORKFLOWS = {"claude", "review", "triage", "dedupe", "pr-shepherd", "curation-scanner",
@@ -72,6 +72,7 @@ WORKFLOW_FILES = {
     "sweep": ["sweep.yaml"], "docs": ["docs.yaml"], "comment-guard": ["comment-guard.yaml"],
     "close-fork-prs": ["close-fork-prs.yaml"], "release-records": ["release-records.yaml"],
     "warm-reference-cache": ["warm-reference-cache.yaml"], "pypi-publish": ["pypi-publish.yaml"],
+    "news-watch": ["news-watch.yaml"],
     "claude": ["claude.yaml"], "review": ["review.yaml"], "triage": ["triage.yaml"],
     "dedupe": ["dedupe.yaml", "auto-close-duplicates.yaml"], "pr-shepherd": ["pr-shepherd.yaml"],
     "curation-scanner": ["curation-scanner.yaml"], "literature-scan": ["literature-scan.yaml"],
@@ -685,6 +686,31 @@ def test_deep_research_parts(generated):
     if on:
         prompt = (dest / "research" / "templates" / "record.md").read_text()
         assert "{name}" in prompt and "{{" not in prompt
+
+
+def test_news_parts(generated):
+    _, answers, dest = generated
+    on = answers["news_leads"]
+    slug = answers["mech_slug"]
+    for path in [dest / "src" / slug / "news.py", dest / "conf" / "news.yaml", dest / "curation" / "news",
+                 dest / ".claude" / "skills" / "news-leads" / "SKILL.md", dest / "tests" / "test_news.py"]:
+        assert path.exists() == on, path
+    justfile = (dest / "justfile").read_text()
+    for recipe in ("news-leads *args:", "news-plan record:", "news-watch *args:"):
+        assert (recipe in justfile) == on, recipe
+    assert ("news-leads" in (dest / "CLAUDE.md").read_text()) == on
+    if "news-watch" in answers["workflows"]:
+        assert on
+        workflow = (dest / ".github" / "workflows" / "news-watch.yaml").read_text()
+        assert "claude-code-action" not in workflow and "ANTHROPIC" not in workflow  # no model reads the news
+        assert "just news-watch --seen" in workflow
+
+
+def test_news_watch_needs_news_leads(tmp_path):
+    data = {**BASE, "mech_name": "NoNewsMech", "record_class": "Thing", "workflows": ["news-watch"],
+            "news_leads": False}
+    with pytest.raises(Exception):  # noqa: B017
+        render(tmp_path / "out", data)
 
 
 @pytest.mark.slow

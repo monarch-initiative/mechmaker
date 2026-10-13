@@ -32,4 +32,5 @@ site_accent: cyan
 site_theme: auto
 workflows: [sweep, docs, comment-guard]
 deep_research: true
+news_leads: true
 python_min: "3.11"

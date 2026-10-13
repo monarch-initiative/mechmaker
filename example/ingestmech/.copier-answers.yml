@@ -1,5 +1,5 @@
 # Changes here will be overwritten by Copier. Do not edit by hand.
-_commit: 0.2.0-28-gb88834f
+_commit: 0.2.0-38-g906c657
 _src_path: gh:monarch-initiative/mechmaker
 author_email: jhc@lbl.gov
 author_name: J. Harry Caufield
@@ -30,6 +30,7 @@ load_targets:
 - neo4j
 mech_name: IngestMech
 mech_slug: ingestmech
+news_leads: false
 ontologies:
 - NCBITaxon
 output_formats:

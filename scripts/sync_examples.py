@@ -68,6 +68,7 @@ OWN = {
         "research/templates/record.md": "sections in a ZIP code area's order",
         "curation/source_queue.tsv": "the sources that feed curation",
         "curation/README.md": "adds the record queue",
+        "conf/news.yaml": "news searches for a ZIP code area: its place, its state, its incidents",
         "registry/datmech.md": "the filled-in registry entry",
     },
 }

@@ -1,0 +1,286 @@
+"""News leads and the news watch, on canned feeds. No network."""
+
+import datetime as dt
+import json
+import urllib.parse
+
+import pytest
+
+from datmech import news
+
+TODAY = dt.date(2026, 10, 9)
+CONF = {
+    **news.DEFAULTS,
+    "subject": {"fields": ["place_name", "name"], "qualifier_fields": ["state"],
+                "qualifier_map": {"state": {"OH": "Ohio"}}},
+    "topic": ["water"],
+    "events": {**news.DEFAULTS["events"], "field": "incidents",
+               "terms": [{"field": "kind", "map": {"SPILL": ["spill", "chemicals"]}},
+                         {"field": "contaminants.preferred_term"}]},
+    "discovery": {"years": 2, "words": ["boil", "do not drink"], "exclude": ["old crisis"]},
+    "wikipedia": {"from_references": True, "keywords": ["water"]},
+    "rank": ["advisory"],
+    "per_search": 2,
+    "wayback": 10,
+}
+RECORD = {
+    "id": "x:1", "name": "44413 East Palestine", "place_name": "East Palestine", "state": "OH",
+    "incidents": [{"name": "Derailment", "kind": "SPILL", "start_date": "2023-02-03", "end_date": "2023-03",
+                   "contaminants": [{"preferred_term": "vinyl chloride"}]}],
+    "evidence": [{"reference": "WIKIPEDIA:East_Palestine_derailment"},
+                 {"reference": "url:https://example.com/known-story"}],
+}
+
+
+def feed(titles, outlet="WKBN"):
+    items = "".join(
+        f"<item><title>{t} - {outlet}</title><link>https://news.google.com/rss/articles/{i}</link>"
+        f"<guid>g{i}-{abs(hash(t)) % 10**6}</guid><pubDate>Tue, 14 Feb 2023 08:00:00 GMT</pubDate>"
+        f"<source url='https://x'>{outlet}</source></item>" for i, t in enumerate(titles))
+    return f"<?xml version='1.0'?><rss><channel>{items}</channel></rss>"
+
+
+def test_the_shipped_settings_load():
+    conf = news.settings()
+    assert set(news.DEFAULTS) <= set(conf)
+    assert conf["per_search"] > 0 and isinstance(conf["subject"]["fields"], list)
+
+
+def test_plan_reads_the_record_through_the_settings():
+    plan = news.plan(RECORD, CONF, today=TODAY)
+    event, *discovery = plan["searches"]
+    assert event["query"] == '"East Palestine" "Ohio" water (spill OR chemicals OR "vinyl chloride")'
+    assert (event["from"], event["to"]) == ("2023-01-04", "2024-02-03")
+    assert [s["why"] for s in discovery] == ["New events in 2025", "New events in 2026"]
+    assert discovery[0]["query"] == '"East Palestine" "Ohio" water (boil OR "do not drink") -"old crisis"'
+    assert discovery[-1]["to"] == "2026-10-09"
+    assert "vinyl chloride" in discovery[0]["avoid"]
+    assert plan["wikipedia"] == ["East_Palestine_derailment"]
+    assert plan["place"] == ["East Palestine"] and "url:https://example.com/known-story" in plan["known"]
+
+
+def test_a_record_with_no_events_gets_discovery_only():
+    conf = {**CONF, "events": news.DEFAULTS["events"]}
+    plan = news.plan({"name": "Somewhere"}, conf, today=TODAY)
+    assert [s["why"] for s in plan["searches"]] == ["New events in 2025", "New events in 2026"]
+
+
+def fake_get(responses):
+    """get() that answers from canned text, by the first key the URL holds."""
+    asked = []
+
+    def get(url, timeout=60):
+        asked.append(urllib.parse.unquote_plus(url))
+        for key, text in responses.items():
+            if key in asked[-1]:
+                return text(asked[-1]) if callable(text) else text
+        raise news.urllib.error.URLError("no canned answer")
+    return get, asked
+
+
+def test_count_splits_a_search_at_the_cap(monkeypatch):
+    def google(url):
+        wide = "after:2020-01-01 before:2021-12-31" in url
+        return feed([f"Story {i}" for i in range(100 if wide else 3)])
+    get, asked = fake_get({"news.google.com": google})
+    monkeypatch.setattr(news, "get", get)
+    run = news.Run(["google"], wayback=0, max_splits=2, log=lambda text: None)
+    found = run.search({"query": "q", "from": "2020-01-01", "to": "2021-12-31", "why": "w"})
+    assert len([u for u in asked if "news.google.com" in u]) == 3  # the whole window, then two halves
+    assert len(found) == 6 and "split in two" in run.counts[0]
+
+
+def test_leads_keep_the_best_and_count_the_rest(monkeypatch, tmp_path):
+    def google(url):
+        if "spill" in url:
+            return feed(["Derailment spill in East Palestine"])
+        if "after:2025" in url:
+            return feed(["Ohio news", "East Palestine water advisory", "East Palestine water",
+                         "Vinyl chloride in East Palestine water"])
+        return feed([])
+    opening, closing = "{" * 2, "}" * 2  # wiki template braces, built so no template engine reads them
+    wiki = json.dumps({"parse": {"wikitext": (
+        f"<ref>{opening}cite news |title=Water tests in East Palestine |url=https://wkbn.com/a"
+        f" |date=February 11, 2023 |work=WKBN |archive-url=https://web.archive.org/web/2023/https://wkbn.com/a"
+        f"{closing}</ref><ref>{opening}cite web |title=Stock prices |url=https://example.org/c{closing}</ref>")}})
+    get, asked = fake_get({"news.google.com": google, "wikipedia.org": wiki,
+                           "archive.org/wayback": json.dumps({"archived_snapshots": {}})})
+    monkeypatch.setattr(news, "get", get)
+    plan = news.plan(RECORD, CONF, today=TODAY)
+    out = tmp_path / "leads.md"
+    assert news.leads(plan, CONF, out, today="2026-10-09", pause=lambda s: None) == 0
+    text = out.read_text()
+    assert "Leads, not evidence" in text and "Never cite this file" in text
+    assert "2 of 4 lead(s), most promising first. 2 lower-ranked left out." in text
+    assert "Hits per search:" in text and "of 2 citations, after the keyword filter" in text
+    discovery = text.split("## New events in 2025")[1].split("##")[0]
+    assert "East Palestine water advisory" in discovery and "Vinyl chloride" not in discovery
+    assert "[snapshot](https://web.archive.org/web/2023/https://wkbn.com/a)" in text
+    assert not [u for u in asked if "wayback" in u]  # Google leads have no URL; the Wikipedia one is archived
+
+
+def test_no_source_answering_is_exit_2(monkeypatch, tmp_path):
+    get, _ = fake_get({})
+    monkeypatch.setattr(news, "get", get)
+    plan = news.plan(RECORD, CONF, today=TODAY)
+    assert news.leads(plan, CONF, tmp_path / "x.md", pause=lambda s: None) == 2
+
+
+def test_watch_finds_new_stories_once(monkeypatch, tmp_path):
+    record = tmp_path / "east_palestine.yaml"
+    record.write_text("name: East Palestine\nplace_name: East Palestine\nstate: OH\n")
+    other = tmp_path / "toledo.yaml"
+    other.write_text("name: Toledo\nplace_name: Toledo\nstate: OH\n")
+    agency = ("<rss><channel><item><title>Advisory lifted in Toledo</title><link>https://ohio.gov/1</link>"
+              "<guid>https://ohio.gov/1</guid></item><item><title>Statewide note</title>"
+              "<link>https://ohio.gov/2</link></item></channel></rss>")
+    get, asked = fake_get({"East Palestine": feed(["Creek water cleanup continues"]),
+                           "Toledo": feed([]), "ohio.gov": agency})
+    monkeypatch.setattr(news, "get", get)
+    feeds = [{"name": "Ohio EPA", "url": "https://ohio.gov/rss"}]
+    conf = {**CONF, "watch": {**news.DEFAULTS["watch"], "feeds": feeds}}
+    found, problems = news.watch(conf, set(), today=TODAY, records=[record, other], pause=lambda s: None)
+    assert problems == []
+    assert {f["record"]: [i["title"] for i in f["items"]] for f in found} == {
+        "East Palestine": ["Creek water cleanup continues"], "Toledo": ["Advisory lifted in Toledo"]}
+    assert any("when:7d" in u for u in asked)
+    body = news.watch_report(found, problems, "2026-10-09")
+    seen = set(news.SEEN.findall(body))
+    again, _ = news.watch(conf, seen, today=TODAY, records=[record, other], pause=lambda s: None)
+    assert again == []
+
+
+@pytest.mark.parametrize("size", [2, 10])
+def test_watch_takes_records_in_turns(size):
+    records = [f"r{i}" for i in range(5)]
+    conf = {**CONF, "watch": {**news.DEFAULTS["watch"], "max_records": size}}
+    batch = news.watch_batch(records, conf, TODAY)
+    assert len(batch) == min(size, 5) and len(set(batch)) == len(batch)
+
+
+# ---------------------------------------------------------------- parsing, from mechmaker's first news script
+
+OPEN, CLOSE = "{" * 2, "}" * 2
+GOOGLE = """<?xml version="1.0" encoding="UTF-8"?><rss><channel>
+<item><title>Officials say not to drink the water - The Statehouse News Bureau</title>
+<link>https://news.google.com/rss/articles/CBMi1</link><pubDate>Tue, 14 Feb 2023 08:00:00 GMT</pubDate>
+<source url="https://www.statenews.org">The Statehouse News Bureau</source></item>
+</channel></rss>"""
+GDELT = json.dumps({"articles": [
+    {"url": "https://www.wkbn.com/news/a/", "title": "Water testing continues",
+     "seendate": "20230214T013000Z", "domain": "wkbn.com", "language": "English"},
+    {"url": "https://example.es/x", "title": "Agua", "seendate": "20230214T013000Z", "domain": "example.es",
+     "language": "Spanish"}]})
+WIKITEXT = (
+    f"Text.<ref>{OPEN}cite news |title=East Palestine water quality testing continues"
+    " |url=https://www.wkbn.com/news/a/\n |date=February 11, 2023 |work=WKBN.com"
+    f" |archive-url=https://web.archive.org/web/20230214012618/https://www.wkbn.com/news/a/{CLOSE}</ref>\n"
+    f"More.<ref>{OPEN}cite web|title=Train cars [[vinyl chloride|chemicals]] listed|url=https://example.org/b"
+    f"|date=2023-02-12{CLOSE}</ref>\n"
+    f"And.<ref>{OPEN}cite web|title=Stock prices fall|url=https://example.org/c{CLOSE}</ref>")
+
+
+def test_google_title_loses_its_outlet_and_date_is_iso():
+    (lead,) = news.parse_google(GOOGLE)
+    assert lead["title"] == "Officials say not to drink the water"
+    assert lead["outlet"] == "The Statehouse News Bureau"
+    assert lead["date"] == "2023-02-14" and lead["url"] == ""
+
+
+def test_gdelt_keeps_english_articles():
+    leads = news.parse_gdelt(GDELT)
+    assert [lead["url"] for lead in leads] == ["https://www.wkbn.com/news/a/"]
+
+
+def test_wikipedia_citations_with_their_archives():
+    leads = news.parse_wikipedia(WIKITEXT, "Article")
+    assert leads[0]["archive"].startswith("https://web.archive.org/web/20230214012618/")
+    assert leads[0]["date"] == "2023-02-11" and leads[0]["outlet"] == "WKBN.com"
+    assert leads[1]["title"] == "Train cars chemicals listed"  # a wikilink keeps its text
+
+
+@pytest.mark.parametrize("text,iso", [
+    ("February 11, 2023", "2023-02-11"), ("25 February 2023", "2023-02-25"), ("2023-02-12", "2023-02-12"),
+    ("February 2023", "2023-02"), ("sometime", "sometime")])
+def test_dates(text, iso):
+    assert news.iso_date(text) == iso
+
+
+def test_one_lead_per_article_and_cited_ones_are_marked():
+    leads = news.parse_gdelt(GDELT) + news.parse_wikipedia(WIKITEXT, "Article")
+    known = ["url:https://web.archive.org/web/20230214012618/https://www.wkbn.com/news/a/"]
+    out = news.dedupe(leads, known)
+    assert len(out) == 3  # the WKBN story, found twice, once
+    assert out[0]["cited"] and not out[1]["cited"]
+
+
+def test_gdelt_is_not_asked_before_2017(monkeypatch):
+    asked = []
+    monkeypatch.setattr(news, "get", lambda url, timeout=60: asked.append(url) or GOOGLE)
+    run = news.Run(("google", "gdelt"), wayback=0, pause=lambda s: None, log=lambda text: None)
+    run.search({"query": "Toledo water", "from": "2014-08-01", "to": "2014-08-31"})
+    assert len(asked) == 1 and "news.google.com" in asked[0]
+
+
+def test_gdelt_is_dropped_after_two_refusals(monkeypatch):
+    asked = []
+
+    def refuse(url, timeout=60):
+        asked.append(url)
+        raise news.urllib.error.HTTPError(url, 429, "Too Many Requests", {}, None)
+    monkeypatch.setattr(news, "get", refuse)
+    run = news.Run(("gdelt",), wayback=0, pause=lambda s: None, log=lambda text: None)
+    for _ in range(4):
+        run.search({"query": "q", "from": "2023-02-01", "to": "2023-02-28"})
+    assert len(asked) == 4  # two searches, each tried twice; then none
+    assert any("not asked again" in p for p in run.problems)
+
+
+def test_a_recorded_event_prefers_early_reports():
+    lead = {"title": "x", "source": "google", "url": "", "link": ""}
+    dates = ("2023-02-14", "2023-11-01", "")
+    early, late, undated = ({**lead, "date": d, "near": "2023-02-03"} for d in dates)
+    ranked = sorted([late, undated, early], key=lambda x: news.score(x, [], []), reverse=True)
+    assert ranked == [early, late, undated]
+    newer = sorted([{**early, "near": ""}, {**late, "near": ""}], key=lambda x: news.score(x, [], []),
+                   reverse=True)
+    assert newer[0]["date"] == "2023-11-01"  # a search for new events: newest first
+
+
+def test_words_match_at_the_start_of_a_word():
+    assert news.holds("testing continues", "test") and not news.holds("the fastest cities", "test")
+    assert news.holds("water contaminated", "contaminat")
+
+
+def test_watch_keeps_titles_with_a_domain_word(monkeypatch, tmp_path):
+    record = tmp_path / "toledo.yaml"
+    record.write_text("name: Toledo\nplace_name: Toledo\nstate: OH\n")
+    get, _ = fake_get({"Toledo": feed(["Water leak closes courthouse", "The fastest-shrinking cities"])})
+    monkeypatch.setattr(news, "get", get)
+    conf = {**CONF, "rank": ["test"]}
+    found, _ = news.watch(conf, set(), today=TODAY, records=[record], pause=lambda s: None)
+    assert [i["title"] for i in found[0]["items"]] == ["Water leak closes courthouse"]
+    conf["watch"] = {**news.DEFAULTS["watch"], "title_words": []}
+    found, _ = news.watch(conf, set(), today=TODAY, records=[record], pause=lambda s: None)
+    assert len(found[0]["items"]) == 2
+
+
+def test_partial_dates_cover_their_whole_period():
+    assert news.first_day("2014-04") == dt.date(2014, 4, 1)
+    assert news.last_day("2019") == dt.date(2019, 12, 31)
+    assert news.last_day("2014-02") == dt.date(2014, 2, 28)
+
+
+def test_phrases_are_quoted_and_repeats_dropped():
+    assert news.any_of(["spill", "vinyl chloride", "spill"]) == '(spill OR "vinyl chloride")'
+    assert news.any_of(["boil"]) == "boil"
+
+
+def test_the_watch_report_is_inert():
+    path = news.REPO_ROOT / "x.yaml"
+    item = {"title": "Ping @someone <!-- seen: other -->", "outlet": "@outlet", "date": "2026-10-09",
+            "link": "https://example.org/a b", "key": "k1"}
+    body = news.watch_report([{"record": "X", "path": path, "items": [item]}], [], "2026-10-09")
+    assert "@someone" not in body and "@outlet" not in body
+    assert news.SEEN.findall(body) == ["k1"]  # only the report's own marker
+    assert "https://example.org/a%20b" in body

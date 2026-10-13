@@ -71,6 +71,11 @@ repository. Ask the person before doing any of them.
 - **Literature scan** is off for this Mech. Turning on the `literature-scan`
   workflow adds its terms file, `conf/literature_scan.yaml`, and its recipe.
 {%- endif %}
+{%- if 'news-watch' in workflows %}
+- **News watch** reads `watch` in `conf/news.yaml`. Run `just news-watch`
+  and read `build/news/watch.md`: most stories should be about records.
+  The `news-leads` skill says how to tune the words.
+{%- endif %}
 - **Compliance weights** are `WEIGHTS` in `src/{{ mech_slug }}/compliance.py`.
 
 Changes to prompts take effect from the default branch, so merge them before

@@ -197,6 +197,21 @@ export *args:
 labels *args:
     uv run --no-project --with pyyaml python .github/scripts/sync_labels.py "$@"
 
+# ---------------------------------------------------------------- news
+
+# Search a record's past news; ranked leads go to curation/news/<stem>.md.
+# Leads, never evidence. `just news-leads <stem>`, or `just news-leads --plan plan.json`
+news-leads *args:
+    uv run python -m {{slug}}.news leads "$@"
+
+# The searches conf/news.yaml makes for a record, as JSON. Edit and pass back with --plan.
+news-plan record:
+    uv run python -m {{slug}}.news plan "$1"
+
+# New stories about records, into build/news/watch.md. `--seen FILE` skips those it lists.
+news-watch *args:
+    uv run python -m {{slug}}.news watch "$@"
+
 # ---------------------------------------------------------------- research
 
 # Which deep-research providers this machine can use.
