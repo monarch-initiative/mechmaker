@@ -82,9 +82,18 @@ by searching where ontologies are listed, and search more than one:
   several `ontology_name`s; its CURIE prefix names the ontology that
   defines it.
 - **BioPortal** (https://bioportal.bioontology.org/) holds many ontologies
-  outside OBO and OLS, clinical terminologies among them. Its API
-  needs a key (`BIOPORTAL_API_KEY`, free with an account); without one,
-  ask the person to search the site, or skip it and say so in the brief.
+  outside OBO and OLS, clinical terminologies among them. Its API needs a
+  key (`BIOPORTAL_API_KEY`, free with an account). Send it in a header, so
+  it never appears in a URL that an error or a log could print:
+
+  ```bash
+  curl -s -H "Authorization: apikey token=$BIOPORTAL_API_KEY" \
+      "https://data.bioontology.org/search?q=goat%20breed&pagesize=10"
+  ```
+
+  Each hit's `links.ontology` ends in the ontology's acronym. Without a
+  key, ask the person to search the site, or skip BioPortal and say so in
+  the brief.
 - **The Bioregistry** (`search-bioregistry`) and **KG-Registry** with
   `--category Ontology` (`search-kg-registry`) find ontologies by subject.
   The Bioregistry's `show` gives each one's OBO Foundry, OLS and BioPortal

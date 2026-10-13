@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import importlib.util
+import inspect
 import json
 import os
 import sys
@@ -11,9 +13,18 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "skills" / "search-kg-registry" / "scripts" / "kg_registry.py"
-sys.path.insert(0, str(SCRIPT.parent))
+def load_script(path: Path, name: str):
+    """The script as a module under its own name: `bioregistry` is also a PyPI package."""
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
 
-import kg_registry  # noqa: E402
+
+kg_registry = load_script(SCRIPT, "mechmaker_kg_registry")
+bioregistry = load_script(ROOT / "skills" / "search-bioregistry" / "scripts" / "bioregistry.py",
+                          "mechmaker_bioregistry")
 
 
 def src(*ids, relation="prov:hadPrimarySource"):
@@ -74,6 +85,8 @@ def test_search_matches_word_starts_and_endings_not_insides(registry):
     res = kg_registry.load()
     assert ids(kg_registry.search(res, ["bacterial"])) == ["bacdive"]  # synonym and description
     assert ids(kg_registry.search(res, ["robe"])) == []  # not inside "microbe"
+    assert ids(kg_registry.search(res, ["bacterial strains"])) == ["bacdive"]  # a phrase, each word cut back
+    assert ids(kg_registry.search(res, ["strain bacterial"])) == []  # in order
 
 
 def test_search_filters_by_category_and_domain(registry):
@@ -84,12 +97,13 @@ def test_search_filters_by_category_and_domain(registry):
 
 def test_products_belong_to_their_maker_wherever_listed(registry):
     res = kg_registry.load()
+    ids = {r["id"] for r in res}
     bacdive = kg_registry.find(res, "BacDive")
-    assert kg_registry.sources(res, bacdive) == {}  # kg-microbe's graph is not bacdive's
-    detail = kg_registry.detail(res, bacdive)
+    assert kg_registry.sources(bacdive, ids) == {}  # kg-microbe's graph is not bacdive's
+    detail = kg_registry.detail(res, bacdive, ids)
     assert detail["products"] == {"ProgrammingInterface": 1}
     assert [u["id"] for u in detail["used_by"]] == ["kg-microbe", "mediadive"]
-    microbe = kg_registry.detail(res, kg_registry.find(res, "kg-microbe"))
+    microbe = kg_registry.detail(res, kg_registry.find(res, "kg-microbe"), ids)
     assert [s["id"] for s in microbe["sources"]] == ["bacdive", "chebi"]  # itself left out
     assert microbe["license"] == "BSD3" and microbe["formats"] == ["kgx"]
 
@@ -110,6 +124,8 @@ def test_show_prints_status_and_replacement(registry, capsys):
 
 def test_exit_status(registry, capsys):
     assert kg_registry.main(["search", "nonesuch"]) == 1
+    assert kg_registry.main(["search", "nonesuch", "--any"]) == 1
+    assert "matched any word" in capsys.readouterr().err
     assert kg_registry.main(["show", "bacdive", "nonesuch"]) == 1
     assert kg_registry.main(["search"]) == 64
     assert kg_registry.main(["search", "x", "--category", "Thing"]) == 64
@@ -130,3 +146,9 @@ def test_an_old_copy_is_used_when_the_download_fails(registry, monkeypatch, caps
     assert "using a copy" in capsys.readouterr().err
     registry.unlink()
     assert kg_registry.main(["show", "chebi"]) == 2
+
+
+@pytest.mark.parametrize("name", ["cache_dir", "download", "stem", "word_pattern"])
+def test_the_two_scripts_share_their_helpers(name):
+    # Each skill stands alone, so each script carries its own copy; a fix to one goes in both.
+    assert inspect.getsource(getattr(kg_registry, name)) == inspect.getsource(getattr(bioregistry, name))

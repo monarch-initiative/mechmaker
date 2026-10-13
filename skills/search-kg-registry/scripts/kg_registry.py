@@ -63,7 +63,7 @@ def cache_dir() -> Path:
 
 
 def download(url: str) -> bytes:
-    """The body of url, asked for gzipped: the registry is 38 MB plain and under 3 MB compressed."""
+    """The body of url, asked for gzipped: KG-Registry's file is 38 MB plain and under 3 MB compressed."""
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept-Encoding": "gzip"})
     try:
         with urllib.request.urlopen(req, timeout=120) as resp:
@@ -108,17 +108,22 @@ def fields(resource: dict) -> dict[str, list[str]]:
     return out
 
 
-def stem(term: str) -> str:
+def stem(word: str) -> str:
     """A word cut back to its root, so that microbe finds microbial and microbes, and goat finds goats."""
-    term = term.lower()
-    if " " in term or len(term) < 5:
-        return term[:-1] if term.endswith("s") and len(term) > 3 and " " not in term else term
-    return re.sub(r"(ies|es|s|e|y)$", "", term)
+    word = word.lower()
+    if len(word) < 5:
+        return word[:-1] if word.endswith("s") and len(word) > 3 else word
+    return re.sub(r"(ies|es|s|e|y)$", "", word)
 
 
-def term_score(term: str, texts: dict[str, list[str]]) -> int:
-    """The weight of the best field the term appears in, at the start of a word; 0 if none."""
-    pattern = re.compile(r"(?<![a-z0-9])" + re.escape(stem(term)))
+def word_pattern(term: str) -> re.Pattern:
+    """A term's words, each cut back to its root, in order, each at the start of a word."""
+    stems = [re.escape(stem(w)) for w in term.split()]
+    return re.compile(r"(?<![a-z0-9])" + r"[a-z0-9-]*\s+".join(stems))
+
+
+def term_score(term: str, pattern: re.Pattern, texts: dict[str, list[str]]) -> int:
+    """The weight of the best field the term appears in; 0 if none."""
     best = 0
     for name, weight in WEIGHTS:
         values = texts[name]
@@ -134,6 +139,7 @@ def search(resources: list[dict], terms: list[str], categories: list[str] = (), 
     """Resources matching every term (or, with any_term, at least one), most terms then best score first."""
     cats = {c.lower() for c in categories}
     doms = {d.lower() for d in domains}
+    patterns = [(t, word_pattern(t)) for t in terms]
     hits = []
     for r in resources:
         if cats and r.get("category", "").lower() not in cats:
@@ -141,7 +147,7 @@ def search(resources: list[dict], terms: list[str], categories: list[str] = (), 
         if doms and not doms <= {d.lower() for d in r.get("domains") or []}:
             continue
         texts = fields(r)
-        scores = [term_score(t, texts) for t in terms]
+        scores = [term_score(t, pattern, texts) for t, pattern in patterns]
         if all(scores) or (any_term and any(scores)):
             hits.append((sum(1 for n in scores if n), sum(scores), r))
     hits.sort(key=lambda h: (-h[0], -h[1], h[2]["id"]))
@@ -176,24 +182,22 @@ def owner(product_id: str, ids: set[str]) -> str:
     return ""
 
 
-def own_products(resources: list[dict], r: dict) -> list[dict]:
-    ids = {x["id"] for x in resources}
+def own_products(r: dict, ids: set[str]) -> list[dict]:
     return [p for p in r.get("products") or [] if owner(p.get("id", ""), ids) == r["id"]]
 
 
-def sources(resources: list[dict], r: dict) -> dict[str, set[str]]:
+def sources(r: dict, ids: set[str]) -> dict[str, set[str]]:
     """What the resource's own products are built from: source id -> relation types. Itself excluded."""
     out: dict[str, set[str]] = {}
-    for product in own_products(resources, r):
+    for product in own_products(r, ids):
         for src in (product.get("original_source") or []) + (product.get("secondary_source") or []):
             if isinstance(src, dict) and src.get("source") and src["source"] != r["id"]:
                 out.setdefault(src["source"], set()).add(src.get("relation_type", ""))
     return out
 
 
-def used_by(resources: list[dict], rid: str) -> list[dict]:
+def used_by(resources: list[dict], rid: str, ids: set[str]) -> list[dict]:
     """Resources whose own products take rid as a source."""
-    ids = {x["id"] for x in resources}
     users: set[str] = set()
     for r in resources:
         for p in r.get("products") or []:
@@ -211,11 +215,11 @@ def summary(r: dict) -> dict:
             "status": r.get("activity_status", ""), "domains": r.get("domains") or [], "page": page(r["id"])}
 
 
-def detail(resources: list[dict], r: dict) -> dict:
+def detail(resources: list[dict], r: dict, ids: set[str]) -> dict:
     names = {x["id"]: x.get("name", "") for x in resources}
     products: dict[str, int] = {}
     formats: set[str] = set()
-    for p in own_products(resources, r):
+    for p in own_products(r, ids):
         products[p.get("category") or "Product"] = products.get(p.get("category") or "Product", 0) + 1
         if p.get("format"):
             formats.add(p["format"])
@@ -235,9 +239,9 @@ def detail(resources: list[dict], r: dict) -> dict:
         "formats": sorted(formats),
         "publications": [p.get("doi") or p.get("id", "") for p in r.get("publications") or []],
         "sources": [{"id": s, "name": names.get(s, ""), "relations": sorted(rel)}
-                    for s, rel in sorted(sources(resources, r).items())],
+                    for s, rel in sorted(sources(r, ids).items())],
         "used_by": [{"id": u["id"], "name": u.get("name", ""), "category": u.get("category", "")}
-                    for u in used_by(resources, r["id"])],
+                    for u in used_by(resources, r["id"], ids)],
     }
 
 
@@ -334,11 +338,12 @@ def main(argv: list[str] | None = None) -> int:
         for n, r in [] if args.json else hits:
             print_summary(summary(r), n)
         if not hits:
-            print("no resource matched every word", file=sys.stderr)
+            print(f"no resource matched {'any' if args.any else 'every'} word", file=sys.stderr)
         return 0 if hits else 1
 
     status = 0
     out = []
+    ids = {r["id"] for r in resources}
     for key in args.ids:
         r = find(resources, key)
         if r is None:
@@ -346,13 +351,13 @@ def main(argv: list[str] | None = None) -> int:
             status = 1
             continue
         if args.command == "show":
-            d = detail(resources, r)
+            d = detail(resources, r, ids)
             out.append(d)
             if not args.json:
                 print_detail(d, args.all)
                 print()
         else:
-            users = [summary(x) for x in used_by(resources, r["id"])]
+            users = [summary(x) for x in used_by(resources, r["id"], ids)]
             out.append({"id": r["id"], "used_by": users})
             if not args.json:
                 print(f"{r['id']} is a source of {len(users)} resource(s):")

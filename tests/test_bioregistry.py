@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import sys
@@ -11,12 +12,21 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "skills" / "search-bioregistry" / "scripts" / "bioregistry.py"
-sys.path.insert(0, str(SCRIPT.parent))
+def load_script(path: Path, name: str):
+    """The script as a module under its own name: `bioregistry` is also a PyPI package."""
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
 
-import bioregistry  # noqa: E402
+
+bioregistry = load_script(SCRIPT, "mechmaker_bioregistry")
 
 REGISTRY = {
-    "mondo": {"name": "Mondo Disease Ontology", "preferred_prefix": "MONDO", "pattern": "^\\d{7}$",
+    "mondo": {"name": "Mondo Disease Ontology", "owners": [{"name": "Monarch Initiative"}],
+              "contact": {"name": "A Curator", "email": "c@example.org", "orcid": "0000-0000-0000-0000"},
+              "preferred_prefix": "MONDO", "pattern": "^\\d{7}$",
               "example": "0000001", "uri_format": "http://purl.obolibrary.org/obo/MONDO_$1",
               "keywords": ["ontology", "disease"], "description": "Harmonized diseases.",
               "mappings": {"ols": "mondo", "obofoundry": "mondo", "miriam": "mondo"}},
@@ -24,8 +34,8 @@ REGISTRY = {
            "uri_format": "http://purl.obolibrary.org/obo/GO_$1", "description": "Gene functions."},
     "pubmed": {"name": "PubMed", "preferred_prefix": "pubmed", "pattern": "^\\d+$", "synonyms": ["PMID"],
                "uri_format": "https://pubmed.ncbi.nlm.nih.gov/$1/", "description": "Biomedical literature."},
-    "ncbitaxon": {"name": "NCBI Taxonomy", "preferred_prefix": "NCBITaxon", "pattern": "^\\d+$",
-                  "synonyms": ["taxid"], "uri_format": "http://purl.obolibrary.org/obo/NCBITaxon_$1",
+    "ncbitaxon": {"name": "NCBI Taxonomy", "preferred_prefix": "NCBITaxon",
+                  "pattern": "^(\\d+)|([a-zA-Z_]+)$", "synonyms": ["taxid"], "uri_format": "http://purl.obolibrary.org/obo/NCBITaxon_$1",
                   "mappings": {"miriam": "taxonomy"}, "description": "Taxa.\n\nA long second part."},
     "jcm": {"name": "Japan Collection of Microorganisms", "preferred_prefix": "JCM", "pattern": "^\\d+$",
             "uri_format": "https://www.jcm.riken.jp/cgi-bin/jcm/jcm_number?JCM=$1",
@@ -67,6 +77,8 @@ def test_curie_checks_pattern_and_standard_form(registry):
     assert bioregistry.check_curie(registry, "go:GO:0008150")["standard"] == "GO:0008150"
     assert bioregistry.check_curie(registry, "PMID:123")["uri"] == "https://pubmed.ncbi.nlm.nih.gov/123/"
     assert not bioregistry.check_curie(registry, "MONDO:12")["ok"]
+    assert bioregistry.check_curie(registry, "NCBITaxon:562")["ok"]
+    assert not bioregistry.check_curie(registry, "NCBITaxon:562abc")["ok"]  # the whole id, not its start
     assert "unknown prefix" in bioregistry.check_curie(registry, "foo:1")["error"]
     assert "no colon" in bioregistry.check_curie(registry, "MONDO0005015")["error"]
     assert "use jcm" in bioregistry.check_curie(registry, "oldstrain:1")["warning"]
@@ -85,6 +97,13 @@ def test_iri_to_curie(registry, iri, standard):
     assert "note" not in result
 
 
+def test_show_names_contact_and_owners(registry, capsys):
+    assert bioregistry.main(["show", "mondo"]) == 0
+    out = capsys.readouterr().out
+    assert "contact: A Curator (c@example.org, ORCID 0000-0000-0000-0000)" in out
+    assert "owners: Monarch Initiative" in out
+
+
 def test_iri_that_fits_nothing(registry):
     assert not bioregistry.parse_iri(registry, "https://example.org/x")["ok"]
 
@@ -100,6 +119,8 @@ def test_exit_status(registry, capsys):
     assert bioregistry.main(["curie", "MONDO:0005015"]) == 0
     assert bioregistry.main(["curie", "MONDO:0005015", "MONDO:1"]) == 1
     assert bioregistry.main(["search", "nonesuch"]) == 1
+    assert bioregistry.main(["search", "nonesuch", "--any"]) == 1
+    assert "matched any word" in capsys.readouterr().err
     assert bioregistry.main(["show", "nonesuch"]) == 1
     assert bioregistry.main(["frobnicate"]) == 64
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Look up prefixes, CURIEs and IRIs in the Bioregistry (https://bioregistry.io/). Standard library only.
 
-    bioregistry.py search "growth medium"              # prefixes whose resource matches every word
+    bioregistry.py search "cell line"                  # prefixes whose resource matches every word
     bioregistry.py search microbial strain --any       # ranked by how many words match
     bioregistry.py show mondo NCBITaxon EC             # a prefix in full, by prefix or synonym
     bioregistry.py curie MONDO:0005015 chebi:15377     # is each CURIE well formed? its standard form
@@ -14,7 +14,8 @@ ignoring a plural or ending. Every word must match; --any ranks by how many
 do. A match in the prefix, a synonym or the name ranks above one in the
 description. Deprecated prefixes are left out unless --deprecated.
 
-`show` gives a prefix's name, description, homepage, license, the pattern
+`show` gives a prefix's name, description, homepage, license, contact and
+owners, the pattern
 its local ids follow, an example, its URI prefix (what a CURIE expands to),
 download links, its ids in other registries, and its relations: what it
 is part of, provides for, depends on, and appears in.
@@ -71,6 +72,7 @@ def cache_dir() -> Path:
 
 
 def download(url: str) -> bytes:
+    """The body of url, asked for gzipped: KG-Registry's file is 38 MB plain and under 3 MB compressed."""
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept-Encoding": "gzip"})
     try:
         with urllib.request.urlopen(req, timeout=120) as resp:
@@ -103,16 +105,25 @@ def load(refresh: bool = False, path: Path | None = None) -> dict[str, dict]:
     return json.loads(path.read_text())
 
 
+_ALIASES: tuple[dict, dict[str, str]] = ({}, {})  # (registry, its aliases), built once per registry
+
+
+def aliases(registry: dict[str, dict]) -> dict[str, str]:
+    """Every preferred prefix and synonym, lowercased, to its Bioregistry prefix."""
+    global _ALIASES
+    if _ALIASES[0] is not registry:
+        index: dict[str, str] = {}
+        for name, rec in registry.items():
+            for alias in [rec.get("preferred_prefix", ""), *(rec.get("synonyms") or [])]:
+                index.setdefault(alias.lower(), name)
+        _ALIASES = (registry, index)
+    return _ALIASES[1]
+
+
 def resolve(registry: dict[str, dict], prefix: str) -> str | None:
     """The Bioregistry prefix for a prefix written any way: itself, its preferred form, or a synonym."""
     key = prefix.strip().lower()
-    if key in registry:
-        return key
-    for name, rec in registry.items():
-        synonyms = {s.lower() for s in rec.get("synonyms") or []}
-        if key == rec.get("preferred_prefix", "").lower() or key in synonyms:
-            return name
-    return None
+    return key if key in registry else aliases(registry).get(key)
 
 
 def uri_prefix(rec: dict) -> str:
@@ -121,12 +132,18 @@ def uri_prefix(rec: dict) -> str:
     return fmt[:-2] if fmt.endswith("$1") else ""
 
 
-def stem(term: str) -> str:
-    """A word cut back to its root, so that microbe finds microbial and microbes."""
-    term = term.lower()
-    if " " in term or len(term) < 5:
-        return term[:-1] if term.endswith("s") and len(term) > 3 and " " not in term else term
-    return re.sub(r"(ies|es|s|e|y)$", "", term)
+def stem(word: str) -> str:
+    """A word cut back to its root, so that microbe finds microbial and microbes, and goat finds goats."""
+    word = word.lower()
+    if len(word) < 5:
+        return word[:-1] if word.endswith("s") and len(word) > 3 else word
+    return re.sub(r"(ies|es|s|e|y)$", "", word)
+
+
+def word_pattern(term: str) -> re.Pattern:
+    """A term's words, each cut back to its root, in order, each at the start of a word."""
+    stems = [re.escape(stem(w)) for w in term.split()]
+    return re.compile(r"(?<![a-z0-9])" + r"[a-z0-9-]*\s+".join(stems))
 
 
 def fields(prefix: str, rec: dict) -> dict[str, list[str]]:
@@ -138,8 +155,8 @@ def fields(prefix: str, rec: dict) -> dict[str, list[str]]:
             "description": [rec.get("description", "").lower()]}
 
 
-def term_score(term: str, texts: dict[str, list[str]]) -> int:
-    pattern = re.compile(r"(?<![a-z0-9])" + re.escape(stem(term)))
+def term_score(term: str, pattern: re.Pattern, texts: dict[str, list[str]]) -> int:
+    """The weight of the best field the term appears in; 0 if none."""
     best = 0
     for name, weight in WEIGHTS:
         values = texts[name]
@@ -152,12 +169,13 @@ def term_score(term: str, texts: dict[str, list[str]]) -> int:
 
 def search(registry: dict[str, dict], terms: list[str], limit: int = 25, any_term: bool = False,
            deprecated: bool = False) -> list[tuple[int, str]]:
+    patterns = [(t, word_pattern(t)) for t in terms]
     hits = []
     for prefix, rec in registry.items():
         if rec.get("deprecated") and not deprecated:
             continue
         texts = fields(prefix, rec)
-        scores = [term_score(t, texts) for t in terms]
+        scores = [term_score(t, pattern, texts) for t, pattern in patterns]
         if all(scores) or (any_term and any(scores)):
             hits.append((sum(1 for n in scores if n), sum(scores), prefix))
     hits.sort(key=lambda h: (-h[0], -h[1], h[2]))
@@ -187,6 +205,8 @@ def detail(prefix: str, rec: dict) -> dict:
         "repository": rec.get("repository", ""),
         "downloads": {k[len("download_"):]: v for k, v in rec.items() if k.startswith("download_")},
         "mappings": rec.get("mappings") or {},
+        "contact": rec.get("contact") or {},
+        "owners": [o.get("name", "") for o in rec.get("owners") or [] if o.get("name")],
         **{rel: ([rec[rel]] if isinstance(rec.get(rel), str) else rec.get(rel) or []) for rel in RELATIONS},
     }
 
@@ -211,7 +231,8 @@ def check_curie(registry: dict[str, dict], curie: str) -> dict:
         canonical = rec.get("has_canonical")
         out["warning"] = "deprecated prefix" + (f"; use {canonical}" if canonical else "")
     pattern = rec.get("pattern")
-    if pattern and not re.match(pattern, local):
+    # fullmatch: some patterns, such as NCBITaxon's ^(\d+)|([a-zA-Z_]+)$, anchor only one alternative.
+    if pattern and not re.fullmatch(pattern, local):
         return {**out, "error": f"{local!r} does not match {preferred}'s pattern {pattern}"}
     if given != preferred:
         out["note"] = f"written {given}; the preferred prefix is {preferred}"
@@ -259,6 +280,14 @@ def print_detail(d: dict) -> None:
             print(f"  {label}: {d[key]}")
     if d["uri_format"] and not d["uri_prefix"]:
         print(f"  uri format: {d['uri_format']}")
+    contact = d["contact"]
+    if contact.get("name"):
+        ways = (contact.get("email"), contact.get("github") and f"github {contact['github']}",
+                contact.get("orcid") and f"ORCID {contact['orcid']}")
+        how = ", ".join(x for x in ways if x)
+        print(f"  contact: {contact['name']}" + (f" ({how})" if how else ""))
+    if d["owners"]:
+        print(f"  owners: {', '.join(d['owners'])}")
     for label, key in (("synonyms", "synonyms"), ("keywords", "keywords")):
         if d[key]:
             print(f"  {label}: {', '.join(d[key])}")
@@ -313,7 +342,7 @@ def main(argv: list[str] | None = None) -> int:
             flag = "  [deprecated]" if d["deprecated"] else ""
             print(f"{n:>3}  {d['preferred_prefix']}  {d['name']}{flag}\n       {d['page']}")
         if not hits:
-            print("no prefix matched every word", file=sys.stderr)
+            print(f"no prefix matched {'any' if args.any else 'every'} word", file=sys.stderr)
         return 0 if hits else 1
 
     if args.command == "show":

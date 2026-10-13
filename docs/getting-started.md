@@ -144,8 +144,9 @@ are ready. See [Deep research](deep-research.md).
 
 [BioPortal](https://bioportal.bioontology.org/) holds many ontologies that
 OLS does not, clinical terminologies among them. Anything that reads it
-needs an API key, which is free: make an account on BioPortal, and the key
-is on your account page. Put it in your environment as `BIOPORTAL_API_KEY`:
+needs an API key. It is free and comes with a BioPortal account; the
+[API documentation](https://data.bioontology.org/documentation) says how
+it is sent. Put it in your environment as `BIOPORTAL_API_KEY`:
 
 ```bash
 export BIOPORTAL_API_KEY=<your key>
