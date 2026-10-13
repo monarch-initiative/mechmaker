@@ -105,6 +105,17 @@
     holds: the next tag must be higher than any of them, and from now on
     a release is a new tag, not an edit to `pyproject.toml`.
 
+- id: bounding-box-check
+  pr: 86
+  summary: Validation now checks every object with two or more of west, south, east, north as a map box.
+  action: |
+    Run `just validate-all`. If it reports "a bounding box needs west,
+    south, east and north" or a side out of range on an object that is
+    not a box (say `north` and `south` naming neighbours, or river
+    banks), rename those slots in the schema with `extend-schema` and
+    migrate the records; the check reads keys, not the schema. If
+    nothing is reported, nothing to do.
+
 - id: reference-validator-0-3
   pr: 91
   summary: linkml-reference-validator 0.3.0 is required; it caches web pages without their scripts.
@@ -135,16 +146,20 @@
 
 - id: registry-lists-export
   pr: 98
-  summary: The registry draft lists each released export file, and a test holds it to conf/export.yaml.
+  summary: The docs site gains a Downloads page; the registry draft lists each released export file.
   action: |
-    If `.github/workflows/release-records.yaml` exists, run
+    Every Mech: the nav and home page link a new generated page,
+    docs/downloads.md. The update brings both links unless the Mech had
+    changed those files; then check by eye, since `just docs-build` fails
+    on neither. `mkdocs.yml` needs `- Downloads: downloads.md` in the nav,
+    after Corpus; `docs/index.md` a Downloads row in its Explore table and
+    a link under Download.
+    A Mech with `.github/workflows/release-records.yaml` also lists its
+    export in the registry draft: run
     `uv run python -m <slug>.export --registry-products` and add what it
     prints under `products:` in `registry/<slug>.md`, after the products
-    already there. Replace any earlier product for a released export file.
-    Run `just test` to confirm `test_registry_entry_lists_the_export`
-    passes. Without that workflow, nothing to do: the draft lists none.
-    If the Mech is already in MechRegistry, offer to update its entry
-    there (`register-mech`).
-    A Mech that owns `docs/index.md` or `mkdocs.yml` adds a link to
-    `downloads.md` by hand: a `Downloads: downloads.md` entry in the nav,
-    after Corpus.
+    already there, replacing any earlier product for a released export
+    file. `just test` passes `test_registry_entry_lists_the_export` once
+    they match. If the Mech is already in MechRegistry, offer to update
+    its entry there (`register-mech`). Without that workflow the draft
+    lists no export.
