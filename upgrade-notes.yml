@@ -113,8 +113,8 @@
     south, east and north" or a side out of range on an object that is
     not a box (say `north` and `south` naming neighbours, or river
     banks), rename those slots in the schema with `extend-schema` and
-    migrate the records; the check reads keys, not the schema. If
-    nothing is reported, nothing to do.
+    migrate the records; the check reads keys, not the schema (#99 would
+    have it read the schema). If nothing is reported, nothing to do.
 
 - id: reference-validator-0-3
   pr: 91
