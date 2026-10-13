@@ -149,9 +149,10 @@ does that in three parts:
 - The curator reads a lead's archived copy and quotes it. A lead is never
   cited.
 
-The weekly `news-watch` workflow looks for new stories about every record
-and files them as one `news` issue. The [`ingest-news`](skills/ingest-news.md)
-skill sets this up for any Mech.
+A Mech can also turn on the weekly `news-watch` workflow, which files new
+stories about its records as one `news` issue; DaTMech, an example, does
+not. The [`ingest-news`](skills/ingest-news.md) skill sets this up for any
+Mech.
 
 The first runs, on 2026-10-09, used the scripts that came before the
 feature: DaTMech's own plan builder and the `ingest-news` skill's search

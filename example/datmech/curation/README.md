@@ -53,6 +53,4 @@ just news-leads 48502_flint_michigan    # writes curation/news/48502_flint_michi
 `conf/news.yaml` builds the searches from the record: its place and state,
 its incidents with their dates, kinds, advisories and contaminants, and the
 Wikipedia articles it cites. Each search keeps its 15 most promising leads
-and counts the rest. The `news-leads` skill has the details. The
-`news-watch` workflow looks for new stories every Wednesday and files them
-as one `news` issue.
+and counts the rest. The `news-leads` skill has the details.

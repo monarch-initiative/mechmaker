@@ -1,5 +1,6 @@
 # Settings for news leads: `just news-leads <record>` and `just news-plan
-# <record>`, and the news-watch workflow (`just news-watch`).
+# <record>`. The watch settings at the end are for `just news-watch` and the
+# news-watch workflow, which this example does not turn on.
 #
 # DaTMech's records are ZIP code areas. A story names the place and its
 # state, and is about water. Each recorded incident is searched in a window

@@ -58,9 +58,6 @@ repository. Ask the person before doing any of them.
   adds `.github/prompts/` and `.github/agent-config.yaml`.
 - **Literature scan** is off for this Mech. Turning on the `literature-scan`
   workflow adds its terms file, `conf/literature_scan.yaml`, and its recipe.
-- **News watch** reads `watch` in `conf/news.yaml`. Run `just news-watch`
-  and read `build/news/watch.md`: most stories should be about records.
-  The `news-leads` skill says how to tune the words.
 - **Compliance weights** are `WEIGHTS` in `src/datmech/compliance.py`.
 
 Changes to prompts take effect from the default branch, so merge them before

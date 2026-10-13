@@ -13,8 +13,7 @@ description: >-
 
 Papers cover what researchers study. Many events never reach them, and local
 news reports them. `just news-leads <record>` searches a record's past news
-and writes ranked leads to `curation/news/<stem>.md`. The `news-watch` workflow
-looks for new stories every week and files them as one `news` issue.
+and writes ranked leads to `curation/news/<stem>.md`.
 
 **A lead is never evidence.** Never cite `curation/news/` or a `news` issue,
 and never write a claim from a headline. Read the story's archived copy and
@@ -93,14 +92,6 @@ Read news as a source with a date and a point of view. "Officials said"
 reports an agency's statement: prefer the agency's own notice. Take the date
 from the article, not the lead. Prefer the latest report of a figure. When
 two reports differ, record both and open a `CONTROVERSY` discussion.
-
-## A `news` issue
-
-The weekly watch lists new stories by record. Each is a lead: read it as
-above, add what it supports, and close the issue when every story is
-handled (used, or not about the record). A story that matched the wrong
-record means its subject words are too loose: add a qualifier, or set
-`watch.require_qualifiers` for the extra feeds.
 
 ## Record it
 
