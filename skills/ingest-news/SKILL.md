@@ -47,7 +47,21 @@ For a new Mech, answer `news_leads: true` in `answers.yml`, and add
 uvx copier update --vcs-ref=:current: --skip-answered --defaults --data news_leads=true
 ```
 
+That turns on the leads, not the weekly watch. For the watch too, pass the
+Mech's whole `workflows` list from `.copier-answers.yml` with `news-watch`
+added, as one more `--data`, such as
+`--data 'workflows=[sweep, docs, comment-guard, news-watch]'`.
+
 A Mech made before the feature existed takes it with `sync-mech` first.
+
+**Coming from the old script.** A Mech that ran this skill's former
+`news_leads.py` kept its searches in a plan builder under `scripts/`. Turn
+the feature on as above, then move what the builder computed into
+`conf/news.yaml` (step 3): the record fields it read for names and places
+become `subject.fields` and `subject.qualifier_fields`, its topic words
+`topic`, its event words `events.terms`, and its rank words `rank`. Compare its plans with `just news-plan <record>` on
+a few records, then remove the builder and its tests. Leads already in
+`curation/news/` stay where they are.
 The Mech gets `src/<slug>/news.py`, `conf/news.yaml`, `curation/news/`,
 `just news-leads`, `just news-plan` and `just news-watch`, its own
 `news-leads` skill, and tests that run on canned feeds.
