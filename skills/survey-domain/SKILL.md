@@ -64,11 +64,35 @@ it with `check_terms.py under`. Checking only the root's `label` is not
 enough: some ontologies, such as GAZ as OLS serves it, keep terms without an
 is-a parent, and a dynamic enum cannot reach them. An ontology need not be on
 OLS: anything OAK reads works (OBO Foundry SQLite, BioPortal, a local file),
-checked with `check_terms.py --adapter`. To find an ontology for a kind of
-thing, search the Bioregistry (`search-bioregistry`) and KG-Registry with
-`--category Ontology` (`search-kg-registry`); never name one from memory.
-Note gaps: kinds of thing no ontology covers well. Those become `preferred_term` text with open
-`CURATION_TODO` discussions, or a case for a new ontology.
+checked with `check_terms.py --adapter`.
+
+Never name an ontology from memory. Find candidates for each kind of thing
+by searching where ontologies are listed, and search more than one:
+
+- **OBO Foundry** (https://obofoundry.org/). Its registry is one file,
+  https://obofoundry.org/registry/ontologies.jsonld, with each ontology's
+  `title`, `description`, `domain`, `activity_status` and `dependencies`.
+  Prefer an active OBO Foundry ontology where one fits: these share
+  relations and import each other's terms.
+- **OLS** (https://www.ebi.ac.uk/ols4/). Search terms across every
+  ontology it serves:
+  `https://www.ebi.ac.uk/ols4/api/search?q=<words>&fieldList=obo_id,label,ontology_name`.
+  Search with `&type=ontology` for ontologies whose title or description
+  match. Many ontologies import others' terms, so a term turns up under
+  several `ontology_name`s; its CURIE prefix names the ontology that
+  defines it.
+- **BioPortal** (https://bioportal.bioontology.org/) holds many ontologies
+  outside OBO and OLS, clinical terminologies among them. Its API
+  needs a key (`BIOPORTAL_API_KEY`, free with an account); without one,
+  ask the person to search the site, or skip it and say so in the brief.
+- **The Bioregistry** (`search-bioregistry`) and **KG-Registry** with
+  `--category Ontology` (`search-kg-registry`) find ontologies by subject.
+  The Bioregistry's `show` gives each one's OBO Foundry, OLS and BioPortal
+  ids, where it has them.
+
+Note gaps: kinds of thing no ontology covers well. Those become
+`preferred_term` text with open `CURATION_TODO` discussions, or a case for a
+new ontology.
 
 ## 4. Sources
 
