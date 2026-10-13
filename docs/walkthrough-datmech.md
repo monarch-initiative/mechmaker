@@ -1,9 +1,11 @@
 # Walkthrough: a Mech with no ontology and no list
 
-This page follows one real run, on 2026-10-09. GoatMech's records are keyed
-by an ontology, and IngestMech's come from a knowledge base that already
-lists them. DaTMech has neither. One record is one US ZIP code area: where
-its water drains, where it is treated, and what has gone wrong with it. No
+This page follows one real run of make-mech, on 2026-10-09, for DaTMech: a
+Mech whose records have neither an ontology nor a list to start from.
+GoatMech's records are keyed by an ontology, and IngestMech's come from a
+knowledge base that already lists them. One record is one US ZIP code
+area: where its water drains, where it is treated, and what has gone wrong
+with it. No
 ontology names ZIP areas, no list says which ones to curate, and the part
 that makes a record worth having, its incidents, is scattered across
 Wikipedia, government pages, utility reports and papers.
@@ -230,4 +232,5 @@ watersheds, treatment facilities and incidents.
 - Toledo's second subbasin and East Palestine's private wells, open as
   `CURATION_TODO` on their records.
 - A first deep research run on one record, as leads for the next.
-- A scheduled watch for new incidents: the place for RSS.
+- A scheduled watch for new incidents: turn on the `news-watch` workflow,
+  with state agencies' RSS feeds in `conf/news.yaml`.
