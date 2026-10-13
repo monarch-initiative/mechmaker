@@ -25,6 +25,7 @@ its secrets, and adapting its prompt.
 | `close-fork-prs` | off | `close-fork-prs.yaml` | Closes PRs from forks with a note pointing to CONTRIBUTING.md. Turn it on once agents act on PRs. | nothing |
 | `release-records` | off | `release-records.yaml` | Attaches the exports `just export` writes, in the formats `conf/export.yaml` names, to each release. | nothing |
 | `warm-reference-cache` | off | `warm-reference-cache.yaml` | Weekly: fetches open-access full text for cached references and opens one rolling PR. Worth it once the cache is large. | optional agent App, so CI runs on its PR |
+| `news-watch` | **on** | `news-watch.yaml` | Weekly: reads Google News search feeds built from records' words, and the feeds `conf/news.yaml` names, and files new stories as one `news` issue. No model reads them. Stories in earlier `news` issues are not reported again. | `news_leads` on |
 | `pypi-publish` | off | `pypi-publish.yaml` | Publishes the package with trusted publishing: TestPyPI on a `v1.2.3` tag, PyPI on a release. The version is the tag's. Most Mechs do not need this; the data is the product. | PyPI trusted publisher, `pypi-release` environment |
 
 ## Agents

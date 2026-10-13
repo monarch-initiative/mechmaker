@@ -51,6 +51,10 @@ just site-check        # check conf/site.yaml: colors, theme, contrast
 just research-providers         # which deep-research providers are ready here
 just research PROVIDER TARGET   # a deep-research report on one record (costs a run)
 {%- endif %}
+{%- if news_leads %}
+just news-leads STEM            # past news about one record: ranked leads in curation/news/
+just news-plan STEM             # the searches conf/news.yaml makes for a record
+{%- endif %}
 ```
 
 Quote counts from `just report` or a live command, never from prose.
@@ -72,6 +76,10 @@ Quote counts from `just report` or a live command, never from prose.
 {%- if deep_research %}
 - **A deep-research report is a lead, never a source.** Never cite one in a
   record. Fetch the primary source it points to and quote that.
+{%- endif %}
+{%- if news_leads %}
+- **A news lead is a lead, never a source.** Never cite `curation/news/` or
+  a `news` issue. Read the story's archived copy and quote that.
 {%- endif %}
 - **Declare every prefix.** Each CURIE prefix a record uses has its full
   URI in the schema's `prefixes`. The RDF exports depend on it, and
@@ -129,6 +137,9 @@ Project skills live in `.claude/skills/`. Use them.
 | `site-design` | change how the documentation site{% if include_site %} and record browser look{% else %} looks{% endif %} |
 {%- if deep_research %}
 | `deep-research` | run deep research on a record, and turn its leads into evidence |
+{%- endif %}
+{%- if news_leads %}
+| `news-leads` | search a record's news, configure the searches, and quote what is found |
 {%- endif %}
 
 {% if collection == 'xmech' %}

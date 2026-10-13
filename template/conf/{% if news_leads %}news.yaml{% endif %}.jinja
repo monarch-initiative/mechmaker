@@ -1,0 +1,91 @@
+# Settings for news leads: `just news-leads <record>` and `just news-plan
+# <record>`{% if 'news-watch' in workflows %}, and the news-watch workflow (`just news-watch`){% endif %}.
+#
+# A record's searches are built from its own fields. Name the fields here; the
+# record supplies the values. A field is a dotted path from the record (or,
+# under `events`, from one event): `place_name`, `location.state`,
+# `contaminants.preferred_term`. Lists along the path are read in full.
+# `just news-plan <record>` prints the searches a record gets: read it after
+# each change.
+
+# The words that name a {{ record_noun }} in the news. The first field that is
+# set names it, quoted in every search ("Flint"). Each qualifier is quoted too
+# and narrows every search ("Michigan"); qualifier_map rewrites a field's
+# values first, such as a state code to the state's name.
+subject:
+  fields: [name]
+  qualifier_fields: []
+  qualifier_map: {}
+  # qualifier_map:
+  #   state: {MI: Michigan, OH: Ohio}
+
+# Words every search needs, unquoted unless they are phrases, such as water.
+topic: []
+
+# A record's events, each searched in its own date window, from before_days
+# before it began to after_days after (or to its end, if later). terms are the
+# words of each event to search with, joined with OR: a field's values as they
+# are, or, with a map, the words each value maps to. Leave field empty for
+# records that hold no dated events.
+events:
+  field: ""
+  name: name
+  start: start_date
+  end: end_date
+  terms: []
+  # terms:
+  #   - field: kind
+  #     map: {SPILL: [spill, chemicals], OUTBREAK: [outbreak, illness]}
+  #   - field: contaminants.preferred_term
+  before_days: 30
+  after_days: 365
+
+# One search per recent year, for events a record does not have yet: the
+# subject, the topic, and any of `words`. Stories about the record's own
+# events rank lower in these. `exclude` drops stories with a phrase, such as
+# the name of a famous old event that would crowd out new ones.
+discovery:
+  years: 3
+  words: []
+  exclude: []
+
+# Wikipedia articles the record cites (its WIKIPEDIA: references) are read for
+# the news they cite. keywords keeps only citations whose title holds one;
+# empty keeps all, ranked like any other search.
+wikipedia:
+  from_references: true
+  keywords: []
+
+# Title words that rank a lead higher. Discovery words and each event's terms
+# count too.
+rank: []
+
+# google and wikipedia answer reliably. gdelt gives article URLs, from 2017
+# on, but often refuses; add it if you want to try.
+sources: [google, wikipedia]
+
+# Leads each search keeps after ranking. The rest are counted, not listed.
+per_search: 15
+# A search at Google's cap of about 100 hits is split in two by date, at most
+# this many times, and never into windows shorter than a month.
+max_splits: 4
+# Most archived-copy lookups (Wayback Machine) in one run, for kept leads only.
+wayback: 60
+
+# The weekly watch for new stories. Each run reads a Google News search feed
+# of each record's subject, qualifiers and topic for the last `days` days, for
+# up to max_records records (the next run takes the next ones), and each feed
+# listed here, matching its items to records that it names.
+watch:
+  google: true
+  days: 7
+  max_records: 50
+  # A Google item is kept when its title holds one of these words. Unset, they
+  # are the topic, discovery and rank words above; [] keeps every item.
+  # title_words: [water, boil, advisory]
+  # An item from a feed below must name the record's subject; with this on,
+  # its qualifiers too.
+  require_qualifiers: false
+  feeds: []
+  # feeds:
+  #   - {name: State health department, url: "https://example.gov/news.rss"}

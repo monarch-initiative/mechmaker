@@ -872,6 +872,7 @@ workflows:
     "Attach a records bundle to each release (no agent)": release-records
     "Warm the reference cache weekly (no agent)": warm-reference-cache
     "Publish the package to PyPI on release (no agent)": pypi-publish
+    "Watch the news weekly for stories about records (no agent; needs news_leads)": news-watch
     "Agent: answer @claude mentions": claude
     "Agent: review every pull request": review
     "Agent: label new issues": triage
@@ -908,6 +909,21 @@ deep_research:
     curators. Most useful for Mechs built on scholarly literature. Each provider
     needs its own access; claude_code needs only Claude Code
   default: false
+
+news_leads:
+  type: bool
+  when: "{{ kind == 'mech' }}"
+  help: >-
+    Add news leads: `just news-leads <record>` searches past news (Google
+    News, the news Wikipedia articles cite) for a record's events and writes
+    ranked leads to curation/news/, for curators to read and quote from
+    archived copies. Worth it when records are about events local news
+    reports (incidents, outbreaks, spills, recalls). conf/news.yaml says
+    which record fields to search with. The news-watch workflow needs it
+  default: "{{ 'news-watch' in workflows }}"
+  validator: >-
+    {% if 'news-watch' in workflows and not news_leads %}The news-watch workflow
+    needs news_leads.{% endif %}
 
 output_formats:
   type: str

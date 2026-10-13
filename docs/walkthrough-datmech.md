@@ -132,20 +132,30 @@ QC passed: 11 gate(s).
 
 Water incidents are often reported only by local news: when a boil notice
 began and ended, a spill into a creek, a sewage release. RSS gives the
-newest stories; curation needs the story from the week it happened. The
-[`ingest-news`](skills/ingest-news.md) skill does that in three parts:
+newest stories; curation needs the story from the week it happened.
+mechmaker's news feature, which DaTMech turns on with `news_leads: true`,
+does that in three parts:
 
-- `scripts/news_plan.py` (DaTMech's own) turns a record into dated
-  searches: one per recorded incident, one per recent year for incidents
-  the record lacks, one per current plant, and the Wikipedia articles it
-  cites.
-- `news_leads.py` (the skill's) runs them against Google News' dated
-  search, GDELT and those articles' citations, looks up existing Wayback
-  Machine snapshots, and writes ranked leads to `curation/news/`.
+- `conf/news.yaml` (DaTMech's own) says which fields name a ZIP code area
+  in the news (its place and state), where its incidents and their dates
+  are, and the words news uses for each incident's kind, advisories and
+  contaminants. `just news-plan <record>` prints the searches it makes:
+  one per recorded incident, one per recent year for incidents the record
+  lacks, and the Wikipedia articles it cites.
+- `just news-leads <record>` counts each search's hits, splits a search at
+  Google News' cap of about 100 by date, keeps each search's 15 most
+  promising leads, looks up existing Wayback Machine snapshots for those,
+  and writes them to `curation/news/`.
 - The curator reads a lead's archived copy and quotes it. A lead is never
   cited.
 
-The first runs, on 2026-10-09:
+The weekly `news-watch` workflow looks for new stories about every record
+and files them as one `news` issue. The [`ingest-news`](skills/ingest-news.md)
+skill sets this up for any Mech.
+
+The first runs, on 2026-10-09, used the scripts that came before the
+feature: DaTMech's own plan builder and the `ingest-news` skill's search
+script, with every lead listed:
 
 | Record | Leads | What came of them |
 |---|---|---|
@@ -153,9 +163,22 @@ The first runs, on 2026-10-09:
 | 48502 Flint | 762 | A new incident: 11 million gallons of partially treated sewage into the Flint River, 7 to 8 March 2026, with a no-contact advisory. No paper reports it |
 | 43604 Toledo | 139 | No change. The best lead, an April 2024 boil advisory, covered another part of the city |
 
+The same records with the template feature, on 2026-10-13, keeping 15
+leads a search:
+
+| Record | Leads kept | The leads the first runs used |
+|---|---|---|
+| 44413 East Palestine | 75 of 380 | The Statehouse News Bureau story is 9th of 15 in the derailment's search. The Cleveland 19 story came from a follow-up search for when the advice ended, not from the leads |
+| 48502 Flint | 96 of 1,182 | ABC12's sewage story is in the March 2026 release's 15, with WNEM's, MLive's and Spectrum's |
+| 43604 Toledo | 85 of 200 | |
+
 !!! note "What the runs taught"
-    GDELT refused every request (HTTP 429); the script now stops asking
-    after two refusals. Google News dated the Flint story February 10; its
+    GDELT refused every request (HTTP 429); the search now stops asking
+    after two refusals, and leaves GDELT out unless `conf/news.yaml` asks.
+    A big event fills Google's 100 results in a few weeks: the derailment's
+    search reached the cap until its windows were split down to a month,
+    and its useful early reports surfaced only once a recorded event's
+    leads were ranked by nearness to its start, not by recency. Google News dated the Flint story February 10; its
     page says March 9. Live news sites refused scripted requests (403),
     and archived copies did not. The railroad's bottled water at East
     Palestine is evidence about the incident, not an advisory: an advisory

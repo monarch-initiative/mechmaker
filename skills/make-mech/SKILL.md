@@ -132,6 +132,7 @@ site_accent: amber
 site_theme: auto          # auto, light or dark
 workflows: [sweep, docs, comment-guard]   # step 4b revisits this
 deep_research: true      # literature-heavy domain; see the deep research page
+news_leads: false        # true when records are events local news reports; see ingest-news
 output_formats: [yaml, json, jsonld, ttl, sqlite, sql, csv]   # what just export writes; add kgx for a knowledge graph
 # kgx_biolink: false   # with kgx: when Biolink does not fit the domain
 tabular_layout: per_class   # or flat: one row per record in CSV/TSV
@@ -283,9 +284,10 @@ Real sources, real quotes, `status: PROPOSED`. Run `just qc-full`.
 Seeding tests the design. When a record will not fit, change the schema now
 with `extend-schema`, while there are five records and not five hundred.
 
-If the survey named news as a source, run the `ingest-news` skill on one
-seed record: it finds dated news about the record's events, as leads, and
-the archived copies to quote.
+If the survey named news as a source, the answers turned on `news_leads`.
+Run the `ingest-news` skill: it writes `conf/news.yaml` for this Mech's
+records and proves it on the seed records, whose leads go to
+`curation/news/`.
 
 ## 6. Register
 

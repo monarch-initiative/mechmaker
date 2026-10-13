@@ -30,6 +30,7 @@ include_claude_hook: true
 site_palette: blue
 site_accent: cyan
 site_theme: auto
-workflows: [sweep, docs, comment-guard]
+workflows: [sweep, docs, comment-guard, news-watch]
 deep_research: true
+news_leads: true
 python_min: "3.11"

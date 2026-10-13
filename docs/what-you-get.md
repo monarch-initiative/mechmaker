@@ -18,6 +18,7 @@ A fresh Mech passes all its checks. This is what it holds.
 | `tests/` | The Mech's own tests, run by `just qc` |
 | `ontologies/` | Local ontology files the term checks read (optional) |
 | `research/` | Deep research reports, kept as leads (optional) |
+| `curation/news/`, `conf/news.yaml` | News leads for records, and the record fields their searches use (optional, `news_leads`); see the [`ingest-news`](skills/ingest-news.md) skill |
 | `cache/`, `references_cache/` | Answers from ontology services and copies of cited papers, kept so checks work offline |
 | `curation/source_queue.tsv` | The ranked list of sources that feed curation |
 | `registry/<slug>.md` | A draft entry for MechRegistry |

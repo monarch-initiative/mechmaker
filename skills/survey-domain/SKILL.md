@@ -120,8 +120,10 @@ identifiers are CURIEs the Mech can use, and a size measured on a sample.
   evidence. A seeded claim still needs a quoted source.
 - News is a source when records are about events: incidents, outbreaks,
   spills, closures. Local news reports many that papers never do. Try one
-  dated search for a known event (the `ingest-news` skill's script) and
-  say whether the stories it finds are archived and quotable.
+  dated search for a known event (a Google News search with `after:` and
+  `before:` dates) and say whether the stories it finds are archived and
+  quotable. If they are, set `news_leads: true` in the draft answers; the
+  `ingest-news` skill configures it.
 
 These rows become `curation/source_queue.tsv` in the new Mech.
 
