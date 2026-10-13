@@ -140,6 +140,30 @@ the check says so and tells you to run `uv tool update-shell`.
 Planning to use deep research? Add `--research` to see which providers
 are ready. See [Deep research](deep-research.md).
 
+### BioPortal needs an API key
+
+[BioPortal](https://bioportal.bioontology.org/) holds many ontologies that
+OLS does not, clinical terminologies among them. Anything that reads it
+needs an API key, which is free: make an account on BioPortal, and the key
+is on your account page. Put it in your environment as `BIOPORTAL_API_KEY`:
+
+```bash
+export BIOPORTAL_API_KEY=<your key>
+```
+
+Two steps use it:
+
+- **The survey** searches BioPortal for ontologies, beside OBO Foundry and
+  OLS. Without a key, the agent skips BioPortal, says so in the brief, and
+  may ask you to search the BioPortal site yourself.
+- **A Mech with an ontology only BioPortal serves** (a `bioportal:` adapter;
+  see [Ontologies outside the catalog](reference/ontologies.md#ontologies-outside-the-catalog))
+  checks its terms through BioPortal, locally and in GitHub Actions. The
+  key is then also a repository secret of the same name:
+  `gh secret set BIOPORTAL_API_KEY`.
+
+A Mech whose ontologies are all on OLS, or in files it keeps, needs no key.
+
 No Python on your machine? uv brings its own: run
 `uv run --no-project check_env.py --network` instead. (On Windows, the
 command may be `python` rather than `python3`.)
