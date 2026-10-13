@@ -31,7 +31,9 @@ exports attached to its latest release. It lists the scripts in scripts/
 and src/<package>/ whose names say they bring data in (convert, ingest,
 import, fetch, load, parse, transform ...), and counts the rest. Set GITHUB_TOKEN (or
 GH_TOKEN) to raise GitHub's limit of 60 requests an hour; `repo` makes
-about ten per Mech.
+seven or more per Mech, one more for each package under src/ and each
+fetch or convert folder in it. If GitHub stops answering partway, the
+Mechs already read are still printed, and the exit status is 2.
 
 The registry is one file, downloaded once and kept for a day in
 $XDG_CACHE_HOME/mechmaker (~/.cache/mechmaker); --refresh downloads it
@@ -77,7 +79,7 @@ def cache_dir() -> Path:
 
 
 def download(url: str) -> bytes:
-    """The body of url, asked for gzipped: KG-Registry's file is 38 MB plain and under 3 MB compressed."""
+    """The body of url, asked for gzipped (KG-Registry's file shrinks from 38 MB to under 3 MB)."""
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept-Encoding": "gzip"})
     try:
         with urllib.request.urlopen(req, timeout=120) as resp:
@@ -89,25 +91,41 @@ def download(url: str) -> bytes:
         raise Unreachable(f"{url}: {e}") from e
 
 
+def parse(body: bytes | str) -> list[dict]:
+    """The registry's mechs; ValueError if the file is not the registry."""
+    data = json.loads(body)
+    if not isinstance(data, dict) or not isinstance(data.get("mechs"), list):
+        raise ValueError("not the registry: no mechs list")
+    return data["mechs"]
+
+
 def load(refresh: bool = False, path: Path | None = None) -> list[dict]:
     """The registry's Mechs, from the cached copy when it is fresh."""
     path = path or cache_dir() / "mechregistry.json"
-    fresh = path.exists() and time.time() - path.stat().st_mtime < MAX_AGE
-    if refresh or not fresh:
+    kept = None
+    if path.exists():
         try:
-            body = download(URL)
-            json.loads(body)  # never cache a broken file
-            path.parent.mkdir(parents=True, exist_ok=True)
-            tmp = path.with_suffix(".part")
-            tmp.write_bytes(body)
-            tmp.replace(path)
-        except (Unreachable, ValueError) as e:
-            if not path.exists():
-                raise Unreachable(str(e)) from e
-            age = (time.time() - path.stat().st_mtime) / 86400
-            print(f"warning: could not download MechRegistry ({e}); using a copy {age:.0f} days old",
-                  file=sys.stderr)
-    return json.loads(path.read_text())["mechs"]
+            kept = parse(path.read_text())
+        except ValueError:
+            kept = None  # a broken copy: download again
+    fresh = kept is not None and time.time() - path.stat().st_mtime < MAX_AGE
+    if fresh and not refresh:
+        return kept
+    try:
+        body = download(URL)
+        got = parse(body)  # never cache a file that is not the registry
+    except (Unreachable, ValueError) as e:
+        if kept is None:
+            raise Unreachable(str(e)) from e
+        age = (time.time() - path.stat().st_mtime) / 86400
+        print(f"warning: could not download MechRegistry ({e}); using a copy {age:.0f} days old",
+              file=sys.stderr)
+        return kept
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".part")
+    tmp.write_bytes(body)
+    tmp.replace(path)
+    return got
 
 
 def stem(word: str) -> str:
@@ -115,13 +133,19 @@ def stem(word: str) -> str:
     word = word.lower()
     if len(word) < 5:
         return word[:-1] if word.endswith("s") and len(word) > 3 else word
+    if word.endswith("ss"):
+        return word  # process, class
+    if word.endswith("sis"):
+        return word[:-2]  # analysis finds analyses
+    if word.endswith("cies"):
+        return word[:-1]  # species, not spec
     return re.sub(r"(ies|es|s|e|y)$", "", word)
 
 
 def word_pattern(term: str) -> re.Pattern:
     """A term's words, each cut back to its root, in order, each at the start of a word."""
     stems = [re.escape(stem(w)) for w in term.split()]
-    return re.compile(r"(?<![a-z0-9])" + r"[a-z0-9]*[\s_/-]+".join(stems))  # culture media, culture-media
+    return re.compile(r"(?<![a-z0-9])" + r"[a-z0-9-]*[\s_/-]+".join(stems))  # culture-media, sea-water sample
 
 
 def strings(value) -> list[str]:
@@ -176,11 +200,24 @@ def search(mechs: list[dict], terms: list[str], ontologies=(), domains=(), colle
     return [(score, m) for _, score, m in hits]
 
 
+def words_of(text: str) -> set[str]:
+    return set(re.findall(r"[a-z0-9]+", text.lower()))
+
+
+def same_source(a: str, b: str) -> bool:
+    """Two source names for one source: the words of one are all words of the other (GOA, GOA files).
+
+    Whole words only, so GO is not GOLD, and an empty name matches nothing.
+    """
+    wa, wb = words_of(a), words_of(b)
+    return bool(wa and wb) and (wa <= wb or wb <= wa)
+
+
 def overlap(mechs: list[dict], ontologies=(), domains=(), sources=(), words: str = "") -> list[dict]:
     """Every Mech that shares something with a planned one, with what it shares, most shared first.
 
     Shared ontologies weigh most: two Mechs grounded in the same ontologies can join records.
-    A source matches when one name starts with the other's words (GOA, GO annotations).
+    A source matches when the words of one name are all words of the other (GOA, GOA files).
     """
     want_o = {o.lower() for o in ontologies}
     want_d = {d.lower() for d in domains}
@@ -189,9 +226,7 @@ def overlap(mechs: list[dict], ontologies=(), domains=(), sources=(), words: str
     for m in mechs:
         shared_o = sorted(o for o in strings(m.get("ontologies")) if o.lower() in want_o)
         shared_d = sorted(d for d in strings(m.get("domains")) if d.lower() in want_d)
-        names = source_names(m)
-        shared_s = sorted({n for n in names for s in sources
-                           if word_pattern(s).search(n.lower()) or word_pattern(n).search(s.lower())})
+        shared_s = sorted({n for n in source_names(m) for s in sources if same_source(n, s)})
         record = " ".join([m.get("record_type", ""), m.get("name", "")]).lower()
         shared_w = [w for w, p in patterns if p.search(record)]
         score = 3 * len(shared_o) + 3 * len(shared_s) + 2 * len(shared_w) + len(shared_d)
@@ -298,8 +333,18 @@ INGEST_WORDS = re.compile(
     r"(?:^|_)(?:convert|ingest|import|fetch|download|load|harvest|parse|transform|normali[sz])")
 
 
+# The modules every mechmaker Mech carries under src/<slug>/, other than convert.py. load.py reads
+# records and schema_import.py imports a schema; neither brings data in. tests/test_mech_registry.py
+# keeps this list equal to the template's.
+TEMPLATE_MODULES = {
+    "__init__.py", "compliance.py", "docs.py", "evidence.py", "export.py", "fleet.py", "history.py",
+    "kgx.py", "literature.py", "load.py", "oak_compat.py", "ols.py", "paths.py", "qc.py", "records.py",
+    "render.py", "report.py", "research.py", "schema_import.py", "site.py", "termcheck.py", "terms.py",
+    "titles.py", "validate.py", "warm.py"}
+
+
 def ingests(name: str) -> bool:
-    return not name.startswith("test_") and bool(INGEST_WORDS.search(name))
+    return not name.startswith("test_") and name not in TEMPLATE_MODULES and bool(INGEST_WORDS.search(name))
 
 
 def listing(full: str, path: str, sha: str) -> list[dict]:
@@ -442,21 +487,24 @@ def main(argv: list[str] | None = None) -> int:
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--refresh", action="store_true", help="download the registry again")
     sub = parser.add_subparsers(dest="command", required=True)
-    s = sub.add_parser("search", help="Mechs matching every word")
+    # --refresh is taken after the command too; SUPPRESS keeps a subcommand from resetting it.
+    common = argparse.ArgumentParser(add_help=False)
+    common.add_argument("--refresh", action="store_true", default=argparse.SUPPRESS)
+    s = sub.add_parser("search", help="Mechs matching every word", parents=[common])
     s.add_argument("terms", nargs="*", help='words or "quoted phrases"')
     s.add_argument("--ontology", action="append", default=[], help="an ontology prefix every hit uses")
     s.add_argument("--domain", action="append", default=[], help="a domain every hit has")
     s.add_argument("--collection", action="append", default=[], help="a collection every hit is in")
     s.add_argument("--any", action="store_true", help="match any word, not every word")
     s.add_argument("--json", action="store_true")
-    o = sub.add_parser("overlap", help="Mechs ranked by what they share with a planned one")
+    o = sub.add_parser("overlap", help="Mechs ranked by what they share with a planned one", parents=[common])
     o.add_argument("--ontology", action="append", default=[])
     o.add_argument("--domain", action="append", default=[])
     o.add_argument("--source", action="append", default=[], help="a data source's name")
     o.add_argument("--words", default="", help="the planned record type, in words")
     o.add_argument("--json", action="store_true")
     for name, help_ in (("show", "Mechs in full, by id"), ("repo", "what a Mech's repository holds")):
-        p = sub.add_parser(name, help=help_)
+        p = sub.add_parser(name, help=help_, parents=[common])
         p.add_argument("ids", nargs="+")
         p.add_argument("--json", action="store_true")
     try:
@@ -466,7 +514,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "search" and not (args.terms or args.ontology or args.domain or args.collection):
         print("search needs a word, an --ontology, a --domain or a --collection", file=sys.stderr)
         return 64
-    if args.command == "overlap" and not (args.ontology or args.domain or args.source or args.words):
+    if args.command == "overlap":
+        args.ontology, args.domain, args.source = ([x for x in xs if x.strip()]
+                                                   for xs in (args.ontology, args.domain, args.source))
+    if args.command == "overlap" and not (args.ontology or args.domain or args.source or args.words.strip()):
         print("overlap needs an --ontology, a --domain, a --source or --words", file=sys.stderr)
         return 64
     try:
@@ -514,8 +565,10 @@ def main(argv: list[str] | None = None) -> int:
         try:
             out.append(repo(m))
         except Unreachable as e:
+            # Usually the rate limit: stop asking, and keep what was already fetched.
             print(f"{m['id']}: {e}", file=sys.stderr)
-            return 2
+            status = 2
+            break
         if out[-1].get("error"):
             status = 1
         if not args.json:

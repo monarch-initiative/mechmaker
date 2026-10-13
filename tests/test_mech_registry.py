@@ -180,3 +180,85 @@ def test_exit_status(mechs, monkeypatch, capsys):
 @pytest.mark.parametrize("name", ["cache_dir", "download", "stem", "word_pattern"])
 def test_shares_its_helpers_with_the_other_registry_scripts(name):
     assert inspect.getsource(getattr(mech_registry, name)) == inspect.getsource(getattr(kg_registry, name))
+
+
+def test_template_modules_are_the_templates():
+    # A mechmaker Mech's own modules are not scripts that bring data in, except convert.py.
+    names = set()
+    for path in (ROOT / "template" / "src" / "{{mech_slug}}").iterdir():
+        name = path.name.removesuffix(".jinja")
+        name = name.split("%}")[1].split("{%")[0] if "%}" in name else name  # {% if x %}name.py{% endif %}
+        if name.endswith(".py"):
+            names.add(name)
+    assert names - {"convert.py"} == mech_registry.TEMPLATE_MODULES
+    assert not mech_registry.ingests("load.py") and not mech_registry.ingests("schema_import.py")
+    assert mech_registry.ingests("convert.py") and mech_registry.ingests("fetch_bacdive.py")
+
+
+@pytest.mark.parametrize("word,finds,misses", [
+    ("species", "species", "spectrum"),
+    ("analysis", "analyses", "analog"),
+    ("process", "processes", "proceed"),
+    ("microbe", "microbial", "robe"),
+])
+def test_stem(word, finds, misses):
+    pattern = mech_registry.word_pattern(word)
+    assert pattern.search(finds) and not pattern.search(misses)
+
+
+@pytest.mark.parametrize("phrase,text", [
+    ("culture media", "culture-media recipes"), ("sea sample", "a sea-water sample"),
+    ("culture medium", "a culture medium")])
+def test_phrases_cross_hyphens(phrase, text):
+    assert mech_registry.word_pattern(phrase).search(text)
+
+
+def test_sources_match_on_whole_words(mechs):
+    assert mech_registry.same_source("GOA", "GOA")
+    assert mech_registry.same_source("GOA", "goa files")
+    assert not mech_registry.same_source("GO", "JGI GOLD")
+    assert not mech_registry.same_source("", "GOA") and not mech_registry.same_source("GOA", "")
+    assert mech_registry.overlap(mechs, sources=["Media"]) == []  # not MediaDive
+
+
+def test_an_empty_source_is_no_source(mechs, capsys):
+    assert mech_registry.main(["overlap", "--source", ""]) == 64
+    assert mech_registry.main(["overlap", "--source", " ", "--ontology", "GO"]) == 0
+    assert "shares data sources" not in capsys.readouterr().out
+
+
+def test_refresh_after_the_command(mechs, monkeypatch):
+    calls = []
+
+    def fake(url):
+        calls.append(url)
+        return json.dumps({"mechs": MECHS}).encode()
+
+    monkeypatch.setattr(mech_registry, "download", fake)
+    assert mech_registry.main(["search", "culture", "--refresh"]) == 0
+    assert mech_registry.main(["--refresh", "show", "culturemech"]) == 0
+    assert len(calls) == 2
+
+
+def test_a_broken_copy_or_download_is_never_used(tmp_path, monkeypatch):
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path))
+    path = tmp_path / "mechmaker" / "mechregistry.json"
+    path.parent.mkdir()
+    path.write_text('{"mechs": [')  # cut short
+    monkeypatch.setattr(mech_registry, "download", lambda url: b'{"error": "maintenance"}')
+    assert mech_registry.main(["show", "culturemech"]) == 2
+    assert path.read_text() == '{"mechs": ['  # the error page was not cached
+    monkeypatch.setattr(mech_registry, "download", lambda url: json.dumps({"mechs": MECHS}).encode())
+    assert mech_registry.main(["show", "culturemech"]) == 0
+    assert json.loads(path.read_text())["mechs"][0]["id"] == "culturemech"
+
+
+def test_repo_keeps_what_it_fetched_when_github_stops(mechs, monkeypatch, capsys):
+    def repo(m):
+        if m["id"] == "communitymech":
+            raise mech_registry.Unreachable("GitHub refused: rate limited")
+        return {"id": m["id"], "error": "", "repository": "o/x"}
+
+    monkeypatch.setattr(mech_registry, "repo", repo)
+    assert mech_registry.main(["repo", "culturemech", "communitymech", "ai-gene-review", "--json"]) == 2
+    assert [r["id"] for r in json.loads(capsys.readouterr().out)] == ["culturemech"]

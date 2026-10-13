@@ -46,9 +46,10 @@ The registry is one file. The script downloads it on first use and keeps it
 for a day (`--refresh` takes a new one). `search` matches every word against
 a Mech's id, name, record type, description, ontologies, domains, data
 sources and collection; `--any` ranks by how many match. `--json` gives
-output to read in a program. `repo` asks GitHub, about ten requests a Mech;
-set `GITHUB_TOKEN` (`export GITHUB_TOKEN=$(gh auth token)`) to lift
-GitHub's limit of 60 an hour. Exit 1 means nothing matched; exit 2 means
+output to read in a program. `repo` asks GitHub, seven requests a Mech and
+more for one with many packages; set `GITHUB_TOKEN`
+(`export GITHUB_TOKEN=$(gh auth token)`) to lift GitHub's limit of 60 an
+hour. Exit 1 means nothing matched; exit 2 means
 the registry or GitHub could not be reached.
 
 ## 1. Is there already a Mech for this?
@@ -82,7 +83,8 @@ probably links to it too.
 
 `repo <id>` reads the Mech's repository at its current commit and lists the
 scripts whose names say they bring data in (`convert_`, `fetch_`,
-`import_`, `ingest`, `parse` ...), its records folder with sample files,
+`import_`, `ingest`, `parse` ...; the template's own modules, such as
+`load.py`, are left out), its records folder with sample files,
 whether mechmaker made it, and its latest release's files.
 
 - **A mechmaker Mech** keeps its conversions in `scripts/convert_<source>.py`,
