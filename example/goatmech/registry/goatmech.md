@@ -118,6 +118,6 @@ cross_references:
   - target: dismech
     relation: follows_pattern_of
 creation_date: 2026-09-30
-last_modified_date: 2026-09-30
+last_modified_date: 2026-10-13
 ---
-GoatMech was created with mechmaker. It holds no records yet.
+GoatMech was created with mechmaker on 2026-09-30 as an example of a Mech whose records are keyed by an ontology (VBO). It holds three goat breeds (Boer, Nigerian Dwarf, Saanen), each PROPOSED and none yet reviewed by a person.
