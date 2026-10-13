@@ -216,6 +216,16 @@ class Mech:
     def recipes(self) -> set[str]:
         return set(re.findall(r"^@?([A-Za-z][\w-]*)\b[^:=\n]*:(?!=)", self.text("justfile"), re.M))
 
+    def in_first_commit(self, rel: str) -> bool:
+        """Whether the untouched template had this file (an answer turned on later adds it after)."""
+        if not self.first_commit:
+            return False
+        out = subprocess.run(
+            ["git", "-C", str(self.root), "cat-file", "-e", f"{self.first_commit}:{rel}"],
+            capture_output=True,
+        )
+        return out.returncode == 0
+
     def changed_since_template(self, rel: str) -> bool | None:
         """Whether a file differs from the first commit, the untouched template. None without git."""
         if not self.first_commit:
@@ -558,6 +568,41 @@ def from_answers(m: Mech) -> list[Item]:
                     None: "unknown: no git history",
                 }[changed],
                 "design-mech-schema rewrites it from the record's sections",
+                status=CHECK if changed is not True else None,
+            )
+        )
+
+    if a.get("news_leads"):
+        parts = ["conf/news.yaml", f"src/{slug}/news.py", ".claude/skills/news-leads/SKILL.md",
+                 "curation/news"]
+        absent = [p for p in parts if not m.exists(p)]
+        recipes = [r for r in ("news-leads", "news-plan", "news-watch")
+                   if not re.search(rf"^{r}\b", m.text("justfile"), re.M)]
+        out.append(
+            item(
+                "News leads",
+                "news_leads",
+                not absent and not recipes,
+                "news.py, conf/news.yaml, the news-leads skill and recipes present"
+                if not absent and not recipes
+                else f"absent: {', '.join(absent + [f'just {r}' for r in recipes])}",
+                "regenerate with news_leads: true",
+            )
+        )
+        conf = "conf/news.yaml"
+        changed = m.changed_since_template(conf) if m.in_first_commit(conf) else None
+        out.append(
+            item(
+                "News searches set for the domain",
+                "make-mech step 5 (ingest-news)",
+                bool(changed),
+                f"`{conf}` "
+                + {
+                    True: "changed since the template",
+                    False: "is the template's, unchanged: it searches records by `name` alone",
+                    None: "not in the first commit, or no git history: compare it with the records",
+                }[changed],
+                "ingest-news step 3 sets its fields from the records",
                 status=CHECK if changed is not True else None,
             )
         )
