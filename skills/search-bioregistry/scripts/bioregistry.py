@@ -72,7 +72,7 @@ def cache_dir() -> Path:
 
 
 def download(url: str) -> bytes:
-    """The body of url, asked for gzipped: KG-Registry's file is 38 MB plain and under 3 MB compressed."""
+    """The body of url, asked for gzipped (KG-Registry's file shrinks from 38 MB to under 3 MB)."""
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept-Encoding": "gzip"})
     try:
         with urllib.request.urlopen(req, timeout=120) as resp:
@@ -84,25 +84,41 @@ def download(url: str) -> bytes:
         raise Unreachable(f"{url}: {e}") from e
 
 
+def parse(body: bytes | str) -> dict[str, dict]:
+    """The registry, prefix -> record; ValueError if the file is not the registry."""
+    data = json.loads(body)
+    if not isinstance(data, dict) or not data or not all(isinstance(v, dict) for v in data.values()):
+        raise ValueError("not the registry: not a map of prefixes to records")
+    return data
+
+
 def load(refresh: bool = False, path: Path | None = None) -> dict[str, dict]:
     """The registry, prefix -> record, from the cached copy when it is fresh."""
     path = path or cache_dir() / "bioregistry.json"
-    fresh = path.exists() and time.time() - path.stat().st_mtime < MAX_AGE
-    if refresh or not fresh:
+    kept = None
+    if path.exists():
         try:
-            body = download(URL)
-            json.loads(body)  # never cache a broken file
-            path.parent.mkdir(parents=True, exist_ok=True)
-            tmp = path.with_suffix(".part")
-            tmp.write_bytes(body)
-            tmp.replace(path)
-        except (Unreachable, ValueError) as e:
-            if not path.exists():
-                raise Unreachable(str(e)) from e
-            age = (time.time() - path.stat().st_mtime) / 86400
-            print(f"warning: could not download the Bioregistry ({e}); using a copy {age:.0f} days old",
-                  file=sys.stderr)
-    return json.loads(path.read_text())
+            kept = parse(path.read_text())
+        except ValueError:
+            kept = None  # a broken copy: download again
+    fresh = kept is not None and time.time() - path.stat().st_mtime < MAX_AGE
+    if fresh and not refresh:
+        return kept
+    try:
+        body = download(URL)
+        got = parse(body)  # never cache a file that is not the registry
+    except (Unreachable, ValueError) as e:
+        if kept is None:
+            raise Unreachable(str(e)) from e
+        age = (time.time() - path.stat().st_mtime) / 86400
+        print(f"warning: could not download the Bioregistry ({e}); using a copy {age:.0f} days old",
+              file=sys.stderr)
+        return kept
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".part")
+    tmp.write_bytes(body)
+    tmp.replace(path)
+    return got
 
 
 _ALIASES: tuple[dict, dict[str, str]] = ({}, {})  # (registry, its aliases), built once per registry
@@ -137,13 +153,19 @@ def stem(word: str) -> str:
     word = word.lower()
     if len(word) < 5:
         return word[:-1] if word.endswith("s") and len(word) > 3 else word
+    if word.endswith("ss"):
+        return word  # process, class
+    if word.endswith("sis"):
+        return word[:-2]  # analysis finds analyses
+    if word.endswith("cies"):
+        return word[:-1]  # species, not spec
     return re.sub(r"(ies|es|s|e|y)$", "", word)
 
 
 def word_pattern(term: str) -> re.Pattern:
     """A term's words, each cut back to its root, in order, each at the start of a word."""
     stems = [re.escape(stem(w)) for w in term.split()]
-    return re.compile(r"(?<![a-z0-9])" + r"[a-z0-9-]*\s+".join(stems))
+    return re.compile(r"(?<![a-z0-9])" + r"[a-z0-9-]*[\s_/-]+".join(stems))  # culture-media, sea-water sample
 
 
 def fields(prefix: str, rec: dict) -> dict[str, list[str]]:
@@ -312,7 +334,10 @@ def main(argv: list[str] | None = None) -> int:
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--refresh", action="store_true", help="download the registry again")
     sub = parser.add_subparsers(dest="command", required=True)
-    s = sub.add_parser("search", help="prefixes matching every word")
+    # --refresh is taken after the command too; SUPPRESS keeps a subcommand from resetting it.
+    common = argparse.ArgumentParser(add_help=False)
+    common.add_argument("--refresh", action="store_true", default=argparse.SUPPRESS)
+    s = sub.add_parser("search", help="prefixes matching every word", parents=[common])
     s.add_argument("terms", nargs="+", help='words or "quoted phrases"')
     s.add_argument("--any", action="store_true", help="match any word, not every word")
     s.add_argument("--deprecated", action="store_true", help="include deprecated prefixes")
@@ -320,7 +345,7 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--json", action="store_true")
     for name, help_, arg in (("show", "prefixes in full", "prefixes"), ("curie", "check CURIEs", "curies"),
                              ("iri", "IRIs as CURIEs", "iris")):
-        p = sub.add_parser(name, help=help_)
+        p = sub.add_parser(name, help=help_, parents=[common])
         p.add_argument(arg, nargs="+")
         p.add_argument("--json", action="store_true")
     try:

@@ -132,17 +132,24 @@ when the facts come from one database. Put the answer in the brief, as
 
 ## 5. Neighbors
 
-Read the registry. The whole thing is one JSON file:
-https://monarch-initiative.github.io/mechregistry/registry/mechs.json.
-Each entry's `record_type`, `ontologies` and `description` say what it
-covers. For each Mech that overlaps:
+Search MechRegistry with the `search-mechregistry` skill. Its `overlap`
+command takes what this survey has found (the record entity in words, the
+ontologies, the domains, the main sources) and ranks every registered Mech
+by what it shares; `search` finds the entity's words and synonyms; `show`
+gives each close one in full, with the Mechs it links to and from. For
+each Mech that overlaps:
 
 - what it records, and where the boundary between it and this Mech lies;
 - whether this Mech should link to its records (`consumes`), hand off to it
-  (`hands_off_to`), or share its vocabulary (`shares_vocabulary_with`).
+  (`hands_off_to`), or share its vocabulary (`shares_vocabulary_with`);
+- what this Mech can reuse: its conversion or ingest scripts for a source
+  this Mech shares, or its curated records as links, seeds or vocabulary.
+  `repo` lists what its repository holds.
 
-If an existing Mech already records this entity, say so first. Extending it
-may be better than starting a new one.
+If an existing Mech already records this entity, say so first, and tell
+the person before going on. Contributing to it, or narrowing this Mech to
+what it leaves out, may be better than starting a new one. That choice is
+theirs.
 
 Mechs are not the only neighbors. Search KG-Registry (`search-kg-registry`)
 for knowledge graphs, data sources, data models and ingests that hold the

@@ -63,7 +63,7 @@ def cache_dir() -> Path:
 
 
 def download(url: str) -> bytes:
-    """The body of url, asked for gzipped: KG-Registry's file is 38 MB plain and under 3 MB compressed."""
+    """The body of url, asked for gzipped (KG-Registry's file shrinks from 38 MB to under 3 MB)."""
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept-Encoding": "gzip"})
     try:
         with urllib.request.urlopen(req, timeout=120) as resp:
@@ -75,25 +75,41 @@ def download(url: str) -> bytes:
         raise Unreachable(f"{url}: {e}") from e
 
 
+def parse(body: bytes | str) -> list[dict]:
+    """The registry's resources; ValueError if the file is not the registry."""
+    data = json.loads(body)
+    if not isinstance(data, dict) or not isinstance(data.get("resources"), list):
+        raise ValueError("not the registry: no resources list")
+    return data["resources"]
+
+
 def load(refresh: bool = False, path: Path | None = None) -> list[dict]:
     """The registry's resources, from the cached copy when it is fresh."""
     path = path or cache_dir() / "kg-registry.jsonld"
-    fresh = path.exists() and time.time() - path.stat().st_mtime < MAX_AGE
-    if refresh or not fresh:
+    kept = None
+    if path.exists():
         try:
-            body = download(URL)
-            json.loads(body)  # never cache a broken file
-            path.parent.mkdir(parents=True, exist_ok=True)
-            tmp = path.with_suffix(".part")
-            tmp.write_bytes(body)
-            tmp.replace(path)
-        except (Unreachable, ValueError) as e:
-            if not path.exists():
-                raise Unreachable(str(e)) from e
-            age = (time.time() - path.stat().st_mtime) / 86400
-            print(f"warning: could not download KG-Registry ({e}); using a copy {age:.0f} days old",
-                  file=sys.stderr)
-    return json.loads(path.read_text())["resources"]
+            kept = parse(path.read_text())
+        except ValueError:
+            kept = None  # a broken copy: download again
+    fresh = kept is not None and time.time() - path.stat().st_mtime < MAX_AGE
+    if fresh and not refresh:
+        return kept
+    try:
+        body = download(URL)
+        got = parse(body)  # never cache a file that is not the registry
+    except (Unreachable, ValueError) as e:
+        if kept is None:
+            raise Unreachable(str(e)) from e
+        age = (time.time() - path.stat().st_mtime) / 86400
+        print(f"warning: could not download KG-Registry ({e}); using a copy {age:.0f} days old",
+              file=sys.stderr)
+        return kept
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".part")
+    tmp.write_bytes(body)
+    tmp.replace(path)
+    return got
 
 
 def page(rid: str) -> str:
@@ -113,13 +129,19 @@ def stem(word: str) -> str:
     word = word.lower()
     if len(word) < 5:
         return word[:-1] if word.endswith("s") and len(word) > 3 else word
+    if word.endswith("ss"):
+        return word  # process, class
+    if word.endswith("sis"):
+        return word[:-2]  # analysis finds analyses
+    if word.endswith("cies"):
+        return word[:-1]  # species, not spec
     return re.sub(r"(ies|es|s|e|y)$", "", word)
 
 
 def word_pattern(term: str) -> re.Pattern:
     """A term's words, each cut back to its root, in order, each at the start of a word."""
     stems = [re.escape(stem(w)) for w in term.split()]
-    return re.compile(r"(?<![a-z0-9])" + r"[a-z0-9-]*\s+".join(stems))
+    return re.compile(r"(?<![a-z0-9])" + r"[a-z0-9-]*[\s_/-]+".join(stems))  # culture-media, sea-water sample
 
 
 def term_score(term: str, pattern: re.Pattern, texts: dict[str, list[str]]) -> int:
@@ -290,21 +312,24 @@ def main(argv: list[str] | None = None) -> int:
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--refresh", action="store_true", help="download the registry again")
     sub = parser.add_subparsers(dest="command", required=True)
-    s = sub.add_parser("search", help="resources matching every word")
+    # --refresh is taken after the command too; SUPPRESS keeps a subcommand from resetting it.
+    common = argparse.ArgumentParser(add_help=False)
+    common.add_argument("--refresh", action="store_true", default=argparse.SUPPRESS)
+    s = sub.add_parser("search", help="resources matching every word", parents=[common])
     s.add_argument("terms", nargs="*", help='words or "quoted phrases"')
     s.add_argument("--category", action="append", default=[], help=f"one of {', '.join(CATEGORIES)}")
     s.add_argument("--domain", action="append", default=[], help="a domain word, as `domains` lists them")
     s.add_argument("--any", action="store_true", help="match any word, not every word")
     s.add_argument("--limit", type=int, default=25, help="at most this many (0: all)")
     s.add_argument("--json", action="store_true")
-    sh = sub.add_parser("show", help="resources in full, by id")
+    sh = sub.add_parser("show", help="resources in full, by id", parents=[common])
     sh.add_argument("ids", nargs="+")
     sh.add_argument("--all", action="store_true", help="list every source and user")
     sh.add_argument("--json", action="store_true")
-    u = sub.add_parser("used-by", help="resources that take each id as a source")
+    u = sub.add_parser("used-by", help="resources that take each id as a source", parents=[common])
     u.add_argument("ids", nargs="+")
     u.add_argument("--json", action="store_true")
-    sub.add_parser("domains", help="the domain words, with counts")
+    sub.add_parser("domains", help="the domain words, with counts", parents=[common])
     try:
         args = parser.parse_args(argv)
     except SystemExit as e:

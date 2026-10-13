@@ -113,9 +113,14 @@ evidence on an edge when it supports the link.
 and to-dos are `Discussion`. Public datasets are `Dataset`. Both come from
 the vendored `mech_shared.yaml`. Never rebuild them.
 
-**Cross-Mech link.** A link to another Mech's record is a `Term`-like pair
-`{id, label}` where `id` is that Mech's record id. Say in DOMAIN.md which
-Mech and how the link is checked.
+**Cross-Mech link.** A link to another Mech's record is a subclass of
+`CrossCorpusLink`, from the vendored `mech_shared.yaml`: `corpus` (the
+target Mech), `identifier` (its record id, verbatim), `relation` (from an
+enum the subclass adds), `basis`, and `source_version`, the commit checked,
+which the subclass makes required. Say in DOMAIN.md which Mech, what the
+relations mean, and how the link is checked. A Fleet member gets these
+classes from its `fleet_links` answer; a Mech outside a Fleet adds them
+itself. `search-mechregistry` finds the Mechs to link to.
 
 **Quantity.** A measured value is a small class: `value` (float), `unit`
 (bound to UO), `conditions`, `evidence`. Never a string like "5 mg/L".

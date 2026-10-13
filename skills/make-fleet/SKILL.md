@@ -59,8 +59,12 @@ Write `fleet-brief.md`. It answers, in this order:
 1. **The members.** One per kind of thing, and one sentence each: "one
    record is one ___". Two members never own the same kind of thing. If two
    would, they are one Mech, or the line between them is wrong. Check
-   MechRegistry for an existing Mech that already owns one; it can join
-   instead of being made again (the Coordinator's `onboard-mech`).
+   MechRegistry for an existing Mech that already owns one
+   (`search-mechregistry`; `repo` says whether mechmaker made it). One made
+   with mechmaker can join instead of being made again (the Coordinator's
+   `onboard-mech`). One made otherwise stays outside the Fleet; members
+   link to it with their own `CrossCorpusLink` subclass, unchecked by the
+   Coordinator.
 2. **The relationships.** For each pair whose records refer to each other:
    which side holds the link (the subject: the side whose curators know the
    fact and cite it), the slot name, the relations (UPPER_SNAKE_CASE, each

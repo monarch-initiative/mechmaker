@@ -73,8 +73,10 @@ wait and run it again rather than working around it.
 
 Run the `survey-domain` skill. It answers: what is one record, what keys it,
 which ontologies ground it, what sources feed it, and which existing Mechs,
-knowledge graphs and ingests overlap. It searches KG-Registry and the
-Bioregistry with the `search-kg-registry` and `search-bioregistry` skills. Do not continue until the brief names the record entity in one
+knowledge graphs and ingests overlap. It searches MechRegistry, KG-Registry
+and the Bioregistry with the `search-mechregistry`, `search-kg-registry` and
+`search-bioregistry` skills. If a registered Mech already records the same
+entity, stop and ask the person whether to go on. Do not continue until the brief names the record entity in one
 sentence.
 
 Start `requests.yml` now, beside where `answers.yml` will go. Put in each
