@@ -69,6 +69,8 @@ nav:
       - audit-mech: skills/audit-mech.md
       - add-record-map: skills/add-record-map.md
       - ingest-news: skills/ingest-news.md
+      - search-kg-registry: skills/search-kg-registry.md
+      - search-bioregistry: skills/search-bioregistry.md
       - sync-mech: skills/sync-mech.md
   - Reference:
       - Copier questions: reference/questions.md

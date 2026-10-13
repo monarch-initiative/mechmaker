@@ -3,10 +3,10 @@ name: survey-domain
 description: >-
   Survey a knowledge domain before building a Mech for it: define what one
   record is, how records are keyed, which ontologies ground them, which
-  sources can feed them, and which existing Mechs overlap. Produces a domain
-  brief that drives the mechmaker Copier answers and docs/DOMAIN.md. Use as
-  the first step of make-mech, or alone when asked whether a domain suits a
-  Mech.
+  sources can feed them, and which existing Mechs, knowledge graphs and
+  ingests overlap. Produces a domain brief that drives the mechmaker Copier
+  answers and docs/DOMAIN.md. Use as the first step of make-mech, or alone
+  when asked whether a domain suits a Mech.
 ---
 
 # Survey a domain
@@ -34,7 +34,10 @@ everything else rests on.
 ## 2. Identity
 
 - Which ontology keys records? Look for the one whose terms match the record
-  entity one to one. None may fit; then records mint their own ids.
+  entity one to one. None may fit. Then search the Bioregistry for a
+  namespace that already mints ids for the entity (a database's own ids,
+  such as culture collection numbers); the `search-bioregistry` skill has
+  the script. If none fits either, records mint their own ids.
 - Find the root. Take five expected records, look up their CURIEs, and find
   the most specific common is-a ancestor. `<scripts>` is the make-mech
   skill's `scripts/` folder, `../make-mech/scripts` from this skill's own:
@@ -61,8 +64,10 @@ it with `check_terms.py under`. Checking only the root's `label` is not
 enough: some ontologies, such as GAZ as OLS serves it, keep terms without an
 is-a parent, and a dynamic enum cannot reach them. An ontology need not be on
 OLS: anything OAK reads works (OBO Foundry SQLite, BioPortal, a local file),
-checked with `check_terms.py --adapter`. Note gaps: kinds of thing no
-ontology covers well. Those become `preferred_term` text with open
+checked with `check_terms.py --adapter`. To find an ontology for a kind of
+thing, search the Bioregistry (`search-bioregistry`) and KG-Registry with
+`--category Ontology` (`search-kg-registry`); never name one from memory.
+Note gaps: kinds of thing no ontology covers well. Those become `preferred_term` text with open
 `CURATION_TODO` discussions, or a case for a new ontology.
 
 ## 4. Sources
@@ -71,6 +76,11 @@ List what can feed curation. For each: what it gives, license (read the
 terms; write UNKNOWN if not found), access (API, bulk, pages), whether its
 identifiers are CURIEs the Mech can use, and a size measured on a sample.
 
+- Search KG-Registry for the domain's data sources and aggregators, and
+  read the sources of the knowledge graphs nearest the domain: each is a
+  candidate row. For a source the Mech will use, `used-by` names the
+  graphs that already ingest it; an ingest's repository shows the source's
+  format and identifiers. The `search-kg-registry` skill has the script.
 - Literature is always a source. Write a PubMed query that finds the core
   papers and report its hit count.
 - Existing databases and knowledge bases can seed records but never replace
@@ -100,6 +110,14 @@ covers. For each Mech that overlaps:
 
 If an existing Mech already records this entity, say so first. Extending it
 may be better than starting a new one.
+
+Mechs are not the only neighbors. Search KG-Registry (`search-kg-registry`)
+for knowledge graphs, data sources, data models and ingests that hold the
+same entity or the same domain: by the entity's words, by its domain, and
+by the Mech's main sources (`used-by`). For each close one, say what it
+holds, whether the Mech should use its identifiers, link to it, align its
+schema with it (a data model), or curate what it lacks, and cite its
+KG-Registry page.
 
 ## 6. Mechanism
 

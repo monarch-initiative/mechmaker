@@ -42,10 +42,16 @@ Measure it. Do not describe it from its README.
   look like, and whether they are identifiers, free text or numbers.
 - **Identifiers.** Which field names an entry. Check a sample of the
   identifiers it uses for other things against their registry or ontology.
-  Report how many fail. In the Monarch ingests, 13 of 40 infores ids were
+  Report how many fail. The `search-bioregistry` skill names an unfamiliar
+  prefix, checks a sample of CURIEs against their patterns in one call, and
+  turns IRIs into CURIEs. In the Monarch ingests, 13 of 40 infores ids were
   not in the Biolink catalog.
 - **Citations.** What form they take: PMIDs, DOIs, free text, none.
 - **License.** Of the knowledge base, and of what it describes, separately.
+- **Listings.** Search KG-Registry for the knowledge base by name, and for
+  its sources (`search-kg-registry`). A listing gives its products, what
+  it is built from, and which graphs already ingest it: neighbors the
+  brief names.
 
 Pick a trial set of three to five entries that span it: one typical, one
 with the most structure, one odd.
@@ -125,7 +131,7 @@ Rules for the script:
   checks every copied fact. A local file only you have cannot be checked by
   anyone else.
 - **Look up, never guess.** Map values to CURIEs with lookups (OLS, the
-  source's registry). A value that does not map keeps its text as
+  source's registry, the Bioregistry for prefixes). A value that does not map keeps its text as
   `preferred_term` and gets a `CURATION_TODO` discussion. An identifier the
   registry does not know is left out, with a `CURATION_TODO`.
 - **Write the gaps down.** Each thing the source never records becomes a
