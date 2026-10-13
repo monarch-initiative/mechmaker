@@ -150,6 +150,35 @@ def test_watch_finds_new_stories_once(monkeypatch, tmp_path):
     assert again == []
 
 
+
+def test_feed_items_told_apart_by_query_are_two_stories():
+    one = news.item_key({"link": "https://www.health.state.gov/news/release.aspx?id=77"})
+    two = news.item_key({"link": "https://health.state.gov/news/release.aspx?id=78"})
+    assert one != two and one.endswith("?id=77")
+    assert news.item_key({"guid": "https://example.com/a?p=1&x=<-->"}).count(">") == 0
+
+
+def test_watch_with_no_source_answering_says_so(monkeypatch, tmp_path):
+    record = tmp_path / "toledo.yaml"
+    record.write_text("name: Toledo\nplace_name: Toledo\nstate: OH\n")
+    get, _ = fake_get({})
+    monkeypatch.setattr(news, "get", get)
+    feeds = [{"name": "Ohio EPA", "url": "https://ohio.gov/rss"}]
+    conf = {**CONF, "watch": {**news.DEFAULTS["watch"], "feeds": feeds}}
+    found, problems = news.watch(conf, set(), today=TODAY, records=[record], pause=lambda s: None)
+    assert found == [] and problems[-1] == news.NONE_ANSWERED
+
+
+def test_watch_report_fits_in_one_issue(tmp_path):
+    items = [{"title": f"Story {i}", "link": f"https://example.com/{'x' * 300}/{i}", "key": f"k{i}",
+              "date": "2026-10-01"} for i in range(400)]
+    found = [{"record": "Toledo", "path": tmp_path / "toledo.yaml", "items": items}]
+    body = news.watch_report(found, ["feed X: timed out"], "2026-10-09")
+    assert len(body) <= news.REPORT_LIMIT
+    shown = len(news.SEEN.findall(body))
+    assert 0 < shown < 400 and f"{400 - shown} more stories did not fit" in body
+    assert body.rstrip().endswith("- feed X: timed out")
+
 @pytest.mark.parametrize("size", [2, 10])
 def test_watch_takes_records_in_turns(size):
     records = [f"r{i}" for i in range(5)]
