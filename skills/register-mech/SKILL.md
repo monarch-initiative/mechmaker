@@ -36,7 +36,9 @@ In the Mech repository:
   relations from the registry's `MechRelationEnum`: `follows_pattern_of`,
   `consumes`, `provides_to`, `hands_off_to`, `shares_vocabulary_with`,
   `adopts_practice_of`, `sibling_of`. Targets must be ids already in the
-  registry.
+  registry; `search-mechregistry` finds them. A link the Mech's records
+  make (`CrossCorpusLink` subclasses) is `consumes`. Say in the
+  `description` what crosses: which slot, which records.
 - The body below the header: a short plain paragraph on the Mech's state.
   Dated facts, no promises.
 

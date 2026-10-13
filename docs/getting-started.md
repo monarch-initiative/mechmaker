@@ -49,7 +49,10 @@ you along the way:
 
 1. **Survey.** It works out what one record should be, which ontologies fit,
    which sources can feed the knowledge base, and whether an existing Mech
-   already covers your topic.
+   already covers your topic. It searches MechRegistry, KG-Registry and the
+   Bioregistry. If a registered Mech already keeps your kind of record, it
+   tells you before going on. A neighboring Mech may have records to link
+   to, or a conversion script to reuse.
 2. **Set up.** It fills in the template's questions and creates the
    repository. It asks you for what only you know: your name, your GitHub
    organization, the licenses.

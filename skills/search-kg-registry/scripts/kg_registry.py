@@ -119,7 +119,7 @@ def stem(word: str) -> str:
 def word_pattern(term: str) -> re.Pattern:
     """A term's words, each cut back to its root, in order, each at the start of a word."""
     stems = [re.escape(stem(w)) for w in term.split()]
-    return re.compile(r"(?<![a-z0-9])" + r"[a-z0-9-]*\s+".join(stems))
+    return re.compile(r"(?<![a-z0-9])" + r"[a-z0-9]*[\s_/-]+".join(stems))  # culture media, culture-media
 
 
 def term_score(term: str, pattern: re.Pattern, texts: dict[str, list[str]]) -> int:

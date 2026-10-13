@@ -51,7 +51,12 @@ Measure it. Do not describe it from its README.
 - **Listings.** Search KG-Registry for the knowledge base by name, and for
   its sources (`search-kg-registry`). A listing gives its products, what
   it is built from, and which graphs already ingest it: neighbors the
-  brief names.
+  brief names. Search MechRegistry too (`search-mechregistry`): a Mech
+  that already converts one of its sources has a script to port.
+- **Another Mech.** The knowledge base may itself be a Mech. Read it at a
+  pinned commit or release, keep the evidence its records carry (the
+  reference and the quote), and read its data license.
+  `search-mechregistry` has the details.
 
 Pick a trial set of three to five entries that span it: one typical, one
 with the most structure, one odd.
