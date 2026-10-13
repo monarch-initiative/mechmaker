@@ -220,4 +220,4 @@ thing.
   brings over thirty dependencies; the export's own checks cover categories,
   predicates and dangling edges.
 - Parquet and Croissant are not LinkML-native and not yet offered
-  ([#21](https://github.com/monarch-initiative/mechmaker/issues/21)).
+  ([#95](https://github.com/monarch-initiative/mechmaker/issues/95)).
