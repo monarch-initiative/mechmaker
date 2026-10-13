@@ -149,6 +149,53 @@ products:
     format: html
 {%- endif %}
 {%- endif %}
+{%- if 'release-records' in workflows %}
+{#- The export's files, from the latest release. export.py's downloads() and
+    registry_products() say the same; the Mech's tests/test_export.py holds
+    them equal, and `python -m <slug>.export --registry-products` prints
+    them after conf/export.yaml changes. #}
+{%- set flat = (tabular_layout | default('per_class')) == 'flat' %}
+{%- set kgx_std = ['kgx', 'biolink'] if (kgx_biolink | default(true)) else ['kgx'] %}
+{%- set graph_csv = "One file per class, linked by ids, as in the SQL export." %}
+{%- set flat_csv = 'One row per record; a list is joined with " | ", and a nested object is written as JSON.' %}
+{%- set rows = [
+  ['yaml', 'records.zip', 'Records as YAML (zip)', 'The curated YAML files, one per record, as they are.', 'RecordCorpus', 'yaml', 'zip'],
+  ['json', 'records.json', 'Records as JSON', 'Every record, in one JSON array.', 'RecordCorpus', 'json', ''],
+  ['json', 'records.jsonl', 'Records as JSON Lines', 'One record per line.', 'RecordCorpus', 'jsonl', ''],
+  ['jsonld', 'records.jsonld', 'Records as JSON-LD (RDF)', "The records as an RDF graph, through the schema's URIs: the same graph as the Turtle file.", 'GraphProduct', 'other', ''],
+  ['ttl', 'records.ttl', 'Records as Turtle (RDF)', "The records as an RDF graph, through the schema's URIs.", 'GraphProduct', 'other', ''],
+  ['sqlite', 'records.sqlite', 'SQLite database', "One table per class, as gen-sqltables defines them; a nested object's row points at its parent.", 'RecordCorpus', 'other', ''],
+  ['duckdb', 'records.duckdb', 'DuckDB database', 'One table of records, with nested values as DuckDB JSON, written through linkml-store.', 'RecordCorpus', 'other', ''],
+  ['sql', 'schema.sql', 'Schema as SQL DDL', 'The tables of the SQL export, as gen-sqltables writes them.', 'DataModelProduct', 'other', ''],
+  ['sql', 'records.sql', 'Records as SQL', 'The SQLite database as SQL: its tables and an INSERT per row.', 'RecordCorpus', 'other', ''],
+  ['csv', 'records.csv' if flat else 'tables-csv.zip', 'Records as CSV' if flat else 'Tables as CSV (zip)', flat_csv if flat else graph_csv, 'RecordCorpus', 'csv', '' if flat else 'zip'],
+  ['tsv', 'records.tsv' if flat else 'tables-tsv.zip', 'Records as TSV' if flat else 'Tables as TSV (zip)', flat_csv if flat else graph_csv, 'RecordCorpus', 'tsv', '' if flat else 'zip'],
+] %}
+{%- for fmt, graph, what in [['kgx', 'KGX', 'each record and the terms it binds'], ['kgx_maximal', 'KGX whole-graph', 'every object in the records, linked']] %}
+{%- for kind in ['nodes', 'edges'] %}
+{%- for ext, serial in [['jsonl', 'JSON Lines'], ['tsv', 'TSV']] %}
+{%- set _ = rows.append([fmt, fmt ~ '_' ~ kind ~ '.' ~ ext, graph ~ ' ' ~ kind ~ ' as ' ~ serial, 'The ' ~ kind ~ ' of a KGX graph of ' ~ what ~ '.', 'GraphProduct', 'kgx', '']) %}
+{%- endfor %}
+{%- endfor %}
+{%- endfor %}
+{%- for fmt, file, label, about, category, format, compression in rows if fmt in output_formats %}
+  - id: {{ mech_slug }}.{{ file | replace('.', '-') }}
+    category: {{ category }}
+    name: {{ label }}
+    description: '{{ about | replace("'", "''") }}'
+    product_url: https://github.com/{{ github_org }}/{{ repo_name }}/releases/latest/download/{{ mech_slug }}-{{ file }}
+    format: {{ format }}
+{%- if compression %}
+    compression: {{ compression }}
+{%- endif %}
+{%- if format == 'kgx' %}
+    compatibility:
+{%- for s in kgx_std %}
+      - {{ s }}
+{%- endfor %}
+{%- endif %}
+{%- endfor %}
+{%- endif %}
 cross_references:
   - target: dismech
     relation: follows_pattern_of

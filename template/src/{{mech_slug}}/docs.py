@@ -10,6 +10,8 @@ Generated, and not committed:
                      record inline
   docs/structure.md  what a record can contain, as one diagram
   docs/corpus.md     counts from the records
+  docs/downloads.md  the files the export writes, in the formats conf/export.yaml
+                     names, linked to the latest release when releases attach them
   docs/schema/       the schema with imports merged, and as JSON Schema
   docs/records/      the record browser, rendered fresh, when the Mech has one
 
@@ -29,8 +31,18 @@ from pathlib import Path
 
 import yaml
 
-from . import site
-from .paths import BUILD_DIR, MECH_NAME, PACKAGE_DIR, PAGES_DIR, RECORD_CLASS, REPO_ROOT, SCHEMA_PATH, SLUG
+from . import export, site
+from .paths import (
+    BUILD_DIR,
+    MECH_NAME,
+    PACKAGE_DIR,
+    PAGES_DIR,
+    RECORD_CLASS,
+    REPO_ROOT,
+    REPO_URL,
+    SCHEMA_PATH,
+    SLUG,
+)
 from .report import compute
 
 DOCS = REPO_ROOT / "docs"
@@ -131,7 +143,35 @@ def generate() -> None:
         f"## Records by status\n\n| Status | Records |\n|---|---|\n{status}\n",
         encoding="utf-8",
     )
-    print(f"Generated docs/elements/, docs/schema/, docs/structure.md and docs/corpus.md for {MECH_NAME}.")
+    (DOCS / "downloads.md").write_text(downloads_page(), encoding="utf-8")
+    print(f"Generated docs/elements/, docs/schema/, docs/structure.md, docs/corpus.md and docs/downloads.md "
+          f"for {MECH_NAME}.")
+
+
+def downloads_page() -> str:
+    """The Downloads page: each file the export writes, in the formats conf/export.yaml names."""
+    cfg = export.settings()
+    files = export.downloads(cfg)
+    released = export.publishes_releases()
+    if released:
+        intro = (f"Each [release]({REPO_URL}/releases) of {MECH_NAME} attaches these files, written from "
+                 "the records by `just export` and each read back before it ships. The links are to the "
+                 "latest release; before the first one, they lead nowhere.")
+    else:
+        intro = (f"`just export` writes these files from the records into `build/export/`. No release "
+                 f"of {MECH_NAME} attaches them, so run it in a copy of the repository.")
+    def cell(file: str) -> str:
+        return f"[`{file}`]({export.release_url(file)})" if released else f"`{file}`"
+
+    rows = "\n".join(f"| {cell(d['file'])} | {d['label']} | {d['description']} |" for d in files) \
+        or "| none | | `conf/export.yaml` names no format. |"
+    return (
+        f"# Downloads\n\n{intro}\n\n"
+        f"The curated records themselves are YAML files in the [repository]({REPO_URL}). The schema is "
+        f"[{SLUG}.yaml](schema/{SLUG}.yaml), with its imports merged.\n\n"
+        f"| File | What it is | What it holds |\n|---|---|---|\n{rows}\n\n"
+        f"The formats are chosen in `conf/export.yaml`; this page follows it.\n"
+    )
 
 
 def build() -> int:

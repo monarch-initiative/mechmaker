@@ -62,6 +62,7 @@ nav:
   - Curation: CURATION.md
   - Records: records/index.html
   - Corpus: corpus.md
+  - Downloads: downloads.md
   - Schema:
       - Classes, slots and enums: elements/index.md
       - Record structure: structure.md

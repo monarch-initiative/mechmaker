@@ -32,6 +32,13 @@ In the Mech repository:
   `collection` answer. `monarch` is `monarch`. `xmech` is `x-mech-suite`.
   `none` has no field. The generated draft writes it; check it is there.
 - `homepage_url`: the published site if there is one, else the repository.
+- `products`: the export's files, one per file, linked from the latest
+  release, when the Mech has the `release-records` workflow. Without it,
+  none. They follow `conf/export.yaml`: replace every product whose
+  `product_url` has `/releases/latest/download/` with what
+  `uv run python -m <slug>.export --registry-products` prints. The Mech's
+  `tests/test_export.py` fails until they match. Leave the other products
+  (records, schema, docs, browser) as they are.
 - `cross_references`: the neighbors named in the domain survey, with
   relations from the registry's `MechRelationEnum`: `follows_pattern_of`,
   `consumes`, `provides_to`, `hands_off_to`, `shares_vocabulary_with`,

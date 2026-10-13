@@ -34,6 +34,23 @@ formats:
 tabular_layout: per_class
 ```
 
+## Where the files are listed
+
+The file names do not change from one release to the next, so a link to
+`releases/latest/download/<file>` always reaches the newest copy. Two
+places use those links:
+
+- **The docs site's Downloads page** (`docs/downloads.md`), written by
+  `just docs-build` from `conf/export.yaml`: each file, what it is, and a
+  link to it in the latest release. Without `release-records`, it lists the
+  files `just export` writes, unlinked. It is generated; change the formats,
+  not the page.
+- **The registry entry** (`registry/<slug>.md`), when `release-records` is
+  on: one product per file. MechRegistry's format list has no value for
+  JSON-LD, Turtle, SQL or a database, so those say `format: other`. After a
+  change to `conf/export.yaml`, `python -m <slug>.export --registry-products`
+  prints the new products; a test fails until the entry lists them.
+
 ## KGX: a knowledge graph
 
 [KGX](https://github.com/biolink/kgx) is the node and edge format of the
