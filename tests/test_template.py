@@ -251,7 +251,7 @@ REGISTRY_ENUMS = {
     "category": {"RecordCorpus", "DataModelProduct", "GraphProduct", "MappingProduct", "GraphicalInterface",
                  "ProgrammingInterface", "DocumentationProduct", "ModelProduct", "OtherProduct"},
     "format": {"yaml", "json", "jsonl", "tsv", "csv", "kgx", "sssom", "linkml", "owl", "sbml", "html",
-               "markdown", "other"},
+               "markdown", "jsonld", "turtle", "sqlite", "duckdb", "sql", "other"},
     "compression": {"gzip", "targz", "zip", "other"},
 }
 
@@ -269,6 +269,7 @@ def test_registry_entry_lists_released_exports(generated):
     assert len(ids) == len(set(ids))
     for p in released:
         assert p["product_url"].rsplit("/", 1)[1].startswith(f"{slug}-")
+        assert p["format"] != "other", p["id"]  # each export format has its own value
         for key, allowed in REGISTRY_ENUMS.items():
             assert p.get(key, "other") in allowed, (p["id"], key)
 

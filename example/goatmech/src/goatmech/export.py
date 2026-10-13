@@ -76,14 +76,13 @@ def downloads(cfg: dict) -> list[dict]:
     """The files export(cfg) writes, each with what it is: for the docs' Downloads page and the registry.
 
     `category`, `format` and `compression` take values from MechRegistry's ProductCategoryEnum,
-    FormatEnum and CompressionEnum. FormatEnum has no value for JSON-LD, Turtle, SQL or a
-    database, so those are `other`.
+    FormatEnum and CompressionEnum.
     """
     fmts = set(cfg["formats"])
     per_class = cfg["tabular_layout"] == "per_class"
     out = []
 
-    def add(fmt, file, label, description, category="RecordCorpus", fmt_value="other", **extra):
+    def add(fmt, file, label, description, fmt_value, category="RecordCorpus", **extra):
         if fmt in fmts:
             out.append({"file": f"{SLUG}-{file}", "label": label, "description": description,
                         "category": category, "format": fmt_value, **extra})
@@ -94,17 +93,21 @@ def downloads(cfg: dict) -> list[dict]:
     add("json", "records.jsonl", "Records as JSON Lines", "One record per line.", fmt_value="jsonl")
     add("jsonld", "records.jsonld", "Records as JSON-LD (RDF)",
         "The records as an RDF graph, through the schema's URIs: the same graph as the Turtle file.",
-        category="GraphProduct")
+        category="GraphProduct", fmt_value="jsonld")
     add("ttl", "records.ttl", "Records as Turtle (RDF)",
-        "The records as an RDF graph, through the schema's URIs.", category="GraphProduct")
+        "The records as an RDF graph, through the schema's URIs.", category="GraphProduct",
+        fmt_value="turtle")
     add("sqlite", "records.sqlite", "SQLite database",
-        "One table per class, as gen-sqltables defines them; a nested object's row points at its parent.")
+        "One table per class, as gen-sqltables defines them; a nested object's row points at its parent.",
+        fmt_value="sqlite")
     add("duckdb", "records.duckdb", "DuckDB database",
-        "One table of records, with nested values as DuckDB JSON, written through linkml-store.")
+        "One table of records, with nested values as DuckDB JSON, written through linkml-store.",
+        fmt_value="duckdb")
     add("sql", "schema.sql", "Schema as SQL DDL",
-        "The tables of the SQL export, as gen-sqltables writes them.", category="DataModelProduct")
+        "The tables of the SQL export, as gen-sqltables writes them.", category="DataModelProduct",
+        fmt_value="sql")
     add("sql", "records.sql", "Records as SQL",
-        "The SQLite database as SQL: its tables and an INSERT per row.")
+        "The SQLite database as SQL: its tables and an INSERT per row.", fmt_value="sql")
     for fmt, name in (("csv", "CSV"), ("tsv", "TSV")):
         if per_class:
             add(fmt, f"tables-{fmt}.zip", f"Tables as {name} (zip)",

@@ -46,10 +46,10 @@ places use those links:
   files `just export` writes, unlinked. It is generated; change the formats,
   not the page.
 - **The registry entry** (`registry/<slug>.md`), when `release-records` is
-  on: one product per file. MechRegistry's format list has no value for
-  JSON-LD, Turtle, SQL or a database, so those say `format: other`. After a
-  change to `conf/export.yaml`, `python -m <slug>.export --registry-products`
-  prints the new products; a test fails until the entry lists them.
+  on: one product per file, each with its format from MechRegistry's list
+  (`ttl` is `turtle` there). After a change to `conf/export.yaml`,
+  `python -m <slug>.export --registry-products` prints the new products; a
+  test fails until the entry lists them.
 
 ## KGX: a knowledge graph
 
