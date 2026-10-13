@@ -143,6 +143,10 @@ the check says so and tells you to run `uv tool update-shell`.
 Planning to use deep research? Add `--research` to see which providers
 are ready. See [Deep research](deep-research.md).
 
+No Python on your machine? uv brings its own: run
+`uv run --no-project check_env.py --network` instead. (On Windows, the
+command may be `python` rather than `python3`.)
+
 ### BioPortal needs an API key
 
 [BioPortal](https://bioportal.bioontology.org/) holds many ontologies that
@@ -167,10 +171,6 @@ Two steps use it:
   `gh secret set BIOPORTAL_API_KEY`.
 
 A Mech whose ontologies are all on OLS, or in files it keeps, needs no key.
-
-No Python on your machine? uv brings its own: run
-`uv run --no-project check_env.py --network` instead. (On Windows, the
-command may be `python` rather than `python3`.)
 
 ## By hand
 

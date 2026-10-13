@@ -293,3 +293,19 @@ def test_a_coordinator_is_declined(tmp_path):
                                              "fleet_name": "TestFleet"})
     code, items = audit(dest)
     assert code == 2 and items == {}
+
+
+def test_news_leads_are_audited_and_unset_searches_are_to_check(tmp_path):
+    dest = render(tmp_path / "newsmech", {**SCENARIOS["habitat"], "news_leads": True})
+    git(dest, "init", "-q", "-b", "main")
+    git(dest, "add", "-A")
+    git(dest, "commit", "-q", "-m", "Copier output")
+    _, items = audit(dest)
+    assert status(items, "News leads") == audit_mech.DONE
+    assert status(items, "News searches set for the domain") == audit_mech.CHECK
+    conf = dest / "conf" / "news.yaml"
+    conf.write_text(conf.read_text().replace("topic: []", "topic: [habitat]", 1))
+    next((dest / "src").glob("*/news.py")).unlink()
+    _, items = audit(dest)
+    assert status(items, "News leads") == audit_mech.MISSING
+    assert status(items, "News searches set for the domain") == audit_mech.DONE

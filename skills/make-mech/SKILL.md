@@ -226,12 +226,15 @@ tries it with the free mock provider. Commit.
 ## 4b. Choose the workflows
 
 `docs/WORKFLOWS.md` in the new Mech lists every GitHub workflow the template
-knows. The deterministic ones (`sweep`, `docs`, `comment-guard`) are cheap
-and safe. Agent workflows cost money per run and need secrets and, for some,
+knows. The deterministic ones (`sweep`, `docs`, `comment-guard`,
+`release-records`, and `news-watch` with news leads) are cheap and safe.
+`release-records` attaches the export to each release; without it, the
+registry entry lists no downloads and the docs' Downloads page links none.
+Agent workflows cost money per run and need secrets and, for some,
 a GitHub App.
 
 A sound first set for a Mech a person will curate with agents:
-`sweep`, `docs`, `comment-guard`, `claude`, `review`, `triage`, `dedupe`, and
+`sweep`, `docs`, `comment-guard`, `release-records`, `claude`, `review`, `triage`, `dedupe`, and
 `literature-scan` if the domain is fed by literature. Add `curation-scanner`
 and `compliance` only once the person has created an agent GitHub App and
 wants unattended curation. Leave `agent_schedules` off at first; run each

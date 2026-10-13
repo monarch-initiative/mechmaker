@@ -78,6 +78,10 @@ GDELT_PAUSE = 6.0
 WAYBACK_PAUSE = 1.5
 CITE = re.compile(r"\{\{\s*cite\s+(?:news|web|press release|report|magazine)\s*\|(.*?)\}\}", re.I | re.S)
 SEEN = re.compile(r"<!-- seen: (\S+) -->")
+# watch() ends its problems with this when it asked and no source answered; the command then exits 2.
+NONE_ANSWERED = "no source answered"
+# GitHub refuses an issue body over 65,536 characters; the watch report stays under it.
+REPORT_LIMIT = 60_000
 OPEN, CLOSE = "{" * 2, "}" * 2  # a wiki template's braces, spelled so no template engine reads them
 
 DEFAULTS = {
@@ -612,8 +616,13 @@ def leads(the_plan: dict, conf: dict, out: Path, today: str | None = None, pause
 
 
 def item_key(item: dict) -> str:
+    """An item's identity across runs. A link keeps its query: many feeds tell stories apart by it
+    (`?p=123`, `release.aspx?id=77`). Quoted, so no `>` can close the seen marker it goes in."""
     key = item.get("guid") or item.get("link") or item.get("title", "")
-    return norm_url(key) if key.startswith("http") else re.sub(r"\s+", "", key)
+    if not key.startswith("http"):
+        return re.sub(r"\s+", "", key)
+    query = urllib.parse.urlsplit(key).query
+    return urllib.parse.quote(norm_url(key) + (f"?{query}" if query else ""), safe=":/?&=%+,;~")
 
 
 def names_record(text: str, name: str) -> bool:
@@ -638,6 +647,7 @@ def watch(conf: dict, seen: set[str], today: dt.date | None = None, records: lis
     every = records if records is not None else iter_records()
     found: dict[str, dict] = {}
     problems: list[str] = []
+    asked = answered = 0
     named: list[tuple[Path, dict, str, list[str]]] = []
     for path in every:
         data = load(path)
@@ -667,27 +677,33 @@ def watch(conf: dict, seen: set[str], today: dt.date | None = None, records: lis
         for path in watch_batch([p for p, *_ in named], conf, today):
             _, name, quals = by_path[path]
             query = " ".join([*(f'"{x}"' for x in [name, *quals]), topic]).strip()
+            asked += 1
             try:
                 items = parse_google(get(google_url(query, when=f"{int(w['days'])}d")))
             except (urllib.error.URLError, TimeoutError, ET.ParseError) as e:
                 problems.append(f"google, {query!r}: {e}")
                 continue
+            answered += 1
             for item in items:
                 if not words or any(holds(item["title"].lower(), x) for x in words):
                     add(path, item)
             pause(1.0)
     for feed in w["feeds"] or []:
+        asked += 1
         try:
             items = parse_feed(get(feed["url"]), feed.get("name") or feed["url"])
         except (urllib.error.URLError, TimeoutError, ET.ParseError, KeyError) as e:
             problems.append(f"feed {feed.get('name') or feed.get('url')}: {e}")
             continue
+        answered += 1
         for item in items:
             text = f"{item['title']} {item.get('summary', '')}"
             for path, _, name, quals in named:
                 qualified = not w.get("require_qualifiers") or all(names_record(text, q) for q in quals)
                 if names_record(text, name) and qualified:
                     add(path, item)
+    if asked and not answered:
+        problems.append(NONE_ANSWERED)
     return list(found.values()), problems
 
 
@@ -703,18 +719,28 @@ def watch_report(found: list[dict], problems: list[str], today: str) -> str:
              "Leads, not evidence. To use one: find the article, read its archived copy, and quote it "
              "with `just add-evidence`, citing the snapshot. `just news-leads <record>` searches a "
              "record's past news.", ""]
+    tail = ["Not answered:", ""] + [f"- {p}" for p in problems] + [""] if problems else []
+    room = REPORT_LIMIT - len("\n".join(lines + tail)) - 200  # 200: the line saying what was left out
+    left_out = 0
     for f in sorted(found, key=lambda x: x["record"].lower()):
         rel = f["path"].relative_to(REPO_ROOT) if f["path"].is_relative_to(REPO_ROOT) else f["path"]
-        lines += [f"### {f['record']}", "", f"`{rel}`", ""]
+        block = [f"### {f['record']}", "", f"`{rel}`", ""]
         for item in sorted(f["items"], key=lambda i: i.get("date", ""), reverse=True):
             outlet = f" ({inert(item['outlet'])})" if item.get("outlet") else ""
             link = urllib.parse.quote(item["link"], safe=":/?&=#%+,;~")
-            lines.append(f"- {item.get('date') or 'undated'}: [{inert(item['title'])}]({link}){outlet}"
-                         f" <!-- seen: {item['key']} -->")
-        lines.append("")
-    if problems:
-        lines += ["Not answered:", ""] + [f"- {p}" for p in problems] + [""]
-    return "\n".join(lines)
+            line = (f"- {item.get('date') or 'undated'}: [{inert(item['title'])}]({link}){outlet}"
+                    f" <!-- seen: {item['key']} -->")
+            if left_out or len(line) + 1 > room - sum(len(x) + 1 for x in block):
+                left_out += 1
+                continue
+            block.append(line)
+        if len(block) > 4:
+            lines += block + [""]
+            room -= sum(len(x) + 1 for x in block) + 1
+    if left_out:
+        lines += [f"{left_out} more stor{'y' if left_out == 1 else 'ies'} did not fit in one issue. They "
+                  "are not marked seen, so the next run reports them.", ""]
+    return "\n".join(lines + tail)
 
 
 # ---------------------------------------------------------------- command line
@@ -748,6 +774,8 @@ def main(argv: list[str] | None = None) -> int:
         found, problems = watch(conf, set(SEEN.findall(text)))
         for problem in problems:
             print(f"not answered: {problem}", file=sys.stderr)
+        if NONE_ANSWERED in problems:
+            return 2
         total = sum(len(f["items"]) for f in found)
         print(f"{total} new stories for {len(found)} record(s).")
         if found:

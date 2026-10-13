@@ -89,7 +89,8 @@ and adapter, each ontology's enum, root, binding slot and adapter (a
 section the design renamed still counts, if a slot binds the enum), local
 ontology files, causal graphs, taxon scope, domains and collection in the
 registry entry, both licenses, each workflow's files and prompt, agent
-schedules, Langfuse, deep research, the record browser, the site colors,
+schedules, Langfuse, deep research, news leads and whether `conf/news.yaml`
+was set for the domain, the record browser, the site colors,
 the Claude Code hook, export formats, tabular layout, KGX on Biolink, and
 load targets. From make-mech's steps: a first commit, `docs/DOMAIN.md`
 with no TODO left, a schema changed from the scaffold, three or more seed
@@ -105,6 +106,13 @@ Resolve every `[?]` to done or missing. Read the thing itself.
 
 - A prompt or research template that changed may still be wrong for the
   domain. Read it. A prompt that did not change may already fit; say so.
+- `conf/news.yaml` that changed may still search by the wrong fields. Run
+  `just news-plan` on one record and read the searches: the record's place
+  or name, and the domain's words.
+- A Mech whose records describe places (areas, sites, watersheds) and has a
+  record browser should draw them on a map; make-mech makes that the
+  default. If no record has a bounding box, say so, and point to
+  `add-record-map`.
 - A site color that differs from the answer was changed after generation.
   Ask whether that was the person's choice, or find the commit that did it.
 - A request with no `check`: find the evidence. Name the file, the slot or

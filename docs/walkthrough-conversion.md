@@ -1,9 +1,8 @@
 # Walkthrough: converting a knowledge base
 
-This page follows one real conversion, on 2026-09-30. The existing
-knowledge base is the Monarch Initiative's data ingests: the GitHub
-repositories that feed the Monarch knowledge graph. The Mech made from them
-is IngestMech. One record is one ingest, and the interesting part is each
+This page follows one real conversion of an existing knowledge base into a
+Mech, on 2026-09-30: the Monarch Initiative's data ingests, the GitHub
+repositories that feed the Monarch knowledge graph, became IngestMech. One record is one ingest, and the interesting part is each
 ingest's upstream sources: where the data comes from, and under what terms.
 
 The trial converted three ingests, `zfin-ingest`, `omim-ingest` and

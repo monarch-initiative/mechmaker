@@ -110,6 +110,6 @@ cross_references:
   - target: dismech
     relation: follows_pattern_of
 creation_date: 2026-09-30
-last_modified_date: 2026-09-30
+last_modified_date: 2026-10-13
 ---
-IngestMech was created with mechmaker. It holds no records yet.
+IngestMech was created with mechmaker on 2026-09-30 by converting an existing knowledge base, the Monarch Initiative's data ingests. It holds three ingests (go-ingest, omim-ingest, zfin-ingest), each PROPOSED and none yet reviewed by a person.
