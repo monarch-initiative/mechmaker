@@ -132,3 +132,19 @@
     and rank words). Check it with `just news-plan <record>`, remove the old
     plan builder and its tests, and run `just news-leads` on one record.
     The `ingest-news` skill walks through it.
+
+- id: registry-lists-export
+  pr: 98
+  summary: The registry draft lists each released export file, and a test holds it to conf/export.yaml.
+  action: |
+    If `.github/workflows/release-records.yaml` exists, run
+    `uv run python -m <slug>.export --registry-products` and add what it
+    prints under `products:` in `registry/<slug>.md`, after the products
+    already there. Replace any earlier product for a released export file.
+    Run `just test` to confirm `test_registry_entry_lists_the_export`
+    passes. Without that workflow, nothing to do: the draft lists none.
+    If the Mech is already in MechRegistry, offer to update its entry
+    there (`register-mech`).
+    A Mech that owns `docs/index.md` or `mkdocs.yml` adds a link to
+    `downloads.md` by hand: a `Downloads: downloads.md` entry in the nav,
+    after Corpus.
