@@ -108,7 +108,7 @@ SCENARIOS["extras"] = {
         {"prefix": "ZFA", "root": "ZFA:0100000", "root_label": "zebrafish anatomical entity",
          "noun": "anatomy", "slot": "anatomy_terms"},
     ],
-    "workflows": ["sweep"],
+    "workflows": ["sweep", "release-records"],
     # KGX in the Mech's own terms, with no Biolink.
     "output_formats": ["yaml", "json", "sqlite", "kgx", "kgx_maximal"],
     "kgx_biolink": False,
@@ -134,7 +134,9 @@ SCENARIOS["minimal"]["workflows"] = []
 ALL_FORMATS = ["yaml", "json", "jsonld", "ttl", "sqlite", "duckdb", "sql", "csv", "tsv", "kgx", "kgx_maximal"]
 SCENARIOS["disease"].update({"site_palette": "brown", "site_theme": "light", "deep_research": True,
                              "output_formats": ALL_FORMATS, "tabular_layout": "flat",
-                             "load_targets": ["mongodb", "neo4j"]})
+                             "load_targets": ["mongodb", "neo4j"],
+                             # Releases on, so the registry draft lists every format's files.
+                             "workflows": ["sweep", "docs", "comment-guard", "release-records"]})
 SCENARIOS["all-workflows"].update({"site_palette": "yellow", "site_accent": "amber", "site_theme": "dark"})
 
 VENDORED_MD5 = {
@@ -242,6 +244,34 @@ def test_registry_entry_front_matter(generated):
     assert header["id"] == answers["mech_slug"]
     assert header["domains"]
     assert all(p["id"].startswith(answers["mech_slug"] + ".") for p in header["products"])
+
+
+# MechRegistry's closed enums for a product (src/mechregistry/schema/mechregistry.yaml).
+REGISTRY_ENUMS = {
+    "category": {"RecordCorpus", "DataModelProduct", "GraphProduct", "MappingProduct", "GraphicalInterface",
+                 "ProgrammingInterface", "DocumentationProduct", "ModelProduct", "OtherProduct"},
+    "format": {"yaml", "json", "jsonl", "tsv", "csv", "kgx", "sssom", "linkml", "owl", "sbml", "html",
+               "markdown", "jsonld", "turtle", "sqlite", "duckdb", "sql", "other"},
+    "compression": {"gzip", "targz", "zip", "other"},
+}
+
+
+def test_registry_entry_lists_released_exports(generated):
+    _, answers, dest = generated
+    slug = answers["mech_slug"]
+    header = yaml.safe_load((dest / "registry" / f"{slug}.md").read_text().split("---")[1])
+    released = [p for p in header["products"] if "/releases/latest/download/" in p["product_url"]]
+    if "release-records" not in (answers.get("workflows") or []):
+        assert released == []
+        return
+    assert released
+    ids = [p["id"] for p in header["products"]]
+    assert len(ids) == len(set(ids))
+    for p in released:
+        assert p["product_url"].rsplit("/", 1)[1].startswith(f"{slug}-")
+        assert p["format"] != "other", p["id"]  # each export format has its own value
+        for key, allowed in REGISTRY_ENUMS.items():
+            assert p.get(key, "other") in allowed, (p["id"], key)
 
 
 def test_vendored_modules_byte_identical(generated):

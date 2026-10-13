@@ -25,11 +25,12 @@ goat breed, and every record follows the same rules.
 | [Schema](elements/index.md) | Every class, slot and enum, with diagrams |
 | [Record structure](structure.md) | Everything a record can contain, in one diagram |
 | [Corpus](corpus.md) | How many records there are, and in what state |
+| [Downloads](downloads.md) | The records in every format this Mech exports |
 | [Workflows](WORKFLOWS.md) | The automation that checks and curates the records |
 
 ## Download
 
-- Records: the [repository](https://github.com/monarch-initiative/mechmaker/tree/main/example/goatmech/data/goat_breeds).
+- Records: the [repository](https://github.com/monarch-initiative/mechmaker/tree/main/example/goatmech/data/goat_breeds), or [downloads](downloads.md) in every format GoatMech exports.
 - Schema: [goatmech.yaml](schema/goatmech.yaml) with its imports merged, and [JSON Schema](schema/goatmech.schema.json).
 
 ## What the checks do not check

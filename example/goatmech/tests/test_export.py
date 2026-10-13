@@ -14,7 +14,7 @@ from pathlib import Path
 import pytest
 
 from goatmech import export, kgx
-from goatmech.paths import RECORD_CLASS, SLUG
+from goatmech.paths import RECORD_CLASS, REPO_ROOT, SLUG
 
 EXAMPLE = Path(__file__).parent / "data" / "example_record.yaml"
 try:
@@ -81,6 +81,28 @@ def test_undeclared_prefix_is_reported(tmp_path):
     problems = export.check_rdf(path, "turtle", sv, 1)
     assert any("NOPE" in p for p in problems)
 
+
+@pytest.mark.parametrize("layout", ["per_class", "flat"])
+def test_downloads_are_the_files_written(tmp_path, layout):
+    # The Downloads page and the registry entry list these names; a release attaches the files.
+    cfg = {"formats": INSTALLED, "tabular_layout": layout}
+    written, _ = export.export(cfg, [EXAMPLE], tmp_path)
+    assert sorted(d["file"] for d in export.downloads(cfg)) == sorted(p.name for p in written)
+
+
+def test_registry_entry_lists_the_export():
+    entry = REPO_ROOT / "registry" / f"{SLUG}.md"
+    if not entry.exists():
+        pytest.skip(f"no registry/{SLUG}.md")
+    import yaml as _yaml
+
+    header = _yaml.safe_load(entry.read_text(encoding="utf-8").split("---\n")[1])
+    products = header.get("products", [])
+    listed = [p for p in products if "/releases/latest/download/" in p.get("product_url", "")]
+    assert listed == export.registry_products(export.settings()), (
+        f"registry/{SLUG}.md does not list the export conf/export.yaml names. Replace its "
+        f"releases/latest/download products with what `python -m {SLUG}.export --registry-products` prints."
+    )
 
 def test_settings_are_checked(tmp_path, monkeypatch):
     bad = tmp_path / "export.yaml"

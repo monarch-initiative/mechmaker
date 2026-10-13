@@ -2,6 +2,7 @@
 
     python -m <slug>.export            # write build/export/ and check every file
     python -m <slug>.export --list     # the configured formats and table layout
+    python -m <slug>.export --registry-products  # the export's products, for registry/<slug>.md
 
 Every format comes from LinkML or the libraries it brings:
 
@@ -45,7 +46,7 @@ from pathlib import Path
 
 import yaml
 
-from .paths import BUILD_DIR, RECORD_CLASS, RECORDS_DIR, REPO_ROOT, SCHEMA_PATH, SLUG
+from .paths import BUILD_DIR, RECORD_CLASS, RECORDS_DIR, REPO_ROOT, REPO_URL, SCHEMA_PATH, SLUG
 from .validate import iter_records, load
 
 EXPORT_DIR = BUILD_DIR / "export"
@@ -69,6 +70,94 @@ def settings() -> dict:
     if out["tabular_layout"] not in LAYOUTS:
         raise SystemExit(f"conf/export.yaml: tabular_layout must be one of {list(LAYOUTS)}")
     return out
+
+
+def downloads(cfg: dict) -> list[dict]:
+    """The files export(cfg) writes, each with what it is: for the docs' Downloads page and the registry.
+
+    `category`, `format` and `compression` take values from MechRegistry's ProductCategoryEnum,
+    FormatEnum and CompressionEnum.
+    """
+    fmts = set(cfg["formats"])
+    per_class = cfg["tabular_layout"] == "per_class"
+    out = []
+
+    def add(fmt, file, label, description, fmt_value, category="RecordCorpus", **extra):
+        if fmt in fmts:
+            out.append({"file": f"{SLUG}-{file}", "label": label, "description": description,
+                        "category": category, "format": fmt_value, **extra})
+
+    add("yaml", "records.zip", "Records as YAML (zip)",
+        "The curated YAML files, one per record, as they are.", fmt_value="yaml", compression="zip")
+    add("json", "records.json", "Records as JSON", "Every record, in one JSON array.", fmt_value="json")
+    add("json", "records.jsonl", "Records as JSON Lines", "One record per line.", fmt_value="jsonl")
+    add("jsonld", "records.jsonld", "Records as JSON-LD (RDF)",
+        "The records as an RDF graph, through the schema's URIs: the same graph as the Turtle file.",
+        category="GraphProduct", fmt_value="jsonld")
+    add("ttl", "records.ttl", "Records as Turtle (RDF)",
+        "The records as an RDF graph, through the schema's URIs.", category="GraphProduct",
+        fmt_value="turtle")
+    add("sqlite", "records.sqlite", "SQLite database",
+        "One table per class, as gen-sqltables defines them; a nested object's row points at its parent.",
+        fmt_value="sqlite")
+    add("duckdb", "records.duckdb", "DuckDB database",
+        "One table of records, with nested values as DuckDB JSON, written through linkml-store.",
+        fmt_value="duckdb")
+    add("sql", "schema.sql", "Schema as SQL DDL",
+        "The tables of the SQL export, as gen-sqltables writes them.", category="DataModelProduct",
+        fmt_value="sql")
+    add("sql", "records.sql", "Records as SQL",
+        "The SQLite database as SQL: its tables and an INSERT per row.", fmt_value="sql")
+    for fmt, name in (("csv", "CSV"), ("tsv", "TSV")):
+        if per_class:
+            add(fmt, f"tables-{fmt}.zip", f"Tables as {name} (zip)",
+                "One file per class, linked by ids, as in the SQL export.", fmt_value=fmt, compression="zip")
+        else:
+            add(fmt, f"records.{fmt}", f"Records as {name}",
+                'One row per record; a list is joined with " | ", and a nested object is written as JSON.',
+                fmt_value=fmt)
+    kgx_formats = fmts & {"kgx", "kgx_maximal"}
+    if kgx_formats:
+        from . import kgx
+
+        standards = ["kgx", "biolink"] if kgx.settings()["biolink"] else ["kgx"]
+        for fmt, graph, what in (("kgx", "KGX", "each record and the terms it binds"),
+                                 ("kgx_maximal", "KGX whole-graph", "every object in the records, linked")):
+            for kind in ("nodes", "edges"):
+                for ext, serial in (("jsonl", "JSON Lines"), ("tsv", "TSV")):
+                    add(fmt, f"{fmt}_{kind}.{ext}", f"{graph} {kind} as {serial}",
+                        f"The {kind} of a KGX graph of {what}.",
+                        category="GraphProduct", fmt_value="kgx", compatibility=standards)
+    return out
+
+
+def publishes_releases() -> bool:
+    """Whether each release attaches the export (the release-records workflow)."""
+    return (REPO_ROOT / ".github" / "workflows" / "release-records.yaml").exists()
+
+
+def release_url(file: str) -> str:
+    """The file, as attached to the latest release."""
+    return f"{REPO_URL}/releases/latest/download/{file}"
+
+
+def registry_products(cfg: dict) -> list[dict]:
+    """The registry entry's products for the export: one per file, from the latest release.
+
+    None without the release-records workflow: then no release attaches the files.
+    """
+    if not publishes_releases():
+        return []
+    products = []
+    for d in downloads(cfg):
+        product = {"id": f"{SLUG}.{d['file'].removeprefix(f'{SLUG}-').replace('.', '-')}",
+                   "category": d["category"], "name": d["label"], "description": d["description"],
+                   "product_url": release_url(d["file"]), "format": d["format"]}
+        for key in ("compression", "compatibility"):
+            if key in d:
+                product[key] = d[key]
+        products.append(product)
+    return products
 
 
 def schemaview():
@@ -465,10 +554,21 @@ def export(
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--list", action="store_true", help="print the configured formats and stop")
+    parser.add_argument("--registry-products", action="store_true",
+                        help=f"print the export's products for registry/{SLUG}.md, and stop")
     args = parser.parse_args(argv)
     cfg = settings()
     if args.list:
         print(f"formats: {', '.join(cfg['formats'])}; tables: {cfg['tabular_layout']}")
+        return 0
+    if args.registry_products:
+        products = registry_products(cfg)
+        if not products:
+            print("No release attaches the export (no release-records workflow), so the registry lists none.",
+                  file=sys.stderr)
+            return 0
+        text = yaml.safe_dump(products, sort_keys=False, allow_unicode=True, width=1000)
+        print("\n".join(f"  {line}" for line in text.splitlines()))
         return 0
     written, problems = export(cfg)
     for p in written:
