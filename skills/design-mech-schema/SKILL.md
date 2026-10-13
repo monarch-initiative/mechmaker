@@ -170,8 +170,9 @@ schema's own URIs. A prefix with no URI becomes a broken IRI, and
   Ontology prefixes (the template adds those it knows), citation prefixes
   (`PMID`, `DOI`, plus any custom source such as `WIKIPEDIA`), the Mech's own
   prefix, and any CURIE scheme the records use (`infores`, `biolink`).
-  Look each URI up, from the ontology's OBO PURL or from bioregistry
-  (https://bioregistry.io/<prefix>); never compose one from memory.
+  Look each URI up, from the ontology's OBO PURL or from the Bioregistry
+  (the `search-bioregistry` skill's `show` prints a prefix's URI prefix);
+  never compose one from memory.
 - **The schema `id` and the Mech prefix resolve, or will.** The template
   uses `https://w3id.org/<org>/<slug>/`. Keep it unless the person has a
   better permanent address.
