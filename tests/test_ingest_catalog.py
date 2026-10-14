@@ -33,6 +33,14 @@ def test_json_copy_equals_copier_yml():
     assert (SCRIPTS / "ingest_catalog.json").read_text() == gen_docs.ingest_json()
 
 
+def test_reference_page_gives_each_conf_entry():
+    """The Mech's structured-ingests skill sends agents to the page to copy an entry."""
+    page = gen_docs.ingests()
+    for key, entry in ingest_catalog.load().items():
+        assert ingest_catalog.conf_entry(key, entry) == gen_docs.conf_entry(key, entry)
+        assert f"```yaml\n{gen_docs.conf_entry(key, entry)}\n```" in page, key
+
+
 def keys(hits):
     return [k for _, k in hits]
 

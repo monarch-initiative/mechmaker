@@ -243,6 +243,13 @@ def ingest_json() -> str:
     return json.dumps(ingest_catalog(), indent=1) + "\n"
 
 
+def conf_entry(key: str, entry: dict) -> str:
+    """The lines a Mech's conf/ingests.yaml takes for an ingest; as ingest_catalog.py's `show` prints them."""
+    files = "".join(f"\n      - {f}" for f in entry["files"])
+    return (f"  {key}:\n    kind: release\n    repo: {entry['repo']}\n"
+            f"    sources: [{', '.join(entry['sources'])}]\n    files:{files}")
+
+
 def ingests() -> str:
     catalog = ingest_catalog()
     lines = [
@@ -269,9 +276,18 @@ def ingests() -> str:
             f"| `{key}` | {name} | {', '.join(e['sources'])} | {', '.join(e['produces'])} "
             f"| {len(e['files'])} | {'yes' if e['in_monarch_kg'] else 'no'} |"
         )
-    notes = [(k, e["note"]) for k, e in catalog.items() if e.get("note")]
-    if notes:
-        lines += ["", "Notes:", ""] + [f"- `{k}`: {n}" for k, n in notes]
+    lines += [
+        "",
+        "## Each ingest",
+        "",
+        "To add one to a Mech, copy its entry under `ingests:` in `conf/ingests.yaml`,",
+        "drop the files the Mech will not read, and run `just ingest <key>`.",
+    ]
+    for key, e in catalog.items():
+        lines += ["", f"### {key}", "", f"{e['name']}: {e['description']}"]
+        if e.get("note"):
+            lines += ["", e["note"]]
+        lines += ["", "```yaml", conf_entry(key, e), "```"]
     lines += [
         "",
         "The code of every ingest is open (BSD-3-Clause or MIT). The upstream data",
