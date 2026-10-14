@@ -64,7 +64,8 @@ LOCK_HEADER = (
     "# Written by `just ingest`; commit it. The version of each ingest and the sha256\n"
     "# of every file it fetched or made. `just ingest NAME --update` moves it.\n"
 )
-csv.field_size_limit(sys.maxsize)
+# KGX cells can be long. Not sys.maxsize: it overflows the C long on Windows.
+csv.field_size_limit(2**31 - 1)
 
 
 class IngestError(Exception):
