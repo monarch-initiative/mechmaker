@@ -1,0 +1,38 @@
+# A small schema for the shape tests: one class of each kind, and one whose
+# north and south are names, not degrees.
+id: https://example.org/shapes
+name: shapes
+prefixes:
+  linkml: https://w3id.org/linkml/
+  geo: http://www.opengis.net/ont/geosparql#
+  schema: http://schema.org/
+default_prefix: shapes
+default_range: string
+imports:
+  - linkml:types
+
+classes:
+  Place:
+    attributes:
+      name: {}
+      sites: {range: Site, multivalued: true, inlined_as_list: true}
+      area: {range: Area, inlined: true}
+      neighbours: {range: Neighbours, inlined: true}
+      secret: {range: Area, inlined: true}
+  Site:
+    attributes:
+      name: {}
+      lat: {range: float, slot_uri: schema:latitude}
+      longitude: {range: float}
+  Area:
+    attributes:
+      name: {}
+      west: {range: float}
+      south: {range: float}
+      east: {range: float}
+      north: {range: float}
+      outline: {slot_uri: geo:asWKT}
+  Neighbours:
+    attributes:
+      north: {}
+      south: {}

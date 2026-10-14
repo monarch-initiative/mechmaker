@@ -42,44 +42,54 @@
 {%- endif %}
 {%- if body.map %}
 <section id="map" class="map">
-<div id="map-view" class="map-view" aria-label="Map of the record's bounding boxes"></div>
-<noscript><p class="muted">The map needs JavaScript. Each bounding box is listed in its section below.</p></noscript>
+<div id="map-view" class="map-view" aria-label="Map of the record's places"></div>
+<noscript><p class="muted">The map needs JavaScript. Each place is listed in its section below.</p></noscript>
 <script type="application/json" id="map-data">{{ body.map }}</script>
 <script>
 (() => {
-  // Each box is a rectangle, colored by its section, named in a tooltip and
-  // in the layer list, where it can be turned off. Names arrive escaped.
+  // Each shape (a point, box, line or area, as GeoJSON) is colored by its
+  // section, named in a tooltip and in the layer list, where it can be turned
+  // off. Names arrive escaped.
   if (!window.L) return;
-  const boxes = JSON.parse(document.getElementById("map-data").textContent);
+  const shapes = JSON.parse(document.getElementById("map-data").textContent);
   const colors = ["#0072b2", "#d55e00", "#009e73", "#cc79a7", "#e69f00", "#56b4e9"];
   const map = L.map("map-view", {scrollWheelZoom: false});
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
   }).addTo(map);
-  const names = boxes.map(b => b.name);  // the list keeps the page's order
-  const all = boxes.flatMap(b => b.bounds);
+  const drawn = shapes.map(s => {
+    const color = colors[s.group % colors.length];
+    const layer = L.geoJSON(s.geometry, {
+      style: {color: color, weight: 2, fillOpacity: 0.06},
+      pointToLayer: (_, at) => L.circleMarker(at, {radius: 6, color: color, fillOpacity: 0.8}),
+    });
+    return {...s, color: color, layer: layer, bounds: layer.getBounds()};
+  });
+  const names = shapes.map(s => s.name);  // the list keeps the page's order
+  const all = drawn.reduce((b, s) => b.extend(s.bounds), L.latLngBounds([]));
   const layers = Object.fromEntries(names.map(n => [n, L.featureGroup()]));
-  map.fitBounds(all, {padding: [12, 12]});
-  if (boxes.length > 1) {
-    // Fit the boxes beside the layer list, not under it.
+  // A lone point would fill the map at street level; stop at a neighbourhood's width.
+  const most = {maxZoom: 14};
+  map.fitBounds(all, {padding: [12, 12], ...most});
+  if (shapes.length > 1) {
+    // Fit the shapes beside the layer list, not under it.
     // Folded into a button when long, or when the map is phone-narrow.
-    const fold = boxes.length > 5 || map.getSize().x < 600;
+    const fold = shapes.length > 5 || map.getSize().x < 600;
     const list = L.control.layers(null, layers, {collapsed: fold}).addTo(map);
     const room = Math.min(list.getContainer().offsetWidth + 24, map.getSize().x * 0.4);
-    map.fitBounds(all, {paddingTopLeft: [12, 12], paddingBottomRight: [room, 12]});
+    map.fitBounds(all, {paddingTopLeft: [12, 12], paddingBottomRight: [room, 12], ...most});
   }
-  // Largest first, so a small box is drawn on top and can still be hovered.
-  const area = b => (b.bounds[1][0] - b.bounds[0][0]) * (b.bounds[1][1] - b.bounds[0][1]);
-  for (const b of [...boxes].sort((x, y) => area(y) - area(x))) {
-    const color = colors[b.group % colors.length];
-    const group = layers[b.name].addLayer(L.rectangle(b.bounds, {color: color, weight: 2, fillOpacity: 0.06}));
-    // A box a few pixels wide at this zoom gets a dot at its center, to be found.
-    const size = map.latLngToLayerPoint(b.bounds[1]).subtract(map.latLngToLayerPoint(b.bounds[0]));
-    if (Math.max(Math.abs(size.x), Math.abs(size.y)) < 12) {
-      group.addLayer(L.circleMarker(L.latLngBounds(b.bounds).getCenter(), {radius: 6, color: color, fillOpacity: 0.8}));
+  // Largest first, so a small shape is drawn on top and can still be hovered.
+  const area = s => (s.bounds.getNorth() - s.bounds.getSouth()) * (s.bounds.getEast() - s.bounds.getWest());
+  for (const s of [...drawn].sort((x, y) => area(y) - area(x))) {
+    const group = layers[s.name].addLayer(s.layer);
+    // A line or area a few pixels wide at this zoom gets a dot at its center, to be found.
+    const size = map.latLngToLayerPoint(s.bounds.getNorthEast()).subtract(map.latLngToLayerPoint(s.bounds.getSouthWest()));
+    if (!s.geometry.type.endsWith("Point") && Math.max(Math.abs(size.x), Math.abs(size.y)) < 12) {
+      group.addLayer(L.circleMarker(s.bounds.getCenter(), {radius: 6, color: s.color, fillOpacity: 0.8}));
     }
-    group.bindTooltip(b.name, {sticky: true}).addTo(map);
+    group.bindTooltip(s.name, {sticky: true}).addTo(map);
   }
 })();
 </script>

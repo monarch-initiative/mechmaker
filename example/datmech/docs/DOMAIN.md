@@ -104,7 +104,21 @@ Example, 48502: HUC12 `040802040410` Gilkey Creek-Flint River, in HUC8
 
 On `zcta` and on each watershed: `west`, `south`, `east`, `north` in
 decimal degrees. Treatment plants and incidents have no box: the sources
-give a plant an address or a point at most, and an incident no extent.
+give a plant a point at most, and an incident no extent.
+
+### `location`
+
+On a wastewater treatment plant: `latitude` and `longitude`, the point
+EPA's ECHO facility report maps it at (`MapOutput`'s `CenterLatitude` and
+`CenterLongitude`, from `get_dfr` for its NPDES permit). The evidence
+quotes both with the `LocationalDataSource`, and the explanation gives
+EPA's estimated accuracy. The report holds other points too (outfalls, the
+facility's other program records); the map's center is the one to take.
+A drinking water plant has no location: EPA's drinking water inventory
+(`WATER_SYSTEM_FACILITY`) has no coordinate fields.
+
+Example, 48502: the Flint Water Pollution Control Facility at 43.0362,
+-83.7729, from EPA's Emissions Inventory System, within 58 meters.
 
 ### `treatment_facilities`: where the water is treated
 

@@ -145,6 +145,17 @@ treatment_facilities:
       label: wastewater treatment plant
     operator: Village of East Palestine
     system_id: OH0021784
+    location:
+      latitude: 40.8297
+      longitude: -80.54465
+      evidence:
+        - reference: url:https://echodata.epa.gov/echo/dfr_rest_services.get_dfr?output=JSON&p_id=OH0021784
+          supports: SUPPORT
+          evidence_source: GOVERNMENT_RECORD
+          snippet: '"CenterLatitude":"40.8297", "CenterLongitude":"-80.54465", "LocationalDataSource":"FRS"'
+          explanation: >-
+            The point ECHO maps the facility at, from EPA's Facility Registry Service, within
+            30 meters by EPA's estimate.
     service_status: CURRENT
     receiving_waters:
       - preferred_term: Leslie Run

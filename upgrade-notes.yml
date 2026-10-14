@@ -109,12 +109,14 @@
   pr: 86
   summary: Validation now checks every object with two or more of west, south, east, north as a map box.
   action: |
-    Run `just validate-all`. If it reports "a bounding box needs west,
-    south, east and north" or a side out of range on an object that is
-    not a box (say `north` and `south` naming neighbours, or river
-    banks), rename those slots in the schema with `extend-schema` and
-    migrate the records; the check reads keys, not the schema (#99 would
-    have it read the schema). If nothing is reported, nothing to do.
+    If this update also takes the note `shapes-from-schema`, skip this
+    one: the check reads the schema now, and slots that are not a box's
+    sides are left alone. Otherwise run `just validate-all`. If it reports
+    "a bounding box needs west, south, east and north" or a side out of
+    range on an object that is not a box (say `north` and `south` naming
+    neighbours, or river banks), rename those slots in the schema with
+    `extend-schema` and migrate the records; the check reads keys, not
+    the schema. If nothing is reported, nothing to do.
 
 - id: reference-validator-0-3
   pr: 91
@@ -163,3 +165,21 @@
     they match. If the Mech is already in MechRegistry, offer to update
     its entry there (`register-mech`). Without that workflow the draft
     lists no export.
+
+- id: shapes-from-schema
+  pr: 103
+  summary: Maps and checks find places from the schema; points and WKT lines and areas join bounding boxes.
+  action: |
+    Nothing to do unless the schema has a class with `west`, `south`,
+    `east` and `north`, or `latitude` and `longitude`. If it does, each
+    of those slots needs a numeric range (`float`, `double`, `decimal` or
+    `integer`); a slot with no range is a string, and its boxes or points
+    now leave the map and go unchecked. Give it `range: float` with
+    `extend-schema`, then run `just validate-all` and look at a record
+    page with a box. Code of the Mech's own that called
+    `validate.boxes` or `validate.box_errors` calls `shapes.find` and
+    `shapes.errors` instead; `render.map_boxes` is now
+    `render.map_shapes`. A box whose west is east of its east now passes:
+    it crosses the antimeridian. Records whose objects hold numeric
+    `latitude` and `longitude` now show them on the map. To add points
+    or lines, see mechmaker's `add-record-map` skill.

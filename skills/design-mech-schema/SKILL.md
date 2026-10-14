@@ -125,12 +125,14 @@ itself. `search-mechregistry` finds the Mechs to link to.
 **Quantity.** A measured value is a small class: `value` (float), `unit`
 (bound to UO), `conditions`, `evidence`. Never a string like "5 mg/L".
 
-**Place.** When a record, or something it describes, is an area a source
-draws (a county, a postal area, a watershed, a sampling region), give that
-object a `bounding_box` of class `BoundingBox`, with `west`, `south`,
-`east` and `north` in decimal degrees. The record browser draws every box
-on a map. The `add-record-map` skill has the class, where boxes come from,
-and how to quote them.
+**Place.** When a record, or something it describes, has a place a source
+states, give that object a shape: a point (`latitude`, `longitude`) for a
+site, a plant or a sample; a `bounding_box` (`west`, `south`, `east`,
+`north`) for an area a source gives the extent of (a county, a postal
+area, a watershed); a `geometry` in Well-Known Text for a line (a river
+reach, a pipeline) or an outline. The record browser draws every one on a
+map. The `add-record-map` skill has the classes, where coordinates come
+from, and how to quote them.
 
 **Closed vocabulary.** When the values are the Mech's own and small, use a
 static enum with a `description` on each value. When they come from an

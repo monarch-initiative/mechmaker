@@ -339,8 +339,8 @@ INGEST_WORDS = re.compile(
 TEMPLATE_MODULES = {
     "__init__.py", "compliance.py", "docs.py", "evidence.py", "export.py", "fleet.py", "history.py",
     "kgx.py", "literature.py", "load.py", "news.py", "oak_compat.py", "ols.py", "paths.py", "qc.py",
-    "records.py", "render.py", "report.py", "research.py", "schema_import.py", "site.py", "termcheck.py",
-    "terms.py", "titles.py", "validate.py", "warm.py"}
+    "records.py", "render.py", "report.py", "research.py", "schema_import.py", "shapes.py", "site.py",
+    "termcheck.py", "terms.py", "titles.py", "validate.py", "warm.py"}
 
 
 def ingests(name: str) -> bool:

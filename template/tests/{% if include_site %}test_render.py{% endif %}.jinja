@@ -1,8 +1,10 @@
 """The record browser's layout rules: labels, links, tables, cards, escaping."""
 
+from pathlib import Path
+
 import pytest
 
-from {{ mech_slug }} import render
+from {{ mech_slug }} import render, shapes
 
 
 @pytest.fixture(autouse=True)
@@ -61,28 +63,43 @@ def test_record_body_splits_overview_and_sections():
     assert "<details" in body["sections"][1]["html"]
 
 
-def test_every_bounding_box_is_on_the_map_named_by_what_holds_it():
+@pytest.fixture
+def places(monkeypatch):
+    """Records of the shape tests' Place class, from their own schema."""
+    monkeypatch.setattr(shapes, "SCHEMA_PATH", Path(__file__).parent / "data" / "shapes_schema.yaml")
+    monkeypatch.setattr(shapes, "RECORD_CLASS", "Place")
+
+
+def test_every_shape_is_on_the_map_named_by_what_holds_it(places):
     box = {"west": -83.7, "south": 43.0, "east": -83.6, "north": 43.1}
-    data = {"name": "X", "area": {"vintage": 2020, "bounding_box": box},
-            "watersheds": [{"name": "Flint", "bounding_box": box}, {"name": "<b>Swan</b>", "extent": box}],
-            "secret": {"bounding_box": box}}
-    found = render.map_boxes(data, hidden=["secret"])
-    assert [b["name"] for b in found] == ["Area", "Watersheds: Flint", "Watersheds: &lt;b&gt;Swan&lt;/b&gt;"]
+    data = {"name": "X", "area": {"name": "Flint", **box},
+            "sites": [{"name": "<b>Plant</b>", "lat": 43.0, "longitude": -83.7},
+                      {"lat": 43.1, "longitude": -83.6}],
+            "neighbours": {"north": "Lake County", "south": "Porter County"},
+            "secret": box}
+    found = render.map_shapes(data, hidden=["secret"])
+    assert [b["name"] for b in found] == ["Area: Flint", "Sites: &lt;b&gt;Plant&lt;/b&gt;", "Sites"]
     assert [b["group"] for b in found] == [0, 1, 1]
-    assert found[0]["bounds"] == [[43.0, -83.7], [43.1, -83.6]]
+    assert found[0]["geometry"]["coordinates"][0][:2] == [[-83.7, 43.0], [-83.6, 43.0]]
+    assert found[1]["geometry"] == {"type": "Point", "coordinates": [-83.7, 43.0]}
 
 
-def test_no_box_no_map_and_map_can_be_turned_off():
+def test_lines_and_areas_are_drawn_from_wkt(places):
+    found = render.map_shapes({"area": {"outline": "LINESTRING (-83.7 43.0, -83.6 43.1)"}})
+    assert found[0]["geometry"] == {"type": "LineString", "coordinates": [[-83.7, 43.0], [-83.6, 43.1]]}
+
+
+def test_no_shape_no_map_and_map_can_be_turned_off(places):
     box = {"west": 1, "south": 2, "east": 3, "north": 4}
     assert render.record_body({"name": "X", "area": {"name": "a"}}, hidden=[])["map"] is None
-    placed = {"name": "X", "area": {"bounding_box": box}}
+    placed = {"name": "X", "area": box}
     assert render.record_body(placed, hidden=[], show_map=False)["map"] is None
     shown = render.record_body(placed, hidden=[])["map"]
-    assert '"bounds": [[2, 1], [4, 3]]' in shown
+    assert '"coordinates": [[[1, 2], [3, 2], [3, 4], [1, 4], [1, 2]]]' in shown
 
 
-def test_a_box_the_validator_rejects_is_left_off_and_json_cannot_end_the_script():
-    bad = {"west": 10, "south": 0, "east": -10, "north": 1}
-    assert render.map_boxes({"area": {"bounding_box": bad}}) == []
+def test_a_shape_the_validator_rejects_is_left_off_and_json_cannot_end_the_script(places):
+    bad = {"west": 10, "south": 1, "east": -10, "north": 0}
+    assert render.map_shapes({"area": bad}) == []
     box = {"name": "</script><script>alert(1)</script>", "west": 0, "south": 0, "east": 1, "north": 1}
     assert "</" not in render.map_data({"area": box})

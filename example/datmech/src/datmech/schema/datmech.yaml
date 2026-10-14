@@ -129,6 +129,7 @@ classes:
       - facility_type
       - operator
       - system_id
+      - location
       - service_status
       - source_type
       - source_waters
@@ -175,8 +176,7 @@ classes:
     description: >-
       The smallest box, in decimal degrees (WGS84), that holds an area: the
       extent its source reports, rounded to six decimals. The record browser
-      draws every one on a map. A box across the antimeridian is not
-      supported.
+      draws every one on a map.
     slots:
       - west
       - south
@@ -191,6 +191,21 @@ classes:
       east:
         required: true
       north:
+        required: true
+
+  GeoPoint:
+    class_uri: schema:GeoCoordinates
+    description: >-
+      A point, in decimal degrees (WGS84), as its source reports it. The
+      record browser draws every one on a map.
+    slots:
+      - latitude
+      - longitude
+      - evidence
+    slot_usage:
+      latitude:
+        required: true
+      longitude:
         required: true
 
   Advisory:
@@ -397,6 +412,25 @@ slots:
     minimum_value: -90
     maximum_value: 90
     description: Northernmost latitude (ymax), decimal degrees.
+  location:
+    range: GeoPoint
+    inlined: true
+    description: >-
+      Where the facility is, as EPA's facility report maps it; drawn on the
+      record's map. EPA's drinking water inventory gives no coordinates, so
+      a drinking water plant has none.
+  latitude:
+    range: float
+    slot_uri: schema:latitude
+    minimum_value: -90
+    maximum_value: 90
+    description: Latitude, in decimal degrees.
+  longitude:
+    range: float
+    slot_uri: schema:longitude
+    minimum_value: -180
+    maximum_value: 180
+    description: Longitude, in decimal degrees.
   watersheds:
     range: Watershed
     multivalued: true
