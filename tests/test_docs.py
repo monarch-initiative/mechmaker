@@ -1,4 +1,4 @@
-"""The agent-facing docs: the start prompt, the skills' script paths, and llms.txt."""
+"""The agent-facing docs: the start prompt, the agent's steps, the skills' script paths, and llms.txt."""
 
 import re
 import sys
@@ -21,6 +21,19 @@ def test_the_start_prompt_is_the_same_everywhere():
     for page in (ROOT / "README.md", ROOT / "docs" / "index.md"):
         assert prompt_in(page) == want, page.name
     assert "npx skills add monarch-initiative/mechmaker" in want
+
+
+def steps_in(path: Path) -> str:
+    # The numbered list of what the agent does, from "1. **Survey.**" to the blank line.
+    m = re.search(r"^1\. \*\*Survey\.\*\*.*?(?=\n\n)", path.read_text(), re.S | re.M)
+    assert m, f"{path.name} has no list of the agent's steps"
+    return " ".join(m.group(0).split())
+
+
+def test_the_agents_steps_are_the_same_in_the_readme():
+    want = steps_in(ROOT / "docs" / "getting-started.md")
+    assert steps_in(ROOT / "README.md") == want, "README.md: copy the steps from docs/getting-started.md"
+    assert "8. **Audit.**" in want
 
 
 def test_skills_call_scripts_by_their_own_folder():

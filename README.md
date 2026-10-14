@@ -48,10 +48,12 @@ The agent works in steps and checks with you along the way:
 1. **Survey.** It works out what one record should be, which ontologies fit,
    which sources can feed the knowledge base, and whether an existing Mech
    already covers your topic. It searches MechRegistry, KG-Registry and the
-   Bioregistry.
+   Bioregistry. If a registered Mech already keeps your kind of record, it
+   tells you before going on. A neighboring Mech may have records to link
+   to, or a conversion script to reuse.
 2. **Set up.** It fills in the template's questions and creates the
-   repository. It asks you for the things only you know, like your name,
-   your GitHub organization, and the license you want.
+   repository. It asks you for what only you know: your name, your GitHub
+   organization, the licenses.
 3. **Design.** It shapes the data model to your field.
 4. **Choose workflows.** It asks which GitHub automation to turn on.
 5. **Style.** If you like, it sets the site's colors and layout.
@@ -60,7 +62,7 @@ The agent works in steps and checks with you along the way:
    listed now, it asks the registry to add it, by an issue or a pull request.
 8. **Audit.** It checks the Mech against everything you asked for, and
    gives you a checklist: what is there, what is not and why, and what to
-   do next.
+   do next. Ask for an audit at any time later, too.
 
 It asks before it creates anything on GitHub.
 
