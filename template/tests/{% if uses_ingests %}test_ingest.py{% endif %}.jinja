@@ -1,6 +1,8 @@
 """Structured data ingests: settings, the lock, and reading rows. No network."""
 
 import hashlib
+import io
+import urllib.error
 
 import pytest
 import yaml
@@ -106,6 +108,30 @@ def test_update_fetches_a_file_the_release_does_not_list(where, monkeypatch):
     moved = ingest.run_release("demo", conf, locked, update=True)
     assert moved["release"] == "v2026-11-01"
     assert (where / "build" / "ingest" / "demo" / "extra.tsv").read_text() == "b\n"
+
+
+def test_a_failed_fetch_is_an_error_line_and_leaves_no_part_file(where, monkeypatch, capsys):
+    conf = where / "ingests.yaml"
+    conf.write_text(yaml.safe_dump({"ingests": CONF}))
+    monkeypatch.setattr(ingest, "CONF", conf)
+    monkeypatch.setattr(ingest, "latest_tag", lambda repo: "v1")
+
+    class Broken(io.BytesIO):
+        def read(self, *args):
+            raise urllib.error.URLError("connection reset")
+
+    def urlopen(request, timeout):
+        if request.full_url.endswith("release-metadata.yaml"):
+            raise urllib.error.HTTPError(request.full_url, 404, "Not Found", {}, None)
+        return Broken()
+
+    monkeypatch.setattr(ingest.urllib.request, "urlopen", urlopen)
+    assert ingest.main(["run", "demo"]) == 1
+    assert "ERROR demo: could not fetch: HTTP Error 404" in capsys.readouterr().err
+    dest = where / "partial.tsv"
+    with pytest.raises(urllib.error.URLError):
+        ingest.download("https://example.org/partial.tsv", dest)
+    assert not dest.exists() and not dest.with_name("partial.tsv.part").exists()
 
 
 def test_rows_refuse_a_changed_file(where, monkeypatch):
