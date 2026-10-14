@@ -56,6 +56,17 @@ def test_problems_name_each_fault():
         assert part in found
 
 
+def test_a_lock_that_no_longer_fits_stops_the_run(where, capsys):
+    ingest.save_lock({"demo": {"kind": "koza", "path": "ingests/demo"}})
+    other = {"demo": {**CONF["demo"]}}
+    assert ingest.problems(other, ingest.load_lock(), fetching=True) == [
+        "demo: locked as koza, set as release; run `just ingest demo --update`"]
+    ingest.save_lock({"demo": {"kind": "release", "repo": "example-org/old-ingest", "release": "v1"}})
+    found = ingest.problems(other, ingest.load_lock(), fetching=True)
+    assert found == ["demo: locked from example-org/old-ingest, set to example-org/demo-ingest; "
+                     "run `just ingest demo --update`"]
+
+
 def test_release_is_fetched_checked_and_locked(where, monkeypatch):
     fake_release(monkeypatch, {"demo_edges.tsv": EDGES})
     entry = ingest.run_release("demo", CONF["demo"], None, update=False)

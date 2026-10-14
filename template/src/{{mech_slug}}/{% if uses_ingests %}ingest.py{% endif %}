@@ -103,8 +103,9 @@ def transform_configs(folder: Path) -> list[Path]:
     return sorted(p for p in folder.glob("*.yaml") if p.name != "download.yaml")
 
 
-def problems(conf: dict[str, dict], lock: dict[str, dict]) -> list[str]:
-    """What is wrong with the settings and the lock, without the network."""
+def problems(conf: dict[str, dict], lock: dict[str, dict], fetching: bool = False) -> list[str]:
+    """What is wrong with the settings and the lock, without the network. Fetching, files not
+    locked yet are what the run is for, and ingests outside `conf` are not being looked at."""
     out = []
     for name, c in conf.items():
         if not isinstance(c, dict):
@@ -131,11 +132,14 @@ def problems(conf: dict[str, dict], lock: dict[str, dict]) -> list[str]:
         if locked and kind and locked.get("kind") != kind:
             out.append(f"{name}: locked as {locked.get('kind')}, set as {kind}; "
                        f"run `just ingest {name} --update`")
-        if locked and kind == "release":
+        if locked and kind == "release" and locked.get("repo") not in (None, c.get("repo")):
+            out.append(f"{name}: locked from {locked['repo']}, set to {c.get('repo')}; "
+                       f"run `just ingest {name} --update`")
+        if locked and kind == "release" and not fetching:
             missing = [f for f in c.get("files") or [] if f not in (locked.get("files") or {})]
             if missing:
                 out.append(f"{name}: not locked yet: {', '.join(missing)}; run `just ingest {name}`")
-    for name in lock:
+    for name in [] if fetching else lock:
         if name not in conf:
             out.append(f"{name}: locked but not in conf/ingests.yaml; remove it from the lock")
     return out
@@ -474,7 +478,8 @@ def main(argv: list[str] | None = None) -> int:
         unknown = [n for n in names if n not in conf]
         if unknown:
             ap.error(f"not in conf/ingests.yaml: {', '.join(unknown)}")
-        found = problems({n: conf[n] for n in names}, {})  # the run rewrites their lock entries
+        # --update rewrites their lock entries; without it, the lock must still fit the settings.
+        found = problems({n: conf[n] for n in names}, {} if args.update else lock, fetching=True)
         if found:
             raise IngestError("; ".join(found))
         for name in names:
