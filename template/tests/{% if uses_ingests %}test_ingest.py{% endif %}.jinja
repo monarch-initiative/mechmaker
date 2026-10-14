@@ -27,6 +27,7 @@ def fake_release(monkeypatch, files: dict[str, str], tag="v2026-10-01", publishe
     """Publish a release, the newest: its release-metadata.yaml, with each file's sha256, and the files."""
     sums = {f: hashlib.sha256(t.encode()).hexdigest() for f, t in files.items()}
     sums.update(published or {})
+    sums = {f: s for f, s in sums.items() if s is not None}  # None: the release does not list it
     meta = yaml.safe_dump({"id": "demo-ingest", "build_version": f"demo_{tag}",
                            "sources": [{"id": "infores:demo", "version": "1", "retrieved_at": "2026-10-01"}],
                            "artifacts": [{"path": f, "sha256": s} for f, s in sums.items()]})
@@ -82,6 +83,18 @@ def test_the_lock_holds_the_release_until_update(where, monkeypatch):
                  tag="v2026-11-01")
     assert ingest.run_release("demo", CONF["demo"], locked, update=False)["release"] == "v2026-10-01"
     assert ingest.run_release("demo", CONF["demo"], locked, update=True)["release"] == "v2026-11-01"
+
+
+def test_update_fetches_a_file_the_release_does_not_list(where, monkeypatch):
+    conf = {**CONF["demo"], "files": ["demo_edges.tsv", "extra.tsv"]}
+    fake_release(monkeypatch, {"demo_edges.tsv": EDGES, "extra.tsv": "a\n"}, published={"extra.tsv": None})
+    locked = ingest.run_release("demo", conf, None, update=False)
+    assert locked["files"]["extra.tsv"]["checked"] == "lock"
+    fake_release(monkeypatch, {"demo_edges.tsv": EDGES, "extra.tsv": "b\n"}, tag="v2026-11-01",
+                 published={"extra.tsv": None})
+    moved = ingest.run_release("demo", conf, locked, update=True)
+    assert moved["release"] == "v2026-11-01"
+    assert (where / "build" / "ingest" / "demo" / "extra.tsv").read_text() == "b\n"
 
 
 def test_rows_refuse_a_changed_file(where, monkeypatch):

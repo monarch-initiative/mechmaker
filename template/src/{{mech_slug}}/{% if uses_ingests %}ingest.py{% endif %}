@@ -198,10 +198,12 @@ def run_release(name: str, conf: dict, locked: dict | None, update: bool) -> dic
     if locked and not update and locked.get("metadata_sha256") not in (None, meta_sha):
         raise IngestError(f"{name}: release {tag}'s release-metadata.yaml changed since it was locked")
 
+    # The lock vouches for a file the release does not list, but only for the locked release.
+    vouched = {} if update else ((locked or {}).get("files") or {})
     files = {}
     for file in conf["files"]:
         dest = out / file
-        want = published.get(file) or ((locked or {}).get("files") or {}).get(file, {}).get("sha256")
+        want = published.get(file) or vouched.get(file, {}).get("sha256")
         if not (dest.exists() and want and sha256(dest) == want):
             print(f"  fetching {file} from {repo} {tag}", flush=True)
             download(release_url(repo, tag, file), dest)
