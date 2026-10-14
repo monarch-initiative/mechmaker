@@ -265,30 +265,48 @@ def download_list(folder: Path) -> list[dict]:
     return items
 
 
-def run_koza(name: str, conf: dict, locked: dict | None, update: bool, fetch: bool = True) -> dict:
-    folder = ingest_dir(name, conf)
-    out = OUT_DIR / name
-    items = download_list(folder)
-    if fetch:
-        try:
-            from kghub_downloader.download_utils import download_from_yaml
-            from kghub_downloader.model import DownloadOptions
-        except ImportError as e:
-            raise IngestError("kghub-downloader is not installed: the koza_ingests answer adds it") from e
-        download_from_yaml(yaml_file=str(folder / "download.yaml"), output_dir=str(out),
-                           download_options=DownloadOptions(ignore_cache=update))
-    before = (locked or {}).get("downloads") or {}
+def fetch_downloads(folder: Path, out: Path, again: bool) -> None:
+    """Download what folder/download.yaml lists into out/; files already there are kept unless again."""
+    try:
+        from kghub_downloader.download_utils import download_from_yaml
+        from kghub_downloader.model import DownloadOptions
+    except ImportError as e:
+        raise IngestError("kghub-downloader is not installed: the koza_ingests answer adds it") from e
+    download_from_yaml(yaml_file=str(folder / "download.yaml"), output_dir=str(out),
+                       download_options=DownloadOptions(ignore_cache=again))
+
+
+def hash_downloads(name: str, items: list[dict], out: Path) -> dict[str, dict]:
     downloads = {}
     for item in items:
         local = item.get("local_name") or Path(item["url"]).name
         path = out / local
         if not path.exists():
             raise IngestError(f"{name}: {local} was not downloaded")
-        got = sha256(path)
-        if not update and local in before and before[local]["sha256"] != got:
-            raise IngestError(f"{name}: {local} differs from the locked download (the source changed); "
-                              "`--update` takes it")
-        downloads[local] = {"url": item.get("url"), "sha256": got, "bytes": path.stat().st_size}
+        downloads[local] = {"url": item.get("url"), "sha256": sha256(path), "bytes": path.stat().st_size}
+    return downloads
+
+
+def run_koza(name: str, conf: dict, locked: dict | None, update: bool, fetch: bool = True) -> dict:
+    folder = ingest_dir(name, conf)
+    out = OUT_DIR / name
+    items = download_list(folder)
+    if fetch:
+        fetch_downloads(folder, out, again=update)
+    before = {} if update else (locked or {}).get("downloads") or {}
+
+    def stale(downloads: dict[str, dict]) -> list[str]:
+        return [f for f, d in downloads.items() if f in before and before[f]["sha256"] != d["sha256"]]
+
+    downloads = hash_downloads(name, items, out)
+    if stale(downloads) and fetch:
+        # A copy cached before the lock moved (another clone's --update): fetch it once more.
+        print(f"  downloading again, cached copies differ from the lock: {', '.join(stale(downloads))}")
+        fetch_downloads(folder, out, again=True)
+        downloads = hash_downloads(name, items, out)
+    if stale(downloads):
+        raise IngestError(f"{name}: {', '.join(stale(downloads))} differs from the locked download "
+                          "(the source changed); `--update` takes it")
 
     output = out / "output"
     if output.exists():

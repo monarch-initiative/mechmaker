@@ -168,4 +168,16 @@ def test_own_koza_ingest_scaffolds_runs_and_locks(where, monkeypatch):
     data.write_text("id\tname\trelated\nX:1\tchanged\tY:2\n", encoding="utf-8")
     with pytest.raises(ingest.IngestError, match="the source changed"):
         ingest.run_koza("demo_source", conf, entry, update=False, fetch=False)
+
+    # A stale cached copy, with the source as locked: it is downloaded again, and the run passes.
+    fetched = []
+
+    def fetch_downloads(folder, out, again):
+        fetched.append(again)
+        if again:
+            data.write_text("id\tname\trelated\nX:1\tone\tY:2\nX:2\ttwo\tY:3\n", encoding="utf-8")
+
+    monkeypatch.setattr(ingest, "fetch_downloads", fetch_downloads)
+    assert ingest.run_koza("demo_source", conf, entry, update=False)["outputs"] == entry["outputs"]
+    assert fetched == [False, True]
 {%- endif %}
