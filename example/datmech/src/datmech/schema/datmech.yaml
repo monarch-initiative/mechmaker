@@ -175,8 +175,7 @@ classes:
     description: >-
       The smallest box, in decimal degrees (WGS84), that holds an area: the
       extent its source reports, rounded to six decimals. The record browser
-      draws every one on a map. A box across the antimeridian is not
-      supported.
+      draws every one on a map.
     slots:
       - west
       - south

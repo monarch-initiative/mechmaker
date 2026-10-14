@@ -111,7 +111,10 @@ Resolve every `[?]` to done or missing. Read the thing itself.
   or name, and the domain's words.
 - A Mech whose records describe places (areas, sites, watersheds) and has a
   record browser should draw them on a map; make-mech makes that the
-  default. If no record has a bounding box, say so, and point to
+  default. If no record has a point, bounding box or geometry, say so, and
+  point to `add-record-map`. If the records hold coordinates but no page
+  has a map, the schema may not make them shapes (a side whose range is
+  not numeric, a WKT slot without `slot_uri: geo:asWKT`); see
   `add-record-map`.
 - A site color that differs from the answer was changed after generation.
   Ask whether that was the person's choice, or find the commit that did it.

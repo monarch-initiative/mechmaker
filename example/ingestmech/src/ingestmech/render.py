@@ -20,10 +20,10 @@ text from the schema:
     description's own evidence folds under the description;
   - discussions are cards with their kind and status;
   - curation history is a table, folded away;
-  - every bounding box in the record (an object with west, south, east and
-    north, in decimal degrees) is drawn on a map above the sections, with
-    OpenStreetMap tiles through Leaflet. conf/site.yaml `map: false` turns
-    it off; a record with no box has no map.
+  - every point, bounding box, line and area in the record (the objects
+    the schema makes shapes; see shapes.py) is drawn on a map above the
+    sections, with OpenStreetMap tiles through Leaflet. conf/site.yaml
+    `map: false` turns it off; a record with no shape has no map.
 
 A field's label is its schema `title` if it has one, else its name with
 underscores as spaces. Its schema description is shown as help. URLs and
@@ -42,9 +42,9 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from markupsafe import Markup, escape
 
-from . import site
+from . import shapes, site
 from .paths import MECH_NAME, PACKAGE_DIR, PAGES_DIR, RECORD_NOUN, REPO_ROOT, REPO_URL, SCHEMA_PATH, SLUG
-from .validate import box_errors, boxes, iter_records, load
+from .validate import iter_records, load
 
 CURIE_BASES = {
     "PMID": "https://pubmed.ncbi.nlm.nih.gov/",
@@ -320,18 +320,21 @@ def history(v: list) -> Markup:
         len(v), "" if len(v) == 1 else "s", rows)
 
 
-def map_boxes(data: dict, hidden: list[str] = ()) -> list[dict]:
-    """The record's bounding boxes, for the map: a name from what holds each, its section, its bounds.
-    A box that box_errors rejects is left off; `just validate` reports it."""
+def map_shapes(data: dict, hidden: list[str] = ()) -> list[dict]:
+    """The record's shapes, for the map: a name from what holds each, its section, its GeoJSON geometry.
+    A shape that shapes.errors rejects is left off; `just validate` reports it."""
     out, groups = [], []
-    for _, parents, box in boxes(data):
-        if box_errors({"box": box}):
+    for shape in shapes.find(data):
+        try:
+            geometry = shapes.geometry(shape)
+        except ValueError:
             continue
+        parents = shape.parents
         section = parents[0][0] if parents else None
         if section in hidden:
             continue
         holder = parents[-1][1] if parents else data
-        _, title = card_title(box)
+        _, title = card_title(shape.obj)
         if not title and holder is not data:
             _, title = card_title(holder)
         group = label(section) if section else MECH_NAME
@@ -340,16 +343,15 @@ def map_boxes(data: dict, hidden: list[str] = ()) -> list[dict]:
         name = f"{group}: {title}" if title else group
         taken = sum(b["text"] == name for b in out)
         out.append({"text": name, "name": str(escape(name if not taken else f"{name} ({taken + 1})")),
-                    "group": groups.index(group),
-                    "bounds": [[box["south"], box["west"]], [box["north"], box["east"]]]})
+                    "group": groups.index(group), "geometry": geometry})
     for b in out:
         del b["text"]
     return out
 
 
 def map_data(data: dict, hidden: list[str] = ()) -> Markup | None:
-    """The map's boxes as JSON to embed in the page, or None when the record has none."""
-    found = map_boxes(data, hidden)
+    """The map's shapes as JSON to embed in the page, or None when the record has none."""
+    found = map_shapes(data, hidden)
     # "</" would end the script element the JSON sits in.
     return Markup(json.dumps(found).replace("</", "<\\/")) if found else None
 

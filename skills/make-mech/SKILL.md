@@ -271,7 +271,7 @@ skill covers each setting; run `just site-check`, and look with
 `just docs-serve`.
 
 If records describe places (areas, regions, watersheds, sites), give them
-bounding boxes, and each record page gets a map. The `add-record-map`
+points, bounding boxes or outlines, and each record page gets a map. The `add-record-map`
 skill says how; it is the default for a Mech with a geography, not an
 extra to wait for a request.
 
