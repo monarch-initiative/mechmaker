@@ -48,6 +48,8 @@ def main(argv: list[str] | None = None) -> int:
 
     steps = list(OFFLINE)
     steps.append(("site settings", ["just", "site-check"]))
+    if (PACKAGE_DIR / "ingest.py").exists():
+        steps.append(("ingests: settings and lock", ["just", "ingest-check"]))
     if (PACKAGE_DIR / "research.py").exists():
         steps.append(("research prompt", ["just", "research-check"]))
     steps.append(("exports read back", ["just", "export"]))

@@ -5,16 +5,22 @@
 Writes, and does not commit:
   docs/reference/questions.md    every Copier question, from copier.yml
   docs/reference/ontologies.md   the ontology catalog, from copier.yml
+  docs/reference/ingests.md      the ingest catalog, from copier.yml
   docs/skills/*.md               one page per mechmaker skill, from skills/
   docs/reference/mech-skills.md  the skills a generated Mech carries
   docs/workflows.md              the workflow catalog a Mech gets, defaults marked
   docs/llms.txt                  the index an agent reads first, from the nav and the pages
 
 These pages are generated so they cannot drift from the template.
+
+Also writes, to be committed: skills/ingest-structured-data/scripts/ingest_catalog.json,
+the ingest catalog for the skill's script (installed skills have no copier.yml).
+A test keeps it equal to copier.yml.
 """
 
 from __future__ import annotations
 
+import json
 import re
 import shutil
 import sys
@@ -225,6 +231,81 @@ def ontologies() -> str:
     return "\n".join(lines) + "\n"
 
 
+INGEST_JSON = ROOT / "skills" / "ingest-structured-data" / "scripts" / "ingest_catalog.json"
+
+
+def ingest_catalog() -> dict:
+    data = yaml.safe_load((ROOT / "copier.yml").read_text())
+    return yaml.safe_load(data["ingest_catalog"]["default"])
+
+
+def ingest_json() -> str:
+    return json.dumps(ingest_catalog(), indent=1) + "\n"
+
+
+def conf_entry(key: str, entry: dict) -> str:
+    """The lines a Mech's conf/ingests.yaml takes for an ingest; as ingest_catalog.py's `show` prints them."""
+    files = "".join(f"\n      - {f}" for f in entry["files"])
+    return (f"  {key}:\n    kind: release\n    repo: {entry['repo']}\n"
+            f"    sources: [{', '.join(entry['sources'])}]\n    files:{files}")
+
+
+def ingests() -> str:
+    catalog = ingest_catalog()
+    lines = [
+        "# Ingest catalog",
+        "",
+        "The structured data ingests the `ingests` question offers: the Monarch",
+        "Initiative's. Each is a repository that turns one upstream source into KGX",
+        "nodes and edges with [Koza](https://koza.monarchinitiative.org/), and",
+        "publishes them as a monthly GitHub release with a `release-metadata.yaml`",
+        "that gives each file's sha256 and the upstream versions. A Mech that picks",
+        "one fetches its release with `just ingest <key>` and locks the version.",
+        "Generated from `ingest_catalog` in `copier.yml`.",
+        "",
+        "The [`ingest-structured-data`](../skills/ingest-structured-data.md) skill",
+        "says when an ingest fits a Mech, how its rows become records, and how a",
+        "Mech writes its own ingest with Koza for a source not listed here.",
+        "",
+        "| Key | Source | Upstream (infores) | Produces | Files | In the Monarch KG |",
+        "|---|---|---|---|---|---|",
+    ]
+    for key, e in catalog.items():
+        name = f"[{e['name']}](https://github.com/{e['repo']})"
+        lines.append(
+            f"| `{key}` | {name} | {', '.join(e['sources'])} | {', '.join(e['produces'])} "
+            f"| {len(e['files'])} | {'yes' if e['in_monarch_kg'] else 'no'} |"
+        )
+    lines += [
+        "",
+        "## Each ingest",
+        "",
+        "To add one to a Mech, copy its entry under `ingests:` in `conf/ingests.yaml`,",
+        "drop the files the Mech will not read, and run `just ingest <key>`.",
+    ]
+    for key, e in catalog.items():
+        lines += ["", f"### {key}", "", f"{e['name']}: {e['description']}"]
+        if e.get("note"):
+            lines += ["", e["note"]]
+        lines += ["", "```yaml", conf_entry(key, e), "```"]
+    lines += [
+        "",
+        "The code of every ingest is open (BSD-3-Clause or MIT). The upstream data",
+        "has its own terms, which an ingest does not record: read each source's",
+        "before copying from it. mechmaker's IngestMech example curates them.",
+        "",
+        "To add or refresh an entry, read the ingest list of",
+        "[monarch-ingest](https://github.com/monarch-initiative/monarch-ingest)",
+        "(`src/monarch_ingest/ingests.yaml`), then check that every file is in each",
+        "latest release:",
+        "",
+        "```bash",
+        "python skills/ingest-structured-data/scripts/ingest_catalog.py check",
+        "```",
+    ]
+    return "\n".join(lines) + "\n"
+
+
 def frontmatter(text: str) -> tuple[dict, str]:
     if text.startswith("---"):
         _, front, body = text.split("---", 2)
@@ -413,6 +494,8 @@ def main() -> int:
     ref.mkdir(parents=True, exist_ok=True)
     (ref / "questions.md").write_text(questions())
     (ref / "ontologies.md").write_text(ontologies())
+    (ref / "ingests.md").write_text(ingests())
+    INGEST_JSON.write_text(ingest_json())
     (ref / "mech-skills.md").write_text(mech_skills())
     (DOCS / "workflows.md").write_text(workflows())
     pages = mechmaker_skills()

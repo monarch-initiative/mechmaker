@@ -309,3 +309,23 @@ def test_news_leads_are_audited_and_unset_searches_are_to_check(tmp_path):
     _, items = audit(dest)
     assert status(items, "News leads") == audit_mech.MISSING
     assert status(items, "News searches set for the domain") == audit_mech.DONE
+
+
+def test_ingests_are_audited_and_unfetched_ones_are_to_check(tmp_path):
+    dest = render(tmp_path / "ingestmech", {**SCENARIOS["minimal"], "mech_name": "AuditIngestMech",
+                                            "ingests": ["omim", "hpoa"], "koza_ingests": True})
+    _, items = audit(dest)
+    assert status(items, "Structured data ingests") == audit_mech.DONE
+    assert status(items, "Ingest `omim` set and locked") == audit_mech.CHECK
+    assert status(items, "The Mech's own Koza ingest") == audit_mech.CHECK
+    (dest / "conf" / "ingests.lock.yaml").write_text(
+        "ingests:\n  omim: {kind: release, repo: monarch-initiative/omim-ingest, release: '2026-10-01'}\n")
+    conf = dest / "conf" / "ingests.yaml"
+    conf.write_text(conf.read_text().replace("  hpoa:\n", "  hpoa_gone:\n", 1))
+    _, items = audit(dest)
+    assert status(items, "Ingest `omim` set and locked") == audit_mech.DONE
+    assert status(items, "Ingest `hpoa` set and locked") == audit_mech.MISSING
+    justfile = dest / "justfile"
+    justfile.write_text(justfile.read_text().replace("\ningest *args:", "\nfetch-ingest *args:", 1))
+    _, items = audit(dest)
+    assert status(items, "Structured data ingests") == audit_mech.MISSING  # ingest-check is not ingest

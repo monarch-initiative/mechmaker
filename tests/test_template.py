@@ -136,7 +136,11 @@ SCENARIOS["disease"].update({"site_palette": "brown", "site_theme": "light", "de
                              "output_formats": ALL_FORMATS, "tabular_layout": "flat",
                              "load_targets": ["mongodb", "neo4j"],
                              # Releases on, so the registry draft lists every format's files.
-                             "workflows": ["sweep", "docs", "comment-guard", "release-records"]})
+                             "workflows": ["sweep", "docs", "comment-guard", "release-records"],
+                             # Two Monarch ingests, and Koza for the Mech's own.
+                             "ingests": ["hpoa", "omim"], "koza_ingests": True})
+# A Monarch ingest without Koza.
+SCENARIOS["extras"]["ingests"] = ["zfin"]
 SCENARIOS["all-workflows"].update({"site_palette": "yellow", "site_accent": "amber", "site_theme": "dark"})
 
 VENDORED_MD5 = {
@@ -169,6 +173,7 @@ def test_answers_recorded(generated):
     _, answers, _ = generated
     assert answers["mech_slug"]
     assert "ontology_catalog" not in answers
+    assert "ingest_catalog" not in answers
 
 
 def test_no_unrendered_template_syntax(generated):
@@ -734,6 +739,67 @@ def test_news_parts(generated):
         workflow = (dest / ".github" / "workflows" / "news-watch.yaml").read_text()
         assert "claude-code-action" not in workflow and "ANTHROPIC" not in workflow  # no model reads the news
         assert "just news-watch --seen" in workflow
+
+
+def test_ingest_parts(generated):
+    _, answers, dest = generated
+    picked, koza = answers.get("ingests") or [], answers.get("koza_ingests", False)
+    on = bool(picked) or koza
+    slug = answers["mech_slug"]
+    for path in [dest / "src" / slug / "ingest.py", dest / "conf" / "ingests.yaml",
+                 dest / ".claude" / "skills" / "structured-ingests" / "SKILL.md",
+                 dest / "tests" / "test_ingest.py"]:
+        assert path.exists() == on, path
+    assert (dest / "ingests" / "README.md").exists() == koza
+    justfile = (dest / "justfile").read_text()
+    for recipe in ("ingest *args:", "ingests:", "ingest-check:"):
+        assert (recipe in justfile) == on, recipe
+    assert ("new-ingest name:" in justfile) == koza
+    assert ("structured-ingests" in (dest / "CLAUDE.md").read_text()) == on
+    deps = tomllib.loads((dest / "pyproject.toml").read_text())["project"]["dependencies"]
+    assert any(d.startswith("koza") for d in deps) == koza
+    if on:
+        conf = yaml.safe_load((dest / "conf" / "ingests.yaml").read_text())["ingests"] or {}
+        assert sorted(conf) == sorted(picked)
+        catalog = yaml.safe_load(CATALOG["ingest_catalog"]["default"])
+        for key in picked:
+            assert conf[key] == {"kind": "release", "repo": catalog[key]["repo"],
+                                 "sources": catalog[key]["sources"], "files": catalog[key]["files"]}
+
+
+CATALOG = yaml.safe_load((ROOT / "copier.yml").read_text())
+
+
+def test_ingest_menu_matches_the_catalog():
+    """Every catalog entry is on the menu, and every menu item is in the catalog."""
+    catalog = yaml.safe_load(CATALOG["ingest_catalog"]["default"])
+    assert list(CATALOG["ingests"]["choices"].values()) == list(catalog)
+    for label, key in CATALOG["ingests"]["choices"].items():
+        assert label.startswith(f"{catalog[key]['name']}: {catalog[key]['covers']}"), label
+    for key, entry in catalog.items():
+        assert re.fullmatch(r"[a-z][a-z_]*", key), key
+        assert re.fullmatch(r"[\w.-]+/[\w.-]+", entry["repo"]), key
+        assert entry["files"] and all(f.endswith((".tsv", ".jsonl")) for f in entry["files"]), key
+        assert entry["sources"] and all(s.startswith("infores:") for s in entry["sources"]), key
+        fields = {"name", "covers", "description", "produces", "code_license", "in_monarch_kg"}
+        assert fields <= set(entry), key
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(shutil.which("just") is None or shutil.which("uv") is None, reason="needs just and uv")
+def test_ingest_fetches_a_real_release(tmp_path):
+    """A picked Monarch ingest is fetched from GitHub, checked against its published sha256, and locked."""
+    dest = render(tmp_path / "ingest", {**SCENARIOS["minimal"], "mech_name": "IngestFetchMech",
+                                        "ingests": ["omim"]})
+    env = {k: v for k, v in os.environ.items() if k != "VIRTUAL_ENV"}
+    subprocess.run(["git", "init", "-q"], cwd=dest, check=True)
+    subprocess.run(["just", "install"], cwd=dest, check=True, env=env, capture_output=True)
+    run = subprocess.run(["just", "ingest", "omim"], cwd=dest, capture_output=True, text=True, env=env)
+    assert run.returncode == 0, run.stdout + run.stderr
+    lock = yaml.safe_load((dest / "conf" / "ingests.lock.yaml").read_text())["ingests"]["omim"]
+    assert lock["files"]["omim_gene_to_disease_edges.tsv"]["checked"] == "release-metadata"
+    check = subprocess.run(["just", "ingest-check"], cwd=dest, capture_output=True, text=True, env=env)
+    assert check.returncode == 0, check.stdout
 
 
 def test_news_watch_needs_news_leads(tmp_path):

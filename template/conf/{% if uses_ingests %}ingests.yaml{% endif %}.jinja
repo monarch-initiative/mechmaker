@@ -1,0 +1,46 @@
+# Structured data ingests: sources already turned into tables of nodes and
+# edges, that records are seeded from. `just ingest <name>` fetches or runs
+# one into build/ingest/<name>/ and checks every file against its checksum;
+# conf/ingests.lock.yaml, written by it and committed, holds the version, so
+# a rerun gets the same bytes or says what changed. The structured-ingests
+# skill covers each setting.
+#
+# Two kinds:
+#
+#   release  a Monarch Initiative ingest's GitHub release. `repo` is the
+#            ingest's repository; `files` the release files to fetch (drop
+#            the ones the Mech will not read; some are hundreds of MB).
+#   koza     the Mech's own ingest, in ingests/<name>/: a download.yaml for
+#            kghub-downloader, and one Koza transform config (<transform>.yaml,
+#            with its <transform>.py) per output.{% if koza_ingests %} `just new-ingest <name>`
+#            scaffolds one.{% else %} Needs the koza_ingests answer:
+#            `copier update --vcs-ref=:current: --skip-answered --defaults --data koza_ingests=true`.{% endif %}
+#
+# `sources` are infores ids (https://github.com/biolink/information-resource-registry)
+# for the upstream sources. A row of an ingest is a lead, not evidence: a
+# claim it seeds still quotes a source, usually the publication the row cites.
+{%- set catalog = ingest_catalog %}
+
+ingests:{% if not ingests %} {}{% endif %}
+{%- for key in ingests if key in catalog %}
+{%- set i = catalog[key] %}
+  # {{ i.name }}: {{ i.description }}
+{%- if i.note %}
+  # {{ i.note }}
+{%- endif %}
+  {{ key }}:
+    kind: release
+    repo: {{ i.repo }}
+    sources: [{{ i.sources | join(', ') }}]
+    files:
+{%- for f in i.files %}
+      - {{ f }}
+{%- endfor %}
+{%- endfor %}
+{%- if koza_ingests %}
+  # The Mech's own, for a source no ingest above covers:
+  # example_source:
+  #   kind: koza
+  #   path: ingests/example_source
+  #   sources: [infores:example]
+{%- endif %}

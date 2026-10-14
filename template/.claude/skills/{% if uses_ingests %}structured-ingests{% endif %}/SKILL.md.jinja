@@ -1,0 +1,170 @@
+---
+name: structured-ingests
+description: >-
+  Draw {{ record_noun }} records from structured data ingests: fetch a
+  Monarch Initiative ingest's release{% if koza_ingests %} or run the Mech's own Koza ingest{% endif %}
+  with `just ingest`, keep its version in conf/ingests.lock.yaml, and seed
+  or extend records from its rows with a conversion script, quoting the
+  sources the rows cite. Use when adding or updating an ingest, when a
+  conversion reads build/ingest/, when `just ingest-check` fails, or when
+  asked where a record's seeded facts came from.
+---
+
+# Structured data ingests
+
+A structured data ingest turns one source (a database, a download) into
+tables of nodes and edges, KGX TSV. The Monarch Initiative keeps one per
+source it ingests, each a repository that publishes a monthly release.
+{%- if koza_ingests %} For a source none covers, this Mech writes its own
+with [Koza](https://koza.monarchinitiative.org/), the tool those
+repositories use.{% endif %}
+
+Rows make records quickly and keep them in step with the source. They do
+not replace evidence: **a row is a seed, never a quote.**
+
+## 1. The settings
+
+`conf/ingests.yaml` lists the ingests. `just ingests` shows them, and what
+is locked.
+
+- **`kind: release`**: a Monarch ingest. `repo` is its repository;
+  `files` the release files to fetch. Drop the files the Mech will not
+  read: some are hundreds of MB. The repository's README says what each
+  file holds; `release-metadata.yaml` in a release says which upstream
+  versions made it.
+{%- if koza_ingests %}
+- **`kind: koza`**: the Mech's own, in `ingests/<name>/` (section 3).
+{%- endif %}
+- **`sources`**: the upstream sources, as infores ids from the
+  [information resource registry](https://github.com/biolink/information-resource-registry).
+
+mechmaker's catalog of Monarch ingests is
+[its reference page](https://monarch-initiative.github.io/mechmaker/reference/ingests/).
+To add one later, copy its entry from the page's "Each ingest" section into
+`conf/ingests.yaml` (with mechmaker's skills installed,
+`ingest_catalog.py show <key>` prints the same entry).
+
+## 2. Fetch, and lock
+
+```bash
+just ingest <name>            # into build/ingest/<name>/
+just ingest --all
+just ingest <name> --update   # the newest release or downloads
+```
+
+A release's files are checked against the sha256 sums its own
+`release-metadata.yaml` publishes. `conf/ingests.lock.yaml` keeps the
+release tag and each file's sha256: commit it with the records it seeded.
+A later run takes the same release and fails if a byte differs. `--update`
+moves to the newest and rewrites the lock, so the change is a diff someone
+reviews. `build/` is not committed; anyone gets the same files back with
+`just ingest`.
+
+`just ingest-check` (part of `just qc`) checks the settings and the lock
+against each other, offline.
+{%- if koza_ingests %}
+
+## 3. The Mech's own ingest, with Koza
+
+Write one only when no Monarch ingest covers the source, and the source is
+a table or a file of records, not prose. A source that might serve other
+knowledge graphs too may belong in its own repository, made from
+[koza-ingest-template](https://github.com/monarch-initiative/koza-ingest-template);
+then add its releases here as `kind: release`.
+
+```bash
+just new-ingest <name>        # ingests/<name>/: download.yaml, <name>.yaml, <name>.py
+```
+
+- **`download.yaml`** lists what to fetch, for kghub-downloader: `url` and
+  `local_name` (relative to `build/ingest/<name>/`, such as
+  `data/table.tsv`). A key goes in an environment variable, written
+  `{ENV_VAR}` in the url, never in the file.
+- **`<transform>.yaml`** is a Koza config: `name`, one `reader` (`format`
+  csv, jsonl, json or yaml; `files` naming `local_name`s; `delimiter`,
+  `columns`, `header_mode`), and the `writer`'s `node_properties` and
+  `edge_properties`, the columns of the TSV. One config per output; a
+  second table is a second config.
+- **`<transform>.py`** holds a function decorated `@koza.transform_record()`,
+  called with each row, that yields Biolink classes from
+  `biolink_model.datamodel.pydanticmodel_v2`: nodes (with `id` and `name`)
+  and associations (with `subject`, `predicate`, `object`). Koza accepts
+  nothing else. Ids must be stable, made from the row (never `uuid`), so
+  the same download makes the same output and the lock can tell a changed
+  source from a changed transform.
+- Use Biolink categories and predicates that fit, and the source's own
+  CURIEs, with prefixes from the Bioregistry.
+
+Run it with `just ingest <name>`. It downloads, runs every config with
+`koza transform`, writes `build/ingest/<name>/output/`, and locks the sha256
+of each download and output. When a download changes, the run fails until
+`--update`: the source moved.
+
+Test the transform without the network: import the function and call it
+with a stand-in for Koza.
+
+```python
+import importlib.util
+from unittest.mock import MagicMock
+
+spec = importlib.util.spec_from_file_location("t", "ingests/<name>/<name>.py")
+t = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(t)
+out = list(t.transform_record(MagicMock(), {"id": "X:1", "name": "one", "related": "Y:2"}))
+assert out[1].subject == "X:1"
+```
+{%- endif %}
+
+## {% if koza_ingests %}4{% else %}3{% endif %}. Seed records from rows
+
+A conversion script reads rows and yields records; `just convert` writes
+them as DRAFT, through validation, with a CREATE event naming the source
+(mechmaker's `convert-knowledge-base` skill has the details).
+
+```python
+from {{ mech_slug }}.convert import Entry, Skip, run
+from {{ mech_slug }}.ingest import rows, source_label
+
+FILE = "<file>.tsv"
+
+
+def entries():
+    for row in rows("<name>", FILE):          # checked against the lock first
+        if not row["subject"]:
+            yield Skip(row["id"], "no subject")
+            continue
+        yield Entry(row["id"], {"id": ..., "name": ..., ...})
+
+
+if __name__ == "__main__":
+    raise SystemExit(run(entries(), source=source_label("<name>", FILE), script=__file__))
+```
+
+KGX lists (`category`, `publications`, `xref`) are `|`-joined strings.
+One edge is rarely one record: group rows by the {{ record_noun }} they
+describe, and let each row fill a field or a section.
+
+What a row can and cannot carry:
+
+- **Ids, terms, names, links** a row gives are copied, then checked like
+  any other: `just validate` checks every term, so a row's CURIE outside
+  the Mech's ontologies or roots is caught, not trusted.
+- **A claim** (this gene causes that phenotype) needs evidence that quotes
+  a source. The row's `publications` column names the papers behind it:
+  fetch one with `just fetch-reference PMID:...`, read it, and quote the
+  sentence that says so. A row with no publication leaves the claim with a
+  `CURATION_TODO` discussion, and the row id in its text.
+- **A small release file** (a few hundred kB) can itself be quoted: cite
+  `url:https://github.com/<repo>/releases/download/<tag>/<file>` at the
+  locked tag, and quote the row. Never a large one: the quoted source is
+  cached and committed in `references_cache/`.
+- Read the upstream source's data license before copying from it. The
+  ingest's code license is not the data's. `curation/source_queue.tsv`
+  gets a row per ingest with the license found, or UNKNOWN.
+
+## Updating
+
+Run `just ingest <name> --update` on a branch, then the conversion again.
+It leaves existing records alone and reports them, so new rows become new
+records; rows that changed are curation, found by comparing the old and
+new files. Say in the pull request which release it moved from and to.

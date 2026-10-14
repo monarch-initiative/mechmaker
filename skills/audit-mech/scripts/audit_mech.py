@@ -576,8 +576,7 @@ def from_answers(m: Mech) -> list[Item]:
         parts = ["conf/news.yaml", f"src/{slug}/news.py", ".claude/skills/news-leads/SKILL.md",
                  "curation/news"]
         absent = [p for p in parts if not m.exists(p)]
-        recipes = [r for r in ("news-leads", "news-plan", "news-watch")
-                   if not re.search(rf"^{r}\b", m.text("justfile"), re.M)]
+        recipes = [r for r in ("news-leads", "news-plan", "news-watch") if r not in m.recipes()]
         out.append(
             item(
                 "News leads",
@@ -606,6 +605,8 @@ def from_answers(m: Mech) -> list[Item]:
                 status=CHECK if changed is not True else None,
             )
         )
+
+    out += ingest_items(m)
 
     if a.get("include_site"):
         parts = [f"src/{slug}/render.py", f"src/{slug}/templates/record.html"]
@@ -693,6 +694,57 @@ def from_answers(m: Mech) -> list[Item]:
                 not absent,
                 f"conf/load.yaml has {got or 'no targets'}",
                 f"add {absent} to conf/load.yaml",
+            )
+        )
+    return out
+
+
+def ingest_items(m: Mech) -> list[Item]:
+    """Structured data ingests: the parts, each picked ingest set and locked, and the Mech's own."""
+    a, slug = m.answers, m.answers["mech_slug"]
+    picked, koza = a.get("ingests") or [], bool(a.get("koza_ingests"))
+    if not picked and not koza:
+        return []
+    parts = ["conf/ingests.yaml", f"src/{slug}/ingest.py", ".claude/skills/structured-ingests/SKILL.md"]
+    parts += ["ingests/README.md"] if koza else []
+    absent = [p for p in parts if not m.exists(p)]
+    wanted = ("ingest", "ingests", "ingest-check") + (("new-ingest",) if koza else ())
+    recipes = [r for r in wanted if r not in m.recipes()]  # by name: `ingest` is not `ingest-check`
+    out = [
+        item(
+            "Structured data ingests",
+            "ingests" if picked else "koza_ingests",
+            not absent and not recipes,
+            "ingest.py, conf/ingests.yaml, the structured-ingests skill and recipes present"
+            if not absent and not recipes
+            else f"absent: {', '.join(absent + [f'just {r}' for r in recipes])}",
+            "regenerate with the ingests or koza_ingests answer",
+        )
+    ]
+    conf = m.conf("ingests.yaml").get("ingests") or {}
+    lock = m.conf("ingests.lock.yaml").get("ingests") or {}
+    for key in picked:
+        entry = lock.get(key) or {}
+        if key not in conf:
+            found, status = "not in conf/ingests.yaml", None
+            fix = f"copy its entry: `ingest_catalog.py show {key}`"
+        elif not entry:
+            found = "in conf/ingests.yaml, never fetched: no entry in conf/ingests.lock.yaml"
+            fix, status = f"`just ingest {key}`, then commit conf/ingests.lock.yaml", CHECK
+        else:
+            found, fix, status = f"locked at {entry.get('release', '?')}", "", None
+        out.append(item(f"Ingest `{key}` set and locked", "ingests", key in conf and bool(entry), found, fix,
+                        status=status))
+    if koza:
+        own = sorted(n for n, c in conf.items() if isinstance(c, dict) and c.get("kind") == "koza")
+        out.append(
+            item(
+                "The Mech's own Koza ingest",
+                "koza_ingests",
+                bool(own),
+                f"in conf/ingests.yaml: {', '.join(own)}" if own else "none in conf/ingests.yaml yet",
+                "ingest-structured-data step 6: `just new-ingest <name>`, then list it in conf/ingests.yaml",
+                status=None if own else CHECK,
             )
         )
     return out

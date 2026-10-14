@@ -71,7 +71,11 @@ list is a checklist for the Mech's own.
 products take it as a source. An ingest that parses the source (its
 repository is in `show`) shows its format, its identifiers, and the
 mappings it needed. The Monarch graph (`kg-monarch`) and the KG-Hub
-graphs are listed with their sources.
+graphs are listed with their sources. For Monarch, `kg-monarch` lags the
+build (checked 2026-10-14: it lists two sources the build dropped, and
+misses several it added); mechmaker's own ingest catalog, in the
+`ingest-structured-data` skill, is current, and says which ingest releases
+each source as rows a Mech can fetch.
 
 **Is there a data model for these records?** `search --category DataModel`,
 and `--category Ontology` with the entity's words. A model already used

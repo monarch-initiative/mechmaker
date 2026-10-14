@@ -52,7 +52,9 @@ you along the way:
    already covers your topic. It searches MechRegistry, KG-Registry and the
    Bioregistry. If a registered Mech already keeps your kind of record, it
    tells you before going on. A neighboring Mech may have records to link
-   to, or a conversion script to reuse.
+   to, or a conversion script to reuse. If a database it will draw on is
+   already ingested by the Monarch Initiative, it offers you that ingest,
+   as a choice you may decline.
 2. **Set up.** It fills in the template's questions and creates the
    repository. It asks you for what only you know: your name, your GitHub
    organization, the licenses.

@@ -114,6 +114,13 @@ identifiers are CURIEs the Mech can use, and a size measured on a sample.
   candidate row. For a source the Mech will use, `used-by` names the
   graphs that already ingest it; an ingest's repository shows the source's
   format and identifiers. The `search-kg-registry` skill has the script.
+- Search mechmaker's catalog of structured data ingests for each source
+  and for the record entity's words (`ingest_catalog.py search`, in the
+  `ingest-structured-data` skill). The Monarch Initiative ingests many
+  databases already, released monthly as KGX rows: one that fits can seed
+  records or fill sections, and is offered to the person as a choice in
+  step 2 of make-mech. Say for each one found how it would serve the
+  records, or why it would not. None found is a common answer.
 - Literature is always a source. Write a PubMed query that finds the core
   papers and report its hit count.
 - Existing databases and knowledge bases can seed records but never replace
@@ -125,7 +132,10 @@ identifiers are CURIEs the Mech can use, and a size measured on a sample.
   quotable. If they are, set `news_leads: true` in the draft answers; the
   `ingest-news` skill configures it.
 
-These rows become `curation/source_queue.tsv` in the new Mech.
+These rows become `curation/source_queue.tsv` in the new Mech. Put the
+fitting ingests, if any, in the draft answers as `ingests: [...]`, for the
+person to confirm, and `koza_ingests: true` when a structured source no
+ingest covers should get a reproducible ingest of its own.
 
 Say whether deep research would help. It helps when a record's subject has
 a large literature a curator cannot read in one sitting; it adds little

@@ -75,7 +75,8 @@ Run the `survey-domain` skill. It answers: what is one record, what keys it,
 which ontologies ground it, what sources feed it, and which existing Mechs,
 knowledge graphs and ingests overlap. It searches MechRegistry, KG-Registry
 and the Bioregistry with the `search-mechregistry`, `search-kg-registry` and
-`search-bioregistry` skills. If a registered Mech already records the same
+`search-bioregistry` skills, and mechmaker's catalog of structured data
+ingests with `ingest-structured-data`. If a registered Mech already records the same
 entity, stop and ask the person whether to go on. Do not continue until the brief names the record entity in one
 sentence.
 
@@ -97,6 +98,12 @@ Some answers belong to the user. Ask for them; do not invent them:
 - whether to add deep research (`deep_research`), and which provider they
   can use and pay for. Recommend it when the survey found a large
   literature; skip it when records come from one database.
+- which structured data ingests to draw on (`ingests`), if the survey
+  found any that fit. Show each in one line (what it covers, how it serves
+  the records, its size, any license caveat) and ask; none is a fine
+  answer, and the default. `ingest-structured-data` says how to judge
+  them. Ask too whether a structured source with no ingest should get the
+  Mech's own Koza ingest (`koza_ingests`).
 
 The rest come from the brief. Write them to a data file:
 
@@ -133,6 +140,8 @@ site_theme: auto          # auto, light or dark
 workflows: [sweep, docs, comment-guard]   # step 4b revisits this
 deep_research: true      # literature-heavy domain; see the deep research page
 news_leads: false        # true when records are events local news reports; see ingest-news
+ingests: []              # Monarch ingests the person chose, e.g. [hpoa]; see ingest-structured-data
+koza_ingests: false      # true for the Mech's own Koza ingest of a structured source
 output_formats: [yaml, json, jsonld, ttl, sqlite, sql, csv]   # what just export writes; add kgx for a knowledge graph
 # kgx_biolink: false   # with kgx: when Biolink does not fit the domain
 tabular_layout: per_class   # or flat: one row per record in CSV/TSV
@@ -286,6 +295,10 @@ Real sources, real quotes, `status: PROPOSED`. Run `just qc-full`.
 
 Seeding tests the design. When a record will not fit, change the schema now
 with `extend-schema`, while there are five records and not five hundred.
+
+If the person chose ingests, fetch each (`just ingest <key>`), commit the
+lock, and let the seed records draw on their rows, quoting the papers
+the rows cite. `ingest-structured-data` step 5 has the rules.
 
 If the survey named news as a source, the answers turned on `news_leads`.
 Run the `ingest-news` skill: it writes `conf/news.yaml` for this Mech's

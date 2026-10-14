@@ -99,6 +99,20 @@ ANSWERS = "_commit: 0.2.0-28-gb88834f\n_src_path: gh:monarch-initiative/mechmake
           "records_dir: data/breeds\nontologies: [VBO]\n"
 
 
+INGESTS_CONF = """# comment
+ingests:
+  # ZFIN: ...
+  zfin:
+    kind: release
+    repo: monarch-initiative/zfin-ingest
+    files:
+      - zfin_orthology_edges.tsv
+  oba_registry:
+    kind: koza
+    path: ingests/oba_registry
+"""
+
+
 def fake_github(answers: str | None, scripts: list[str], release: dict | None):
     def entry(path, kind="file"):
         return {"path": path, "name": path.rsplit("/", 1)[-1], "type": kind}
@@ -122,6 +136,10 @@ def fake_github(answers: str | None, scripts: list[str], release: dict | None):
             return [entry("src/goatmech/fetch/__init__.py"), entry("src/goatmech/fetch/oba.py")]
         if path.startswith("/repos/o/goatmech/contents/data/breeds?"):
             return [entry("data/breeds/boer.yaml"), entry("data/breeds/saanen.yaml")]
+        if path.startswith("/repos/o/goatmech/contents/conf/ingests.yaml?"):
+            return {"content": base64.b64encode(INGESTS_CONF.encode()).decode()}
+        if path.startswith("/repos/o/goatmech/contents/ingests?"):
+            return [entry("ingests/README.md"), entry("ingests/oba_registry", "dir")]
         if path == "/repos/o/goatmech/releases/latest":
             return release
         return None
@@ -144,6 +162,9 @@ def test_repo_reads_a_mechmaker_mech(monkeypatch):
     assert r["record_sample"] == ["data/breeds/boer.yaml", "data/breeds/saanen.yaml"]
     assert r["release"]["assets"] == ["goatmech-records.jsonl"]
     assert r["records_url"] == f"https://github.com/o/goatmech/tree/{'a' * 40}/data/breeds"
+    assert r["ingests"] == [{"name": "zfin", "kind": "release", "repo": "monarch-initiative/zfin-ingest"},
+                            {"name": "oba_registry", "kind": "koza", "path": "ingests/oba_registry"}]
+    assert r["koza_ingests"] == ["ingests/oba_registry"]
 
 
 def test_repo_names_another_template(monkeypatch, capsys):

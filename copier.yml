@@ -925,6 +925,333 @@ news_leads:
     {% if 'news-watch' in workflows and not news_leads %}The news-watch workflow
     needs news_leads.{% endif %}
 
+# ---------------------------------------------------------------- structured data ingests
+
+# The structured data ingests mechmaker knows: the Monarch Initiative's, each
+# a repository that turns one upstream source into KGX nodes and edges with
+# Koza and publishes them as a monthly GitHub release. `files` are the release
+# files the Monarch KG build takes (monarch-ingest's
+# src/monarch_ingest/ingests.yaml, at 468799f7). `sources` are infores ids,
+# from the build receipt of the 2026-10-07 KG release. `produces` are the
+# Biolink classes its transforms write. Checked on 2026-10-14; the
+# ingest-structured-data skill says how to add or refresh an entry.
+ingest_catalog:
+  type: yaml
+  when: false
+  default: |
+    alliance:
+      repo: monarch-initiative/alliance-ingest
+      name: Alliance of Genome Resources
+      covers: genes, alleles, genotypes, expression, phenotypes, disease
+      description: Transformation of Alliance gene, allele, genotype, disease, phenotype, and expression data
+      sources: [infores:agr]
+      produces: [Gene, Genotype, SequenceVariant, GeneToDiseaseAssociation, GenotypeToDiseaseAssociation, GeneToPhenotypicFeatureAssociation, GenotypeToPhenotypicFeatureAssociation, GeneToExpressionSiteAssociation]
+      files: [alliance_gene_nodes.tsv, alliance_genotype_nodes.tsv, alliance_genotype_edges.tsv, alliance_allele_nodes.tsv, alliance_allele_edges.tsv, alliance_gene_to_expression_edges.tsv, alliance_phenotype_edges.tsv, alliance_disease_edges.tsv]
+      code_license: BSD-3-Clause
+      in_monarch_kg: true
+    bgee:
+      repo: monarch-initiative/bgee-ingest
+      name: Bgee
+      covers: gene expression by anatomy
+      description: BGee gene to expression ingest
+      sources: [infores:bgee]
+      produces: [GeneToExpressionSiteAssociation]
+      files: [bgee_gene_to_expression_edges.tsv]
+      code_license: BSD-3-Clause
+      in_monarch_kg: true
+    biogrid:
+      repo: monarch-initiative/biogrid-ingest
+      name: BioGRID
+      covers: gene-to-gene interactions
+      description: BioGRID ingest for gene-to-gene interactions using MITAB format data.
+      sources: [infores:biogrid]
+      produces: [PairwiseGeneToGeneInteraction]
+      files: [biogrid_gene_to_gene_edges.tsv]
+      code_license: MIT
+      in_monarch_kg: true
+    clingen:
+      repo: monarch-initiative/clingen-ingest
+      name: ClinGen
+      covers: gene-disease validity and variants
+      description: Conversion of ClinGen variant and gene-disease data to Biolink model format
+      sources: [infores:clingen, infores:hgnc]
+      produces: [SequenceVariant, CausalGeneToDiseaseAssociation, VariantToDiseaseAssociation, VariantToGeneAssociation]
+      files: [clingen_gene_disease_edges.tsv, clingen_variant_nodes.tsv, clingen_variant_edges.tsv]
+      code_license: BSD-3-Clause
+      in_monarch_kg: true
+    clinvar:
+      repo: monarch-initiative/clinvar-ingest
+      name: ClinVar
+      covers: variants and their genes and diseases
+      description: Modular ingest for ClinVar variants. Creates variant nodes and associations for phenotype, disease, gene, and pathogenicity relationships.
+      sources: [infores:clinvar, infores:medgen, infores:mondo]
+      produces: [SequenceVariant, VariantToDiseaseAssociation, VariantToGeneAssociation]
+      files: [clinvar_variant_nodes.tsv, clinvar_variant_edges.tsv]
+      code_license: MIT
+      in_monarch_kg: true
+    cureid:
+      repo: monarch-initiative/cureid-ingest
+      name: CURE ID
+      covers: drug repurposing case reports
+      description: Koza ingest for transforming CURE ID drug repurposing and real-world treatment data into KGX format
+      sources: [infores:cureid]
+      produces: [Case, CaseToDiseaseAssociation, CaseToGeneAssociation, CaseToPhenotypicFeatureAssociation, ChemicalEntityToDiseaseOrPhenotypicFeatureAssociation, ChemicalOrDrugOrTreatmentAdverseEventAssociation]
+      files: [cureid_nodes.tsv, cureid_edges.tsv]
+      code_license: BSD-3-Clause
+      in_monarch_kg: true
+    dictybase:
+      repo: monarch-initiative/dictybase-ingest
+      name: dictyBase
+      covers: Dictyostelium genes and phenotypes
+      description: Dictybase gene and phenotype ingest
+      sources: [infores:dictybase]
+      produces: [Gene, GeneToPhenotypicFeatureAssociation]
+      files: [dictybase_gene_nodes.tsv, dictybase_gene_to_phenotype_edges.tsv]
+      code_license: BSD-3-Clause
+      in_monarch_kg: true
+    go:
+      repo: monarch-initiative/go-ingest
+      name: Gene Ontology annotations
+      covers: gene functions, processes, locations
+      description: Modular ingest for Gene Ontology annotations. Creates gene-to-GO term associations for molecular activity, biological process, and cellular component.
+      sources: [infores:goa, infores:eco]
+      produces: [MacromolecularMachineToMolecularActivityAssociation, MacromolecularMachineToBiologicalProcessAssociation, MacromolecularMachineToCellularComponentAssociation]
+      files: [go_annotation_edges.tsv]
+      code_license: MIT
+      in_monarch_kg: true
+      note: Its one file is about 1.1 GB.
+    hgnc:
+      repo: monarch-initiative/hgnc-ingest
+      name: HGNC
+      covers: human genes
+      description: HGNC human gene ingest
+      sources: [infores:hgnc, infores:agr]
+      produces: [Gene]
+      files: [hgnc_gene_nodes.tsv]
+      code_license: BSD-3-Clause
+      in_monarch_kg: true
+    hpoa:
+      repo: monarch-initiative/monarch-phenotype-profile-ingest
+      name: HPO annotations
+      covers: disease and gene phenotypes, inheritance
+      description: Monarch KG ingest for phenotypes from HPOA
+      sources: [infores:hpoa, infores:hp, infores:mondo]
+      produces: [DiseaseToPhenotypicFeatureAssociation, GeneToPhenotypicFeatureAssociation, CausalGeneToDiseaseAssociation, CorrelatedGeneToDiseaseAssociation, DiseaseOrPhenotypicFeatureToGeneticInheritanceAssociation]
+      files: [hpoa_disease_mode_of_inheritance_edges.tsv, hpoa_disease_to_phenotype_edges.tsv, hpoa_gene_to_disease_edges.tsv, hpoa_gene_to_phenotype_edges.tsv]
+      code_license: MIT
+      in_monarch_kg: true
+    loinc:
+      repo: monarch-initiative/loinc-ingest
+      name: LOINC
+      covers: clinical measurements
+      description: LOINC clinical measurements as biolink:ClinicalMeasurement nodes, with edges to ChEBI/UBERON/CL/PR/NCBITaxon (OMOP2OBO) and HPO (loinc2hpo).
+      sources: [infores:loinc, infores:omop2obo, infores:comploinc]
+      produces: [ClinicalMeasurement, Association]
+      files: [loinc_nodes_nodes.tsv, loinc_parts_nodes.tsv, loinc_composition_edges.tsv, loinc_hierarchy_edges.tsv, loinc_phenotype_edges.tsv]
+      code_license: MIT
+      in_monarch_kg: true
+    mmrrc:
+      repo: monarch-initiative/mmrrc-ingest
+      name: MMRRC
+      covers: mutant mouse genotypes and phenotypes
+      description: Monarch Initiative data ingest for MMRRC (Mutant Mouse Resource & Research Centers) - capturing allele to genotype associations, genotype nodes, and genotype to phenotype associations
+      sources: [infores:mmrrc]
+      produces: [Genotype, GenotypeToGeneAssociation, GenotypeToPhenotypicFeatureAssociation, GenotypeToVariantAssociation]
+      files: [mmrrc_allele_to_genotype_edges.tsv, mmrrc_genotype_nodes.tsv, mmrrc_genotype_to_gene_edges.tsv, mmrrc_genotype_to_phenotype_edges.tsv]
+      code_license: BSD-3-Clause
+      in_monarch_kg: true
+    ncbi_gene:
+      repo: monarch-initiative/ncbi-gene
+      name: NCBI Gene
+      covers: genes of dog, cattle, pig, chicken and Aspergillus nidulans
+      description: Ingest of genes from NCBI
+      sources: [infores:ncbi-gene]
+      produces: [Gene]
+      files: [ncbi_gene_9615_nodes.tsv, ncbi_gene_9913_nodes.tsv, ncbi_gene_9823_nodes.tsv, ncbi_gene_9031_nodes.tsv, ncbi_gene_227321_nodes.tsv]
+      code_license: BSD-3-Clause
+      in_monarch_kg: true
+      note: One file per taxon; the release has more taxa than the five the Monarch KG takes (dog, cattle, pig, chicken, Aspergillus nidulans).
+    omim:
+      repo: monarch-initiative/omim-ingest
+      name: OMIM
+      covers: gene-to-disease associations
+      description: OMIM gene to disease associations
+      sources: [infores:omim]
+      produces: [CausalGeneToDiseaseAssociation, CorrelatedGeneToDiseaseAssociation]
+      files: [omim_gene_to_disease_edges.tsv]
+      code_license: BSD-3-Clause
+      in_monarch_kg: true
+      note: Its released edges are public; rerunning the transform needs an OMIM download key.
+    panther:
+      repo: monarch-initiative/pantherdb-orthologs-ingest
+      name: PANTHER
+      covers: orthologs
+      description: Ortholog ingest from PantherDB - transforms gene orthology relationships into Biolink model format
+      sources: [infores:panther, infores:ncbi-gene]
+      produces: [GeneToGeneHomologyAssociation]
+      files: [panther_genome_orthologs_edges.tsv]
+      code_license: MIT
+      in_monarch_kg: true
+    phenopacket:
+      repo: monarch-initiative/phenopacket-ingest
+      name: Phenopacket Store
+      covers: case reports
+      description: Ingesting phenopackets into the Monarch KG
+      sources: [infores:phenopacket-store]
+      produces: [Case, CaseToDiseaseAssociation, CaseToGeneAssociation, CaseToPhenotypicFeatureAssociation, CaseToVariantAssociation]
+      files: [phenopacket_ingest_nodes.tsv, phenopacket_ingest_edges.tsv]
+      code_license: BSD-3-Clause
+      in_monarch_kg: true
+    pombase:
+      repo: monarch-initiative/pombase-ingest
+      name: PomBase
+      covers: fission yeast genes and phenotypes
+      description: PomBase gene and phenotype ingest
+      sources: [infores:pombase]
+      produces: [Gene, GeneToPhenotypicFeatureAssociation]
+      files: [pombase_gene_nodes.tsv, pombase_gene_to_phenotype_edges.tsv]
+      code_license: BSD-3-Clause
+      in_monarch_kg: true
+    reactome:
+      repo: monarch-initiative/reactome-ingest
+      name: Reactome
+      covers: pathways, their genes and chemicals
+      description: Koza ingest for Reactome pathway data
+      sources: [infores:reactome]
+      produces: [Pathway, GeneToPathwayAssociation, ChemicalEntityToPathwayAssociation]
+      files: [reactome_pathway_nodes.tsv, reactome_gene_to_pathway_edges.tsv, reactome_chemical_to_pathway_edges.tsv]
+      code_license: BSD-3-Clause
+      in_monarch_kg: true
+    string:
+      repo: monarch-initiative/string-ingest
+      name: STRING
+      covers: protein-protein links
+      description: STRING DB protein links ingest
+      sources: [infores:string]
+      produces: [PairwiseGeneToGeneInteraction]
+      files: [string_protein_links_edges.tsv]
+      code_license: BSD-3-Clause
+      in_monarch_kg: true
+    upheno:
+      repo: monarch-initiative/upheno-cross-species-ingest
+      name: uPheno
+      covers: phenotypes matched across species
+      description: An automated ingest transforming the upheno data artifact upheno-cross-species.sssom.tsv into KGX.
+      sources: [infores:upheno]
+      produces: [PhenotypicFeature, Association]
+      files: [upheno_phenotype_to_phenotype_edges.tsv]
+      code_license: BSD-3-Clause
+      in_monarch_kg: true
+    xenbase:
+      repo: monarch-initiative/xenbase-ingest
+      name: Xenbase
+      covers: Xenopus phenotypes and orthologs
+      description: Xenbase gene to phenotype and orthology ingests
+      sources: [infores:xenbase, infores:monarchinitiative-xpo-spo]
+      produces: [Gene, PhenotypicFeature, GeneToPhenotypicFeatureAssociation, GeneToGeneHomologyAssociation]
+      files: [xenbase_gene_to_phenotype_edges.tsv, xenbase_orthologs_edges.tsv, xenbase_non_entrez_orthologs_edges.tsv]
+      code_license: BSD-3-Clause
+      in_monarch_kg: true
+    zfin:
+      repo: monarch-initiative/zfin-ingest
+      name: ZFIN
+      covers: zebrafish phenotypes and orthologs
+      description: ZFIN gene-to-phenotype, genotype-to-phenotype, and orthology ingests
+      sources: [infores:zfin, infores:zp]
+      produces: [GeneToPhenotypicFeatureAssociation, GenotypeToPhenotypicFeatureAssociation, GeneToGeneHomologyAssociation]
+      files: [zfin_gene_to_phenotype_edges.tsv, zfin_genotype_to_phenotype_edges.tsv, zfin_orthology_edges.tsv]
+      code_license: BSD-3-Clause
+      in_monarch_kg: true
+    ctd:
+      repo: monarch-initiative/ctd-ingest
+      name: CTD
+      covers: chemical-to-disease associations
+      description: CTD chemical to disease association ingest
+      sources: [infores:ctd]
+      produces: [ChemicalEntityToDiseaseOrPhenotypicFeatureAssociation]
+      files: [ctd_chemical_to_disease_edges.tsv]
+      code_license: BSD-3-Clause
+      in_monarch_kg: false
+      note: Removed from the Monarch KG build on 2026-07-14 (monarch-ingest f8f0b3ff); still released monthly.
+    medic:
+      repo: monarch-initiative/medic-ingest
+      name: MeDIC
+      covers: drug-to-disease indications
+      description: Koza ingest for drug-to-disease edges from MeDIC
+      sources: [infores:medic, infores:mondo, infores:sri-node-normalizer]
+      produces: [ChemicalOrDrugOrTreatmentToDiseaseOrPhenotypicFeatureAssociation]
+      files: [medic_indication_nodes.tsv, medic_indication_edges.tsv]
+      code_license: BSD-3-Clause
+      in_monarch_kg: false
+      note: Removed from the Monarch KG build on 2026-07-14 (monarch-ingest f8f0b3ff); still released monthly.
+    maxo:
+      repo: monarch-initiative/maxo-annotation-ingest
+      name: MAxO annotations
+      covers: treatments for diseases and phenotypes
+      description: Transform of MAxO Annotations into Biolink Model compliant KGX
+      sources: [infores:maxo-annotations]
+      produces: [ChemicalOrDrugOrTreatmentToDiseaseOrPhenotypicFeatureAssociation]
+      files: [maxo_annotation_edges.tsv]
+      code_license: BSD-3-Clause
+      in_monarch_kg: false
+      note: Removed from the Monarch KG build on 2026-04-14 (monarch-ingest 8af41646); its last release is from 2026-08-03.
+
+ingests:
+  type: str
+  when: "{{ kind == 'mech' }}"
+  help: >-
+    Structured data ingests to draw records from, if any; most Mechs need
+    none. Each is a Monarch Initiative ingest: one source, already turned
+    into KGX nodes and edges and released monthly. `just ingest <name>`
+    fetches a release, checks its files against their published checksums,
+    and locks the version in conf/ingests.lock.yaml. Rows seed records and
+    point to evidence; they are not quotes. Change later in conf/ingests.yaml
+  multiselect: true
+  choices:
+    "Alliance of Genome Resources: genes, alleles, genotypes, expression, phenotypes, disease": alliance
+    "Bgee: gene expression by anatomy": bgee
+    "BioGRID: gene-to-gene interactions": biogrid
+    "ClinGen: gene-disease validity and variants": clingen
+    "ClinVar: variants and their genes and diseases": clinvar
+    "CURE ID: drug repurposing case reports": cureid
+    "dictyBase: Dictyostelium genes and phenotypes": dictybase
+    "Gene Ontology annotations: gene functions, processes, locations (1.1 GB)": go
+    "HGNC: human genes": hgnc
+    "HPO annotations: disease and gene phenotypes, inheritance": hpoa
+    "LOINC: clinical measurements": loinc
+    "MMRRC: mutant mouse genotypes and phenotypes": mmrrc
+    "NCBI Gene: genes of dog, cattle, pig, chicken and Aspergillus nidulans": ncbi_gene
+    "OMIM: gene-to-disease associations": omim
+    "PANTHER: orthologs": panther
+    "Phenopacket Store: case reports": phenopacket
+    "PomBase: fission yeast genes and phenotypes": pombase
+    "Reactome: pathways, their genes and chemicals": reactome
+    "STRING: protein-protein links": string
+    "uPheno: phenotypes matched across species": upheno
+    "Xenbase: Xenopus phenotypes and orthologs": xenbase
+    "ZFIN: zebrafish phenotypes and orthologs": zfin
+    "CTD: chemical-to-disease associations (not in the Monarch KG)": ctd
+    "MeDIC: drug-to-disease indications (not in the Monarch KG)": medic
+    "MAxO annotations: treatments for diseases and phenotypes (not in the Monarch KG)": maxo
+  default: []
+
+koza_ingests:
+  type: bool
+  when: "{{ kind == 'mech' }}"
+  help: >-
+    Add Koza, for the Mech's own ingests: a source with no ingest above
+    becomes a folder under ingests/ (its download list, a Koza transform
+    config and its Python), and `just ingest <name>` downloads it, runs the
+    transform and records every file's checksum. Adds koza and
+    kghub-downloader. Not needed to use the ingests picked above
+  default: false
+
+# Whether the Mech has any structured data ingest: picked, or its own.
+uses_ingests:
+  type: bool
+  when: false
+  default: "{{ kind == 'mech' and (ingests | length > 0 or koza_ingests) }}"
+
 output_formats:
   type: str
   when: "{{ kind == 'mech' }}"

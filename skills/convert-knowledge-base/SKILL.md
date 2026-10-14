@@ -87,6 +87,12 @@ Run `survey-domain` with the knowledge base as the main source. Decide:
   home is a design question now, and costly later.
 - **What the source never records.** This is often what the Mech is for.
   List it. It becomes curation, not conversion.
+- **Already ingested?** A knowledge base that is a public database may
+  have a Monarch ingest that releases it as KGX rows every month
+  (`ingest-structured-data`, `ingest_catalog.py search <name>`). Reading a
+  locked release is cheaper, and reproducible, where the rows carry what
+  the records need. A source that needs a repeatable ingest of its own
+  can get one with Koza (`koza_ingests`) instead of a one-off script.
 
 ## 3. Generate and design
 
