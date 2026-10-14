@@ -216,6 +216,26 @@ news-plan record:
 # New stories about records, into build/news/watch.md. `--seen FILE` skips those it lists.
 news-watch *args:
     uv run python -m {{slug}}.news watch "$@"
+{% endraw %}{% endif %}{% if uses_ingests %}{% raw %}
+# ---------------------------------------------------------------- structured data ingests
+
+# Fetch or run ingests from conf/ingests.yaml into build/ingest/<name>/, checked
+# against conf/ingests.lock.yaml. `just ingest zfin`, `just ingest --all`;
+# `--update` takes the newest release or downloads and rewrites the lock.
+ingest *args:
+    uv run python -m {{slug}}.ingest run "$@"
+
+# The ingests in conf/ingests.yaml, and what the lock holds.
+ingests:
+    uv run python -m {{slug}}.ingest list
+
+# conf/ingests.yaml and its lock agree. Offline; part of qc.
+ingest-check:
+    uv run python -m {{slug}}.ingest check
+{% endraw %}{% endif %}{% if koza_ingests %}{% raw %}
+# Scaffold the Mech's own Koza ingest in ingests/<name>/: download list, config, transform.
+new-ingest name:
+    uv run python -m {{slug}}.ingest new "$1"
 {% endraw %}{% endif %}{% if 'warm-reference-cache' in workflows %}{% raw %}
 # Fetch full text for cached references that have only an abstract.
 warm-reference-cache limit="0":

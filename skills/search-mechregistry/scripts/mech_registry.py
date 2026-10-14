@@ -338,9 +338,9 @@ INGEST_WORDS = re.compile(
 # keeps this list equal to the template's.
 TEMPLATE_MODULES = {
     "__init__.py", "compliance.py", "docs.py", "evidence.py", "export.py", "fleet.py", "history.py",
-    "kgx.py", "literature.py", "load.py", "news.py", "oak_compat.py", "ols.py", "paths.py", "qc.py",
-    "records.py", "render.py", "report.py", "research.py", "schema_import.py", "shapes.py", "site.py",
-    "termcheck.py", "terms.py", "titles.py", "validate.py", "warm.py"}
+    "ingest.py", "kgx.py", "literature.py", "load.py", "news.py", "oak_compat.py", "ols.py", "paths.py",
+    "qc.py", "records.py", "render.py", "report.py", "research.py", "schema_import.py", "shapes.py",
+    "site.py", "termcheck.py", "terms.py", "titles.py", "validate.py", "warm.py"}
 
 
 def ingests(name: str) -> bool:
@@ -388,6 +388,10 @@ def repo(m: dict) -> dict:
     slug = ans.get("mech_slug", "")
     helper = f"src/{slug}/convert.py"
     out["convert_helper"] = helper if slug and helper in out["scripts"] else ""
+    # Structured data ingests: Monarch releases it fetches, and its own Koza ingests, one folder each.
+    has_conf = bool(github(f"/repos/{full}/contents/conf/ingests.yaml?ref={sha}"))
+    out["ingest_conf"] = "conf/ingests.yaml" if has_conf else ""
+    out["koza_ingests"] = [e["path"] for e in listing(full, "ingests", sha) if e["type"] == "dir"]
 
     source = m.get("record_count_source") or {}
     out["records_dir"] = (ans.get("records_dir") or source.get("path", "")).rstrip("/")
@@ -474,6 +478,10 @@ def print_repo(r: dict) -> None:
             print(f"    ... {len(r['scripts']) - 30} more (--json lists them)")
     if r.get("other_scripts"):
         print(f"  and {r['other_scripts']} other scripts in scripts/, named for other work")
+    if r.get("ingest_conf"):
+        print(f"  structured data ingests: {r['ingest_conf']} (conf/ingests.lock.yaml has the versions)")
+    for p in r.get("koza_ingests", []):
+        print(f"    its own Koza ingest: {p}/")
     if r["release"]:
         print(f"  latest release: {r['release']['tag']}  {r['release']['url']}")
         for a in r["release"]["assets"]:

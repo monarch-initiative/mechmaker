@@ -34,6 +34,12 @@ dependencies = [
     # predicate against it. Only here because this Mech exports KGX.
     "biolink-model>=4.4.5",
 {%- endif %}
+{%- if koza_ingests %}
+    # The Mech's own structured data ingests (just ingest): Koza runs the
+    # transforms in ingests/, kghub-downloader fetches their sources.
+    "koza>=2.6.2,<3",
+    "kghub-downloader>=0.5.0,<1",
+{%- endif %}
 ]
 
 [project.optional-dependencies]

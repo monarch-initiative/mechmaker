@@ -1,0 +1,121 @@
+"""Structured data ingests: settings, the lock, and reading rows. No network."""
+
+import hashlib
+
+import pytest
+import yaml
+
+from {{ mech_slug }} import ingest
+
+EDGES = ("id\tsubject\tpredicate\tobject\tpublications\n"
+         "uuid:1\tX:1\tbiolink:has_phenotype\tY:2\tPMID:1|PMID:2\n")
+CONF = {"demo": {"kind": "release", "repo": "example-org/demo-ingest", "sources": ["infores:demo"],
+                 "files": ["demo_edges.tsv"]}}
+SERVED: dict[str, dict[str, str]] = {}  # tag -> file -> text
+
+
+@pytest.fixture
+def where(tmp_path, monkeypatch):
+    """The module's paths, moved into a temporary folder."""
+    monkeypatch.setattr(ingest, "OUT_DIR", tmp_path / "build" / "ingest")
+    monkeypatch.setattr(ingest, "LOCK", tmp_path / "ingests.lock.yaml")
+    SERVED.clear()
+    return tmp_path
+
+
+def fake_release(monkeypatch, files: dict[str, str], tag="v2026-10-01", published=None):
+    """Publish a release, the newest: its release-metadata.yaml, with each file's sha256, and the files."""
+    sums = {f: hashlib.sha256(t.encode()).hexdigest() for f, t in files.items()}
+    sums.update(published or {})
+    meta = yaml.safe_dump({"id": "demo-ingest", "build_version": f"demo_{tag}",
+                           "sources": [{"id": "infores:demo", "version": "1", "retrieved_at": "2026-10-01"}],
+                           "artifacts": [{"path": f, "sha256": s} for f, s in sums.items()]})
+    SERVED[tag] = {"release-metadata.yaml": meta, **files}
+
+    def download(url, dest):
+        at, file = url.rsplit("/", 2)[1:]
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text(SERVED[at][file], encoding="utf-8")
+
+    monkeypatch.setattr(ingest, "download", download)
+    monkeypatch.setattr(ingest, "latest_tag", lambda repo: tag)
+
+
+def test_settings_as_generated_are_sound():
+    conf = ingest.settings()
+    assert ingest.problems(conf, ingest.load_lock()) == []
+
+
+def test_problems_name_each_fault():
+    conf = {"a": {"kind": "release", "repo": "noslash", "files": []},
+            "b": {"kind": "zip"},
+            "c": {"kind": "release", "repo": "o/r", "files": ["f.tsv"], "sources": ["ZFIN"]}}
+    found = "\n".join(ingest.problems(conf, {"gone": {"kind": "release"}}))
+    for part in ("owner/name", "files to fetch", "kind is 'zip'", "not an infores id", "gone: locked but"):
+        assert part in found
+
+
+def test_release_is_fetched_checked_and_locked(where, monkeypatch):
+    fake_release(monkeypatch, {"demo_edges.tsv": EDGES})
+    entry = ingest.run_release("demo", CONF["demo"], None, update=False)
+    assert entry["release"] == "v2026-10-01"
+    assert entry["files"]["demo_edges.tsv"]["checked"] == "release-metadata"
+    assert entry["sources"] == [{"id": "infores:demo", "version": "1", "retrieved_at": "2026-10-01"}]
+    ingest.save_lock({"demo": entry})
+    assert ingest.problems(CONF, ingest.load_lock()) == []
+
+    rows = list(ingest.rows("demo", "demo_edges.tsv"))
+    assert rows[0]["subject"] == "X:1" and rows[0]["publications"].split("|") == ["PMID:1", "PMID:2"]
+    assert "v2026-10-01" in ingest.source_label("demo", "demo_edges.tsv")
+
+
+def test_a_file_unlike_its_published_sum_fails(where, monkeypatch):
+    fake_release(monkeypatch, {"demo_edges.tsv": EDGES}, published={"demo_edges.tsv": "0" * 64})
+    with pytest.raises(ingest.IngestError, match="does not match the sha256"):
+        ingest.run_release("demo", CONF["demo"], None, update=False)
+
+
+def test_the_lock_holds_the_release_until_update(where, monkeypatch):
+    fake_release(monkeypatch, {"demo_edges.tsv": EDGES})
+    locked = ingest.run_release("demo", CONF["demo"], None, update=False)
+    fake_release(monkeypatch, {"demo_edges.tsv": EDGES + "uuid:2\tX:3\tbiolink:has_phenotype\tY:4\t\n"},
+                 tag="v2026-11-01")
+    assert ingest.run_release("demo", CONF["demo"], locked, update=False)["release"] == "v2026-10-01"
+    assert ingest.run_release("demo", CONF["demo"], locked, update=True)["release"] == "v2026-11-01"
+
+
+def test_rows_refuse_a_changed_file(where, monkeypatch):
+    fake_release(monkeypatch, {"demo_edges.tsv": EDGES})
+    ingest.save_lock({"demo": ingest.run_release("demo", CONF["demo"], None, update=False)})
+    (where / "build" / "ingest" / "demo" / "demo_edges.tsv").write_text(EDGES.replace("Y:2", "Y:9"))
+    with pytest.raises(ingest.IngestError, match="differs from the lock"):
+        list(ingest.rows("demo", "demo_edges.tsv"))
+    with pytest.raises(ingest.IngestError, match="not run yet"):
+        list(ingest.rows("other", "x.tsv"))
+{%- if koza_ingests %}
+
+
+def test_own_koza_ingest_scaffolds_runs_and_locks(where, monkeypatch):
+    monkeypatch.setattr(ingest, "INGESTS_DIR", where / "ingests")
+    monkeypatch.setattr(ingest, "REPO_ROOT", where)
+    ingest.scaffold("demo_source")
+    data = where / "build" / "ingest" / "demo_source" / "data" / "demo_source.tsv"
+    data.parent.mkdir(parents=True)
+    data.write_text("id\tname\trelated\nX:1\tone\tY:2\nX:2\ttwo\tY:3\n", encoding="utf-8")
+    conf = {"kind": "koza", "path": "ingests/demo_source", "sources": ["infores:example"]}
+    assert ingest.problems({"demo_source": conf}, {}) == []
+
+    entry = ingest.run_koza("demo_source", conf, None, update=False, fetch=False)
+    assert set(entry["outputs"]) == {"demo_source_nodes.tsv", "demo_source_edges.tsv"}
+    assert "koza" in entry["tools"]
+    ingest.save_lock({"demo_source": entry})
+    edges = list(ingest.rows("demo_source", "demo_source_edges.tsv"))
+    assert [e["subject"] for e in edges] == ["X:1", "X:2"]
+    # Stable ids: the same download makes the same output.
+    again = ingest.run_koza("demo_source", conf, entry, update=False, fetch=False)
+    assert again["outputs"] == entry["outputs"]
+
+    data.write_text("id\tname\trelated\nX:1\tchanged\tY:2\n", encoding="utf-8")
+    with pytest.raises(ingest.IngestError, match="the source changed"):
+        ingest.run_koza("demo_source", conf, entry, update=False, fetch=False)
+{%- endif %}

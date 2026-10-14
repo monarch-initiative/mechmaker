@@ -55,6 +55,13 @@ just research PROVIDER TARGET   # a deep-research report on one record (costs a 
 just news-leads STEM            # past news about one record: ranked leads in curation/news/
 just news-plan STEM             # the searches conf/news.yaml makes for a record
 {%- endif %}
+{%- if uses_ingests %}
+just ingest NAME                # fetch or run a structured data ingest into build/ingest/ (locked)
+just ingests                    # the ingests in conf/ingests.yaml, and what is locked
+{%- endif %}
+{%- if koza_ingests %}
+just new-ingest NAME            # scaffold the Mech's own Koza ingest in ingests/NAME/
+{%- endif %}
 ```
 
 Quote counts from `just report` or a live command, never from prose.
@@ -80,6 +87,12 @@ Quote counts from `just report` or a live command, never from prose.
 {%- if news_leads %}
 - **A news lead is a lead, never a source.** Never cite `curation/news/` or
   a `news` issue. Read the story's archived copy and quote that.
+{%- endif %}
+{%- if uses_ingests %}
+- **An ingest row is a seed, never a quote.** Rows from `just ingest` may
+  create records and fill ids and terms, with the ingest and its locked
+  version in the conversion's `source`. A claim still quotes a source:
+  usually the publication the row cites.
 {%- endif %}
 - **Declare every prefix.** Each CURIE prefix a record uses has its full
   URI in the schema's `prefixes`. The RDF exports depend on it, and
@@ -141,6 +154,9 @@ Project skills live in `.claude/skills/`. Use them.
 {%- endif %}
 {%- if news_leads %}
 | `news-leads` | search a record's news, configure the searches, and quote what is found |
+{%- endif %}
+{%- if uses_ingests %}
+| `structured-ingests` | fetch an ingest, write the Mech's own with Koza, and seed records from rows |
 {%- endif %}
 
 {% if collection == 'xmech' %}

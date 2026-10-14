@@ -69,6 +69,7 @@ nav:
       - audit-mech: skills/audit-mech.md
       - add-record-map: skills/add-record-map.md
       - ingest-news: skills/ingest-news.md
+      - ingest-structured-data: skills/ingest-structured-data.md
       - search-mechregistry: skills/search-mechregistry.md
       - search-kg-registry: skills/search-kg-registry.md
       - search-bioregistry: skills/search-bioregistry.md
@@ -76,6 +77,7 @@ nav:
   - Reference:
       - Copier questions: reference/questions.md
       - Ontology catalog: reference/ontologies.md
+      - Ingest catalog: reference/ingests.md
       - Skills in a Mech: reference/mech-skills.md
   - Developing mechmaker: developing.md
   - Glossary: glossary.md

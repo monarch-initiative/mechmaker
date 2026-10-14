@@ -90,7 +90,9 @@ section the design renamed still counts, if a slot binds the enum), local
 ontology files, causal graphs, taxon scope, domains and collection in the
 registry entry, both licenses, each workflow's files and prompt, agent
 schedules, Langfuse, deep research, news leads and whether `conf/news.yaml`
-was set for the domain, the record browser, the site colors,
+was set for the domain, structured data ingests (each picked one set in
+`conf/ingests.yaml` and locked, and the Mech's own with `koza_ingests`),
+the record browser, the site colors,
 the Claude Code hook, export formats, tabular layout, KGX on Biolink, and
 load targets. From make-mech's steps: a first commit, `docs/DOMAIN.md`
 with no TODO left, a schema changed from the scaffold, three or more seed
@@ -109,6 +111,9 @@ Resolve every `[?]` to done or missing. Read the thing itself.
 - `conf/news.yaml` that changed may still search by the wrong fields. Run
   `just news-plan` on one record and read the searches: the record's place
   or name, and the domain's words.
+- An ingest that is locked may still seed nothing. Say whether a
+  conversion reads its rows (`rows(` in `scripts/`) and how many records
+  name it as a source; one picked and never read is a request half done.
 - A Mech whose records describe places (areas, sites, watersheds) and has a
   record browser should draw them on a map; make-mech makes that the
   default. If no record has a point, bounding box or geometry, say so, and

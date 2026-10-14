@@ -50,7 +50,9 @@ The agent works in steps and checks with you along the way:
    already covers your topic. It searches MechRegistry, KG-Registry and the
    Bioregistry. If a registered Mech already keeps your kind of record, it
    tells you before going on. A neighboring Mech may have records to link
-   to, or a conversion script to reuse.
+   to, or a conversion script to reuse. If a database it will draw on is
+   already ingested by the Monarch Initiative, it offers you that ingest,
+   as a choice you may decline.
 2. **Set up.** It fills in the template's questions and creates the
    repository. It asks you for what only you know: your name, your GitHub
    organization, the licenses.
@@ -256,7 +258,7 @@ The rest of this README is about working on mechmaker itself.
 | `copier.yml` | The questions Copier asks, and a table of supported ontologies with their root terms |
 | `template/` | The files that become a new Mech. Files ending `.jinja` are filled in from the answers; the rest are copied as they are |
 | `coordinator/` | The files that become a Fleet's Coordinator (`kind: coordinator`). `copier.yml` chooses this folder or `template/`; its canon links to the template's shared schema modules |
-| `skills/` | Skills for the agent that makes a Mech or a Fleet: `make-mech`, `make-fleet`, `survey-domain`, `design-mech-schema`, `convert-knowledge-base`, `register-mech`, `audit-mech`, `sync-mech`, `add-record-map`, `ingest-news`, `search-mechregistry`, `search-kg-registry`, `search-bioregistry` |
+| `skills/` | Skills for the agent that makes a Mech or a Fleet: `make-mech`, `make-fleet`, `survey-domain`, `design-mech-schema`, `convert-knowledge-base`, `register-mech`, `audit-mech`, `sync-mech`, `add-record-map`, `ingest-news`, `ingest-structured-data`, `search-mechregistry`, `search-kg-registry`, `search-bioregistry` |
 | `upgrade-notes.yml` | What an existing Mech must do, beyond taking files, to follow a template change; `sync-mech` shows each note |
 | `.claude-plugin/` | Makes this repository installable as a Claude Code plugin |
 | `AGENTS.md` | Where an agent pointed at this repository starts |

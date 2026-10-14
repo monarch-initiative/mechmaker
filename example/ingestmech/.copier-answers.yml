@@ -1,5 +1,5 @@
 # Changes here will be overwritten by Copier. Do not edit by hand.
-_commit: 0.2.1-3-g85b50bc
+_commit: 0.2.1-5-ge6cac12
 _src_path: gh:monarch-initiative/mechmaker
 author_email: jhc@lbl.gov
 author_name: J. Harry Caufield
@@ -24,7 +24,9 @@ github_user: caufieldjh
 identity_prefix: ''
 include_claude_hook: true
 include_site: true
+ingests: []
 kind: mech
+koza_ingests: false
 load_targets:
 - mongodb
 - neo4j

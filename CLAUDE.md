@@ -5,8 +5,9 @@ and agent skills (`skills/`) for making Mechs, and Fleets of them. See README.md
 
 ## Layout
 
-- `copier.yml`: questions, validators, and `ontology_catalog`, the table of
-  ontologies with their verified roots.
+- `copier.yml`: questions, validators, `ontology_catalog`, the table of
+  ontologies with their verified roots, and `ingest_catalog`, the Monarch
+  ingests the `ingests` question offers.
 - `template/`: the Copier subdirectory. `.jinja` files render; the rest
   copy verbatim. Paths may contain Jinja (`{{mech_slug}}`, `{% if ... %}`).
 - `coordinator/`: the second Copier subdirectory, for a Fleet's
@@ -69,6 +70,11 @@ and agent skills (`skills/`) for making Mechs, and Fleets of them. See README.md
   (`tests/test_fleet.py` checks them).
 - Every root added to `ontology_catalog` is checked first:
   `python skills/make-mech/scripts/check_terms.py label <CURIE>`.
+- `ingest_catalog` and the `ingests` choices change together. Then
+  `uv run python scripts/gen_docs.py` rewrites the skill's
+  `ingest_catalog.json` (commit it; a test keeps it equal), and
+  `python skills/ingest-structured-data/scripts/ingest_catalog.py check`
+  confirms every file is in each ingest's latest release.
 - Files that contain their own `{{ }}` (the justfile, HTML templates) either
   lack the `.jinja` suffix or wrap that syntax in `{% raw %}`.
 - Generated Python must pass ruff at line length 110 with a long slug.

@@ -1,0 +1,494 @@
+"""Structured data ingests: tables of nodes and edges that records are seeded from.
+
+    python -m <slug>.ingest list                  # the ingests in conf/ingests.yaml, and what is locked
+    python -m <slug>.ingest run NAME [--update]   # fetch or run one into build/ingest/NAME/
+    python -m <slug>.ingest run --all
+    python -m <slug>.ingest new NAME              # scaffold the Mech's own Koza ingest in ingests/NAME/
+    python -m <slug>.ingest check                 # settings and lock agree; offline, part of qc
+
+conf/ingests.yaml names each ingest and its kind:
+
+  release  a Monarch Initiative ingest's GitHub release. `run` fetches its
+           release-metadata.yaml and the files conf names, and checks each
+           file against the sha256 the release publishes.
+  koza     the Mech's own, in ingests/NAME/. `run` downloads what its
+           download.yaml lists (kghub-downloader), then runs each Koza
+           transform config there on those files, writing KGX TSV.
+
+Either way the result is build/ingest/NAME/: the files, and a
+release-metadata.yaml that says where they came from. conf/ingests.lock.yaml
+(committed) keeps the version and every file's sha256. A later run takes the
+same release, or the same downloads, and fails when the bytes differ;
+`--update` takes the newest instead and rewrites the lock, so the change shows
+in the diff.
+
+A conversion script reads the files with `rows`:
+
+    from <slug>.ingest import rows, source_label
+
+    for row in rows("zfin", "zfin_gene_to_phenotype_edges.tsv"):
+        ...  # a dict per row; KGX lists are "|"-joined strings
+
+A row is a lead and a seed, never a quote. The structured-ingests skill says
+how to turn rows into records, and what to cite.
+"""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import datetime as dt
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+import sys
+import urllib.request
+from collections.abc import Iterator
+from importlib import metadata
+from pathlib import Path
+
+import yaml
+
+from .paths import BUILD_DIR, REPO_ROOT
+
+CONF = REPO_ROOT / "conf" / "ingests.yaml"
+LOCK = REPO_ROOT / "conf" / "ingests.lock.yaml"
+INGESTS_DIR = REPO_ROOT / "ingests"
+OUT_DIR = BUILD_DIR / "ingest"
+KINDS = ("release", "koza")
+USER_AGENT = "mech-ingest/0.1 (+https://github.com/monarch-initiative/mechmaker)"
+LOCK_HEADER = (
+    "# Written by `just ingest`; commit it. The version of each ingest and the sha256\n"
+    "# of every file it fetched or made. `just ingest NAME --update` moves it.\n"
+)
+csv.field_size_limit(sys.maxsize)
+
+
+class IngestError(Exception):
+    """Something the person must fix: a setting, a missing file, changed bytes."""
+
+
+# ---------------------------------------------------------------- settings
+
+
+def settings(path: Path | None = None) -> dict[str, dict]:
+    path = path or CONF
+    if not path.exists():
+        raise IngestError(f"{path.relative_to(REPO_ROOT)} is missing")
+    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    return data.get("ingests") or {}
+
+
+def load_lock(path: Path | None = None) -> dict[str, dict]:
+    path = path or LOCK
+    if not path.exists():
+        return {}
+    return (yaml.safe_load(path.read_text(encoding="utf-8")) or {}).get("ingests") or {}
+
+
+def save_lock(lock: dict[str, dict], path: Path | None = None) -> None:
+    path = path or LOCK
+    body = yaml.safe_dump({"ingests": dict(sorted(lock.items()))}, sort_keys=False, allow_unicode=True)
+    path.write_text(LOCK_HEADER + body, encoding="utf-8")
+
+
+def ingest_dir(name: str, conf: dict) -> Path:
+    return REPO_ROOT / conf.get("path", f"ingests/{name}")
+
+
+def transform_configs(folder: Path) -> list[Path]:
+    """The Koza transform configs of an ingest: every .yaml beside download.yaml."""
+    return sorted(p for p in folder.glob("*.yaml") if p.name != "download.yaml")
+
+
+def problems(conf: dict[str, dict], lock: dict[str, dict]) -> list[str]:
+    """What is wrong with the settings and the lock, without the network."""
+    out = []
+    for name, c in conf.items():
+        if not isinstance(c, dict):
+            out.append(f"{name}: give a mapping with `kind`")
+            continue
+        kind = c.get("kind")
+        if kind not in KINDS:
+            out.append(f"{name}: kind is {kind!r}; use one of {', '.join(KINDS)}")
+        elif kind == "release":
+            if not c.get("repo") or "/" not in str(c["repo"]):
+                out.append(f"{name}: a release names its repo, as owner/name")
+            if not c.get("files"):
+                out.append(f"{name}: a release names the files to fetch")
+        else:
+            folder = ingest_dir(name, c)
+            if not (folder / "download.yaml").exists():
+                out.append(f"{name}: {folder.relative_to(REPO_ROOT)}/download.yaml is missing")
+            if not transform_configs(folder):
+                out.append(f"{name}: no Koza transform config in {folder.relative_to(REPO_ROOT)}/")
+        for source in c.get("sources") or []:
+            if not str(source).startswith("infores:"):
+                out.append(f"{name}: source {source!r} is not an infores id")
+        locked = lock.get(name)
+        if locked and kind and locked.get("kind") != kind:
+            out.append(f"{name}: locked as {locked.get('kind')}, set as {kind}; "
+                       f"run `just ingest {name} --update`")
+        if locked and kind == "release":
+            missing = [f for f in c.get("files") or [] if f not in (locked.get("files") or {})]
+            if missing:
+                out.append(f"{name}: not locked yet: {', '.join(missing)}; run `just ingest {name}`")
+    for name in lock:
+        if name not in conf:
+            out.append(f"{name}: locked but not in conf/ingests.yaml; remove it from the lock")
+    return out
+
+
+# ---------------------------------------------------------------- files
+
+
+def sha256(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for block in iter(lambda: f.read(1 << 20), b""):
+            h.update(block)
+    return h.hexdigest()
+
+
+def _request(url: str) -> urllib.request.Request:
+    headers = {"User-Agent": USER_AGENT}
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    if token and url.startswith("https://api.github.com/"):
+        headers["Authorization"] = f"Bearer {token}"
+    return urllib.request.Request(url, headers=headers)
+
+
+def get_text(url: str) -> str:
+    with urllib.request.urlopen(_request(url), timeout=60) as resp:
+        return resp.read().decode("utf-8")
+
+
+def download(url: str, dest: Path) -> None:
+    """Stream a URL to dest, through a temporary file, so a failed fetch leaves nothing."""
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    part = dest.with_name(dest.name + ".part")
+    with urllib.request.urlopen(_request(url), timeout=120) as resp, part.open("wb") as out:
+        shutil.copyfileobj(resp, out, 1 << 20)
+    part.replace(dest)
+
+
+def release_url(repo: str, tag: str, file: str) -> str:
+    return f"https://github.com/{repo}/releases/download/{tag}/{file}"
+
+
+def latest_tag(repo: str) -> str:
+    return json.loads(get_text(f"https://api.github.com/repos/{repo}/releases/latest"))["tag_name"]
+
+
+# ---------------------------------------------------------------- release
+
+
+def run_release(name: str, conf: dict, locked: dict | None, update: bool) -> dict:
+    repo = conf["repo"]
+    tag = locked["release"] if locked and not update else latest_tag(repo)
+    out = OUT_DIR / name
+    out.mkdir(parents=True, exist_ok=True)
+    meta_path = out / "release-metadata.yaml"
+    download(release_url(repo, tag, "release-metadata.yaml"), meta_path)
+    meta = yaml.safe_load(meta_path.read_text(encoding="utf-8")) or {}
+    published = {a["path"]: a["sha256"] for a in meta.get("artifacts") or [] if "path" in a and "sha256" in a}
+    meta_sha = sha256(meta_path)
+    if locked and not update and locked.get("metadata_sha256") not in (None, meta_sha):
+        raise IngestError(f"{name}: release {tag}'s release-metadata.yaml changed since it was locked")
+
+    files = {}
+    for file in conf["files"]:
+        dest = out / file
+        want = published.get(file) or ((locked or {}).get("files") or {}).get(file, {}).get("sha256")
+        if not (dest.exists() and want and sha256(dest) == want):
+            print(f"  fetching {file} from {repo} {tag}", flush=True)
+            download(release_url(repo, tag, file), dest)
+        got = sha256(dest)
+        if file in published and got != published[file]:
+            raise IngestError(f"{name}: {file} does not match the sha256 in {tag}'s release-metadata.yaml")
+        was = ((locked or {}).get("files") or {}).get(file, {}).get("sha256")
+        if was and not update and was != got:
+            raise IngestError(f"{name}: {file} differs from the locked bytes; `--update` takes it")
+        files[file] = {"sha256": got, "bytes": dest.stat().st_size,
+                       "checked": "release-metadata" if file in published else "lock"}
+    return {
+        "kind": "release",
+        "repo": repo,
+        "release": tag,
+        "metadata_sha256": meta_sha,
+        "build_version": meta.get("build_version"),
+        "sources": [{k: s[k] for k in ("id", "version", "retrieved_at") if k in s}
+                    for s in meta.get("sources") or []],
+        "files": files,
+    }
+
+
+# ---------------------------------------------------------------- koza
+
+
+def koza_command() -> str:
+    found = shutil.which("koza", path=str(Path(sys.executable).parent)) or shutil.which("koza")
+    if not found:
+        raise IngestError("koza is not installed: the koza_ingests answer adds it "
+                          "(see the structured-ingests skill)")
+    return found
+
+
+def tool_version(dist: str) -> str | None:
+    try:
+        return metadata.version(dist)
+    except metadata.PackageNotFoundError:
+        return None
+
+
+def download_list(folder: Path) -> list[dict]:
+    items = yaml.safe_load((folder / "download.yaml").read_text(encoding="utf-8")) or []
+    if not isinstance(items, list):
+        where = folder.relative_to(REPO_ROOT)
+        raise IngestError(f"{where}/download.yaml: give a list of url/local_name items")
+    return items
+
+
+def run_koza(name: str, conf: dict, locked: dict | None, update: bool, fetch: bool = True) -> dict:
+    folder = ingest_dir(name, conf)
+    out = OUT_DIR / name
+    items = download_list(folder)
+    if fetch:
+        try:
+            from kghub_downloader.download_utils import download_from_yaml
+            from kghub_downloader.model import DownloadOptions
+        except ImportError as e:
+            raise IngestError("kghub-downloader is not installed: the koza_ingests answer adds it") from e
+        download_from_yaml(yaml_file=str(folder / "download.yaml"), output_dir=str(out),
+                           download_options=DownloadOptions(ignore_cache=update))
+    before = (locked or {}).get("downloads") or {}
+    downloads = {}
+    for item in items:
+        local = item.get("local_name") or Path(item["url"]).name
+        path = out / local
+        if not path.exists():
+            raise IngestError(f"{name}: {local} was not downloaded")
+        got = sha256(path)
+        if not update and local in before and before[local]["sha256"] != got:
+            raise IngestError(f"{name}: {local} differs from the locked download (the source changed); "
+                              "`--update` takes it")
+        downloads[local] = {"url": item.get("url"), "sha256": got, "bytes": path.stat().st_size}
+
+    output = out / "output"
+    if output.exists():
+        shutil.rmtree(output)
+    for config in transform_configs(folder):
+        spec = yaml.safe_load(config.read_text(encoding="utf-8")) or {}
+        if "readers" in spec:
+            raise IngestError(f"{config.name}: one reader per config; split it into one config per input")
+        inputs = [str(out / f) for f in (spec.get("reader") or {}).get("files") or []]
+        missing = [f for f in inputs if not Path(f).exists()]
+        if missing:
+            raise IngestError(f"{config.name}: no such downloaded file: {', '.join(missing)}")
+        cmd = [koza_command(), "transform", str(config), *inputs, "-o", str(output), "-f", "tsv", "-q"]
+        print(f"  koza transform {config.relative_to(REPO_ROOT)}", flush=True)
+        if subprocess.run(cmd, cwd=REPO_ROOT).returncode != 0:
+            raise IngestError(f"{name}: koza transform {config.name} failed")
+    outputs = {p.name: {"sha256": sha256(p), "bytes": p.stat().st_size} for p in sorted(output.glob("*"))}
+    for file, o in outputs.items():
+        was = ((locked or {}).get("outputs") or {}).get(file, {}).get("sha256")
+        if was and was != o["sha256"] and not update:
+            print(f"  note: {file} differs from the locked output with the same downloads: "
+                  "does the transform mint ids at random?", file=sys.stderr)
+    tools = {k: v for k, v in (("koza", tool_version("koza")),
+                               ("kghub_downloader", tool_version("kghub-downloader"))) if v}
+    now = dt.datetime.now(dt.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    (out / "release-metadata.yaml").write_text(yaml.safe_dump({
+        "id": name,
+        "generated_at": now,
+        "sources": [{"id": s, "urls": [d["url"] for d in downloads.values()], "retrieved_at": now}
+                    for s in conf.get("sources") or []],
+        "artifacts": [{"path": f"output/{f}", "sha256": o["sha256"]} for f, o in outputs.items()],
+        "tools": tools,
+    }, sort_keys=False), encoding="utf-8")
+    return {"kind": "koza", "path": str(folder.relative_to(REPO_ROOT)), "downloads": downloads,
+            "outputs": outputs, "tools": tools}
+
+
+# ---------------------------------------------------------------- reading
+
+
+def ingest_file(name: str, file: str) -> Path:
+    """A fetched or made file of an ingest, checked against the lock."""
+    entry = load_lock().get(name)
+    if not entry:
+        raise IngestError(f"{name}: not run yet; `just ingest {name}`")
+    if entry["kind"] == "release":
+        path, known = OUT_DIR / name / file, entry.get("files") or {}
+    else:
+        path, known = OUT_DIR / name / "output" / file, entry.get("outputs") or {}
+    if file not in known:
+        raise IngestError(f"{name}: {file} is not one of its files: {', '.join(known)}")
+    if not path.exists():
+        raise IngestError(f"{name}: {file} is not in build/ yet; `just ingest {name}`")
+    if path.stat().st_size != known[file]["bytes"] or sha256(path) != known[file]["sha256"]:
+        raise IngestError(f"{name}: build/ingest/{name}/{file} differs from the lock; `just ingest {name}`")
+    return path
+
+
+def rows(name: str, file: str) -> Iterator[dict[str, str]]:
+    """Each row of an ingest's TSV or JSON Lines file, as a dict."""
+    path = ingest_file(name, file)
+    with path.open(encoding="utf-8", newline="") as f:
+        if path.suffix == ".jsonl":
+            for line in f:
+                if line.strip():
+                    yield json.loads(line)
+        else:
+            yield from csv.DictReader(f, delimiter="\t", quoting=csv.QUOTE_NONE)
+
+
+def source_label(name: str, file: str | None = None) -> str:
+    """Where rows came from, for a conversion's `source`: the ingest, its version, the file."""
+    entry = load_lock().get(name) or {}
+    version = (f"{entry.get('repo')} {entry.get('release')}" if entry.get("kind") == "release"
+               else f"{entry.get('path')}, koza {(entry.get('tools') or {}).get('koza', '?')}")
+    return f"{name} ingest ({version}){', ' + file if file else ''}"
+
+
+# ---------------------------------------------------------------- scaffold
+
+# Scaffolds for `new`; "<name>" becomes the ingest's name.
+DOWNLOAD_YAML = """\
+# What `just ingest <name>` downloads, with kghub-downloader, into
+# build/ingest/<name>/. local_name is relative to that folder; the transform
+# configs beside this file read the same paths. {ENV_VAR} in a url is filled
+# from the environment: keep keys out of this file.
+- url: https://example.org/path/to/<name>.tsv
+  local_name: data/<name>.tsv
+"""
+
+CONFIG_YAML = """\
+# A Koza transform: one reader, and the Python beside it (<name>.py).
+# https://koza.monarchinitiative.org/ documents every key.
+name: <name>
+reader:
+  format: csv
+  delimiter: '\\t'
+  files:
+    - data/<name>.tsv
+writer:
+  node_properties: [id, category, name]
+  edge_properties: [id, category, subject, predicate, object,
+                    primary_knowledge_source, knowledge_level, agent_type]
+"""
+
+TRANSFORM_PY = '''\
+"""Koza transform for <name>: one source row in, nodes and edges out.
+
+Ids must be stable: the same row makes the same id on every run, so the
+lock can tell a changed source from a changed transform. Never uuid.
+"""
+
+import koza
+from biolink_model.datamodel.pydanticmodel_v2 import Association, NamedThing
+
+
+@koza.transform_record()
+def transform_record(koza_transform: koza.KozaTransform, row: dict):
+    # Replace with the source's own columns and the Biolink classes that fit.
+    yield NamedThing(id=row["id"], name=row["name"], category=["biolink:NamedThing"])
+    yield Association(
+        id=f"<name>:{row['id']}-{row['related']}",
+        subject=row["id"],
+        predicate="biolink:related_to",
+        object=row["related"],
+        primary_knowledge_source="infores:example",
+        knowledge_level="not_provided",
+        agent_type="not_provided",
+    )
+'''
+
+
+def scaffold(name: str) -> list[Path]:
+    folder = INGESTS_DIR / name
+    if folder.exists():
+        raise IngestError(f"{folder.relative_to(REPO_ROOT)} exists already")
+    folder.mkdir(parents=True)
+    files = {"download.yaml": DOWNLOAD_YAML, f"{name}.yaml": CONFIG_YAML, f"{name}.py": TRANSFORM_PY}
+    written = []
+    for file, text in files.items():
+        (folder / file).write_text(text.replace("<name>", name), encoding="utf-8")
+        written.append(folder / file)
+    return written
+
+
+# ---------------------------------------------------------------- command line
+
+
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    sub = ap.add_subparsers(dest="command", required=True)
+    sub.add_parser("list", help="the ingests and what the lock holds")
+    rp = sub.add_parser("run", help="fetch or run ingests into build/ingest/")
+    rp.add_argument("names", nargs="*")
+    rp.add_argument("--all", action="store_true", help="every ingest in conf/ingests.yaml")
+    rp.add_argument("--update", action="store_true",
+                    help="take the newest release or downloads; rewrite the lock")
+    np_ = sub.add_parser("new", help="scaffold the Mech's own Koza ingest in ingests/NAME/")
+    np_.add_argument("name")
+    sub.add_parser("check", help="settings and lock agree (offline)")
+    args = ap.parse_args(argv)
+
+    try:
+        if args.command == "new":
+            if not args.name.replace("_", "").isalnum() or not args.name[:1].isalpha():
+                ap.error("a name is letters, digits and underscores, starting with a letter")
+            for path in scaffold(args.name):
+                print(f"wrote {path.relative_to(REPO_ROOT)}")
+            print(f"Add to conf/ingests.yaml:\n  {args.name}:\n    kind: koza\n"
+                  f"    path: ingests/{args.name}\n    sources: [infores:...]")
+            return 0
+
+        conf, lock = settings(), load_lock()
+        if args.command == "check":
+            found = problems(conf, lock)
+            for p in found:
+                print(f"ERROR {p}")
+            unlocked = [n for n in conf if n not in lock]
+            if unlocked:
+                print(f"not run yet (fine until a conversion reads them): {', '.join(unlocked)}")
+            print(f"{len(conf)} ingest(s), {len(lock)} locked, {len(found)} problem(s).")
+            return 1 if found else 0
+
+        if args.command == "list":
+            for name, c in conf.items():
+                entry = lock.get(name)
+                state = "not run" if not entry else (entry.get("release") if entry["kind"] == "release"
+                                                     else f"{len(entry.get('outputs') or {})} output file(s)")
+                print(f"{name:24} {c.get('kind', '?'):8} {c.get('repo') or c.get('path', '')}  [{state}]")
+            return 0
+
+        names = list(conf) if args.all else args.names
+        if not names:
+            ap.error("name an ingest, or --all")
+        unknown = [n for n in names if n not in conf]
+        if unknown:
+            ap.error(f"not in conf/ingests.yaml: {', '.join(unknown)}")
+        found = problems({n: conf[n] for n in names}, {})  # the run rewrites their lock entries
+        if found:
+            raise IngestError("; ".join(found))
+        for name in names:
+            print(f"{name}:", flush=True)
+            runner = run_release if conf[name]["kind"] == "release" else run_koza
+            lock[name] = runner(name, conf[name], lock.get(name), args.update)
+            save_lock(lock)
+            entry = lock[name]
+            what = entry.get("files") or entry.get("outputs") or {}
+            print(f"  {len(what)} file(s) in build/ingest/{name}/, locked"
+                  + (f" at {entry['release']}" if entry["kind"] == "release" else ""))
+        return 0
+    except IngestError as e:
+        print(f"ERROR {e}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

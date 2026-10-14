@@ -46,7 +46,7 @@ The registry is one file. The script downloads it on first use and keeps it
 for a day (`--refresh` takes a new one). `search` matches every word against
 a Mech's id, name, record type, description, ontologies, domains, data
 sources and collection; `--any` ranks by how many match. `--json` gives
-output to read in a program. `repo` asks GitHub, seven requests a Mech and
+output to read in a program. `repo` asks GitHub, eight requests a Mech and
 more for one with many packages; set `GITHUB_TOKEN`
 (`export GITHUB_TOKEN=$(gh auth token)`) to lift GitHub's limit of 60 an
 hour. Exit 1 means nothing matched; exit 2 means
@@ -85,12 +85,18 @@ probably links to it too.
 scripts whose names say they bring data in (`convert_`, `fetch_`,
 `import_`, `ingest`, `parse` ...; the template's own modules, such as
 `load.py`, are left out), its records folder with sample files,
-whether mechmaker made it, and its latest release's files.
+whether mechmaker made it, its structured data ingests (`conf/ingests.yaml`
+and its own Koza ingests under `ingests/`), and its latest release's files.
 
 - **A mechmaker Mech** keeps its conversions in `scripts/convert_<source>.py`,
   each built on `src/<slug>/convert.py`. The new Mech has the same helper,
   so porting one is mostly changing the import and the field mapping. The
   `convert-knowledge-base` skill explains the helper.
+- **Its ingests.** `conf/ingests.yaml` names the Monarch ingests it reads,
+  and `conf/ingests.lock.yaml` the exact releases. An own ingest under
+  `ingests/<name>/` (a download list, a Koza config and its transform)
+  copies into the new Mech's `ingests/` as it is
+  (`ingest-structured-data` step 6).
 - **Another Mech** has its own layout: read its README and the script.
   Often the useful part is a fetcher for a source, or a mapping table
   (source strings to ontology terms) that took real curation.

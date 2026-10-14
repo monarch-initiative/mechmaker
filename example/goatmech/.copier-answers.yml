@@ -1,5 +1,5 @@
 # Changes here will be overwritten by Copier. Do not edit by hand.
-_commit: 0.2.1-3-g85b50bc
+_commit: 0.2.1-5-ge6cac12
 _src_path: gh:monarch-initiative/mechmaker
 agent_schedules: false
 author_email: jhc@lbl.gov
@@ -28,7 +28,9 @@ identity_root: VBO:0400025
 identity_uri: http://purl.obolibrary.org/obo/VBO_
 include_claude_hook: true
 include_site: true
+ingests: []
 kind: mech
+koza_ingests: false
 langfuse: false
 load_targets: []
 mech_name: GoatMech
