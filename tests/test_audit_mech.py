@@ -325,3 +325,7 @@ def test_ingests_are_audited_and_unfetched_ones_are_to_check(tmp_path):
     _, items = audit(dest)
     assert status(items, "Ingest `omim` set and locked") == audit_mech.DONE
     assert status(items, "Ingest `hpoa` set and locked") == audit_mech.MISSING
+    justfile = dest / "justfile"
+    justfile.write_text(justfile.read_text().replace("\ningest *args:", "\nfetch-ingest *args:", 1))
+    _, items = audit(dest)
+    assert status(items, "Structured data ingests") == audit_mech.MISSING  # ingest-check is not ingest

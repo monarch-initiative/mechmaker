@@ -576,8 +576,7 @@ def from_answers(m: Mech) -> list[Item]:
         parts = ["conf/news.yaml", f"src/{slug}/news.py", ".claude/skills/news-leads/SKILL.md",
                  "curation/news"]
         absent = [p for p in parts if not m.exists(p)]
-        recipes = [r for r in ("news-leads", "news-plan", "news-watch")
-                   if not re.search(rf"^{r}\b", m.text("justfile"), re.M)]
+        recipes = [r for r in ("news-leads", "news-plan", "news-watch") if r not in m.recipes()]
         out.append(
             item(
                 "News leads",
@@ -710,7 +709,7 @@ def ingest_items(m: Mech) -> list[Item]:
     parts += ["ingests/README.md"] if koza else []
     absent = [p for p in parts if not m.exists(p)]
     wanted = ("ingest", "ingests", "ingest-check") + (("new-ingest",) if koza else ())
-    recipes = [r for r in wanted if not re.search(rf"^{r}\b", m.text("justfile"), re.M)]
+    recipes = [r for r in wanted if r not in m.recipes()]  # by name: `ingest` is not `ingest-check`
     out = [
         item(
             "Structured data ingests",
