@@ -21,7 +21,7 @@ classes:
     attributes:
       site_name:
         required: true
-      latitude:
+      site_depth_m:
         range: float
 slots:
   sample_code:

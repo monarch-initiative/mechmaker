@@ -182,6 +182,17 @@ treatment_facilities:
       label: wastewater treatment plant
     operator: City of Flint
     system_id: MI0022926
+    location:
+      latitude: 43.0362
+      longitude: -83.7729
+      evidence:
+        - reference: url:https://echodata.epa.gov/echo/dfr_rest_services.get_dfr?output=JSON&p_id=MI0022926
+          supports: SUPPORT
+          evidence_source: GOVERNMENT_RECORD
+          snippet: '"CenterLatitude":"43.0362", "CenterLongitude":"-83.7729", "LocationalDataSource":"EIS"'
+          explanation: >-
+            The point ECHO maps the facility at, from EPA's Emissions Inventory System, within
+            58 meters by EPA's estimate.
     service_status: CURRENT
     receiving_waters:
       - preferred_term: Flint River
