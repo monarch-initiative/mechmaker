@@ -42,6 +42,8 @@ and agent skills (`skills/`) for making Mechs, and Fleets of them. See README.md
   sit in a mechmaker checkout.
 - The start prompt is a `text` block in `docs/getting-started.md`, copied
   into `docs/index.md` and `README.md`. A test keeps the copies equal.
+  The same holds for the agent's numbered steps (Survey to Audit), kept
+  in `docs/getting-started.md` and copied into `README.md`.
 
 - A template change that existing Mechs must act on by hand (records to
   migrate, a field newly required, a file to stop tracking, a command
