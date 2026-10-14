@@ -353,6 +353,21 @@ def listing(full: str, path: str, sha: str) -> list[dict]:
     return found if isinstance(found, list) else []
 
 
+def ingest_entries(text: str) -> list[dict]:
+    """The ingests a Mech's conf/ingests.yaml names, with kind and repo or path. The file is the
+    template's layout (two-space keys under `ingests:`, four-space settings); no YAML parser here."""
+    out, current = [], None
+    for line in text.splitlines():
+        if m := re.match(r"^  ([A-Za-z_][\w-]*):\s*$", line):
+            current = {"name": m.group(1)}
+            out.append(current)
+        elif current and (m := re.match(r"^    (kind|repo|path):\s*(\S+)", line)):
+            current[m.group(1)] = m.group(2).strip("'\"")
+        elif line and not line.startswith(("  ", "#")):
+            current = None
+    return out
+
+
 def repo(m: dict) -> dict:
     """What a Mech's repository holds for another Mech to reuse, at its current commit."""
     match = re.match(r"https://github\.com/([^/]+)/([^/#?]+)", m.get("repository", ""))
@@ -389,8 +404,10 @@ def repo(m: dict) -> dict:
     helper = f"src/{slug}/convert.py"
     out["convert_helper"] = helper if slug and helper in out["scripts"] else ""
     # Structured data ingests: Monarch releases it fetches, and its own Koza ingests, one folder each.
-    has_conf = bool(github(f"/repos/{full}/contents/conf/ingests.yaml?ref={sha}"))
-    out["ingest_conf"] = "conf/ingests.yaml" if has_conf else ""
+    found = github(f"/repos/{full}/contents/conf/ingests.yaml?ref={sha}")
+    conf = base64.b64decode(found["content"]).decode("utf-8", "replace") if found else ""
+    out["ingest_conf"] = "conf/ingests.yaml" if found else ""
+    out["ingests"] = ingest_entries(conf)
     out["koza_ingests"] = [e["path"] for e in listing(full, "ingests", sha) if e["type"] == "dir"]
 
     source = m.get("record_count_source") or {}
@@ -479,7 +496,9 @@ def print_repo(r: dict) -> None:
     if r.get("other_scripts"):
         print(f"  and {r['other_scripts']} other scripts in scripts/, named for other work")
     if r.get("ingest_conf"):
-        print(f"  structured data ingests: {r['ingest_conf']} (conf/ingests.lock.yaml has the versions)")
+        print(f"  structured data ingests, in {r['ingest_conf']} (conf/ingests.lock.yaml has the versions):")
+        for i in r.get("ingests", []):
+            print(f"    {i['name']}: {i.get('kind', '?')}, {i.get('repo') or i.get('path', '')}")
     for p in r.get("koza_ingests", []):
         print(f"    its own Koza ingest: {p}/")
     if r["release"]:

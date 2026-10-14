@@ -46,7 +46,7 @@ The registry is one file. The script downloads it on first use and keeps it
 for a day (`--refresh` takes a new one). `search` matches every word against
 a Mech's id, name, record type, description, ontologies, domains, data
 sources and collection; `--any` ranks by how many match. `--json` gives
-output to read in a program. `repo` asks GitHub, eight requests a Mech and
+output to read in a program. `repo` asks GitHub, nine requests a Mech and
 more for one with many packages; set `GITHUB_TOKEN`
 (`export GITHUB_TOKEN=$(gh auth token)`) to lift GitHub's limit of 60 an
 hour. Exit 1 means nothing matched; exit 2 means
