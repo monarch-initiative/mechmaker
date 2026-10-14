@@ -217,10 +217,11 @@ def run_release(name: str, conf: dict, locked: dict | None, update: bool) -> dic
     for file in conf["files"]:
         dest = out / file
         want = published.get(file) or vouched.get(file, {}).get("sha256")
-        if not (dest.exists() and want and sha256(dest) == want):
+        got = sha256(dest) if dest.exists() and want else None  # each file is read once: GO's is 1.1 GB
+        if not got or got != want:
             print(f"  fetching {file} from {repo} {tag}", flush=True)
             download(release_url(repo, tag, file), dest)
-        got = sha256(dest)
+            got = sha256(dest)
         if file in published and got != published[file]:
             raise IngestError(f"{name}: {file} does not match the sha256 in {tag}'s release-metadata.yaml")
         was = ((locked or {}).get("files") or {}).get(file, {}).get("sha256")
@@ -348,6 +349,11 @@ def run_koza(name: str, conf: dict, locked: dict | None, update: bool, fetch: bo
 # ---------------------------------------------------------------- reading
 
 
+# Files already checked against the lock in this process, by path, size and time: rows() is
+# often called once per record type, and hashing a large file each time is slow.
+_CHECKED: dict[tuple[Path, int, int], str] = {}
+
+
 def ingest_file(name: str, file: str) -> Path:
     """A fetched or made file of an ingest, checked against the lock."""
     entry = load_lock().get(name)
@@ -361,7 +367,11 @@ def ingest_file(name: str, file: str) -> Path:
         raise IngestError(f"{name}: {file} is not one of its files: {', '.join(known)}")
     if not path.exists():
         raise IngestError(f"{name}: {file} is not in build/ yet; `just ingest {name}`")
-    if path.stat().st_size != known[file]["bytes"] or sha256(path) != known[file]["sha256"]:
+    stat = path.stat()
+    key = (path, stat.st_size, stat.st_mtime_ns)
+    if key not in _CHECKED:
+        _CHECKED[key] = sha256(path) if stat.st_size == known[file]["bytes"] else ""
+    if _CHECKED[key] != known[file]["sha256"]:
         raise IngestError(f"{name}: build/ingest/{name}/{file} differs from the lock; `just ingest {name}`")
     return path
 

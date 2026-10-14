@@ -78,6 +78,14 @@ def test_release_is_fetched_checked_and_locked(where, monkeypatch):
     ingest.save_lock({"demo": entry})
     assert ingest.problems(CONF, ingest.load_lock()) == []
 
+    hashed = []
+    monkeypatch.setattr(ingest, "sha256", lambda path, real=ingest.sha256: hashed.append(path) or real(path))
+    ingest.run_release("demo", CONF["demo"], ingest.load_lock()["demo"], update=False)
+    assert hashed.count(where / "build" / "ingest" / "demo" / "demo_edges.tsv") == 1  # once a run
+    list(ingest.rows("demo", "demo_edges.tsv"))
+    list(ingest.rows("demo", "demo_edges.tsv"))
+    assert hashed.count(where / "build" / "ingest" / "demo" / "demo_edges.tsv") == 2  # once for reading
+
     rows = list(ingest.rows("demo", "demo_edges.tsv"))
     assert rows[0]["subject"] == "X:1" and rows[0]["publications"].split("|") == ["PMID:1", "PMID:2"]
     assert "v2026-10-01" in ingest.source_label("demo", "demo_edges.tsv")
