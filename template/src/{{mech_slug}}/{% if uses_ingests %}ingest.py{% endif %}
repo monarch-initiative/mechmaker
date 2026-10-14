@@ -390,7 +390,9 @@ def rows(name: str, file: str) -> Iterator[dict[str, str]]:
 
 def source_label(name: str, file: str | None = None) -> str:
     """Where rows came from, for a conversion's `source`: the ingest, its version, the file."""
-    entry = load_lock().get(name) or {}
+    entry = load_lock().get(name)
+    if not entry:  # never a guessed label: it is written into history
+        raise IngestError(f"{name}: not run yet; `just ingest {name}`")
     version = (f"{entry.get('repo')} {entry.get('release')}" if entry.get("kind") == "release"
                else f"{entry.get('path')}, koza {(entry.get('tools') or {}).get('koza', '?')}")
     return f"{name} ingest ({version}){', ' + file if file else ''}"

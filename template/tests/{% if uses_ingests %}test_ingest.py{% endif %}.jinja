@@ -150,6 +150,8 @@ def test_rows_refuse_a_changed_file(where, monkeypatch):
         list(ingest.rows("demo", "demo_edges.tsv"))
     with pytest.raises(ingest.IngestError, match="not run yet"):
         list(ingest.rows("other", "x.tsv"))
+    with pytest.raises(ingest.IngestError, match="not run yet"):
+        ingest.source_label("other", "x.tsv")
 {%- if koza_ingests %}
 
 
