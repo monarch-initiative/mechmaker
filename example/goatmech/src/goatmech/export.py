@@ -13,6 +13,7 @@ Every format comes from LinkML or the libraries it brings:
   sqlite   <slug>-records.sqlite       a SQLite database
   duckdb   <slug>-records.duckdb       a DuckDB database, through linkml-store: one
                                        table of records, nested values as DuckDB JSON
+  parquet  <slug>-tables-parquet.zip   one Parquet file per class, the tables of sqlite
   kgx      <slug>-kgx_nodes/_edges     KGX: Biolink associations, record to term (see kgx.py)
   kgx_maximal  ..._maximal_nodes/_edges  KGX: the whole record graph (see kgx.py)
   sql      <slug>-schema.sql           the schema as SQL DDL (gen-sqltables)
@@ -27,10 +28,14 @@ names the field it came from (a record's `evidence` and its
 one row per record; a list of values is joined with " | ", and a nested
 object is written as JSON.
 
+Parquet takes the per_class tables whatever tabular_layout says, with each
+column typed from its gen-sqltables declaration.
+
 Each file is read back after it is written: RDF is parsed, tables and the
-database are counted, SQL is loaded into an empty database. An RDF IRI that
-is not http(s) fails the export: it is a CURIE whose prefix the schema does
-not declare. Output in build/ is not committed; releases attach it.
+database are counted, each Parquet table is counted against its SQLite
+table, SQL is loaded into an empty database. An RDF IRI that is not http(s)
+fails the export: it is a CURIE whose prefix the schema does not declare.
+Output in build/ is not committed; releases attach it.
 """
 
 from __future__ import annotations
@@ -51,11 +56,16 @@ from .validate import iter_records, load
 
 EXPORT_DIR = BUILD_DIR / "export"
 SETTINGS = REPO_ROOT / "conf" / "export.yaml"
-FORMATS = ("yaml", "json", "jsonld", "ttl", "sqlite", "duckdb", "sql", "csv", "tsv", "kgx", "kgx_maximal")
-# Only the duckdb format needs a package a Mech does not always install.
+FORMATS = ("yaml", "json", "jsonld", "ttl", "sqlite", "duckdb", "parquet", "sql", "csv", "tsv",
+           "kgx", "kgx_maximal")
+# The duckdb and parquet formats need packages a Mech does not always install.
 DUCKDB_MISSING = (
     "duckdb: needs linkml-store, which this Mech does not install. Run `uv add 'linkml-store>=0.3.2'` "
     "and `just install`, or take duckdb out of conf/export.yaml."
+)
+PARQUET_MISSING = (
+    "parquet: needs pyarrow, which this Mech does not install. Run `uv add 'pyarrow>=18.0'` "
+    "and `just install`, or take parquet out of conf/export.yaml."
 )
 LAYOUTS = ("per_class", "flat")
 DEFAULTS = {"formats": ["yaml", "json"], "tabular_layout": "per_class"}
@@ -103,6 +113,10 @@ def downloads(cfg: dict) -> list[dict]:
     add("duckdb", "records.duckdb", "DuckDB database",
         "One table of records, with nested values as DuckDB JSON, written through linkml-store.",
         fmt_value="duckdb")
+    # MechRegistry's FormatEnum has no parquet.
+    add("parquet", "tables-parquet.zip", "Tables as Parquet (zip)",
+        "One Parquet file per class, linked by ids, as in the SQL export.", fmt_value="other",
+        compression="zip")
     add("sql", "schema.sql", "Schema as SQL DDL",
         "The tables of the SQL export, as gen-sqltables writes them.", category="DataModelProduct",
         fmt_value="sql")
@@ -358,6 +372,78 @@ def write_table(path: Path, header: list[str], rows, delimiter: str) -> None:
         w.writerows(rows)
 
 
+# ---------------------------------------------------------------- Parquet
+
+
+def arrow_type(declared: str):
+    """The Arrow type for a column gen-sqltables declared; text for anything else, such as dates."""
+    import pyarrow as pa
+
+    d = (declared or "").upper()
+    if "INT" in d:
+        return pa.int64()
+    if "BOOL" in d:
+        return pa.bool_()
+    if any(k in d for k in ("FLOAT", "REAL", "DOUB", "NUMERIC", "DECIMAL")):
+        return pa.float64()
+    return pa.string()
+
+
+def arrow_column(values: list, kind):
+    """The column as its declared type; as text when a value does not fit it."""
+    import pyarrow as pa
+
+    if kind == pa.bool_():
+        values = [None if v is None else bool(v) for v in values]
+    try:
+        return pa.array(values, type=kind)
+    except (pa.ArrowInvalid, pa.ArrowTypeError, TypeError, OverflowError):
+        return pa.array([None if v is None else str(v) for v in values], type=pa.string())
+
+
+def write_parquet(con: sqlite3.Connection, out: Path) -> Path:
+    """Every table of the SQLite export as a Parquet file, zipped: <Table>.parquet.
+
+    Raises ModuleNotFoundError (name pyarrow) when pyarrow is not installed.
+    """
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    tables = [t for (t,) in con.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")]
+    # Parquet compresses each file itself; the zip only bundles them.
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_STORED) as zf:
+        for t in tables:
+            declared = {r[1]: r[2] for r in con.execute(f'PRAGMA table_info("{t}")')}
+            header, rows = table_rows(con, t)
+            table = pa.table({h: arrow_column([r[i] for r in rows], arrow_type(declared.get(h, "")))
+                              for i, h in enumerate(header)})
+            buf = io.BytesIO()
+            pq.write_table(table, buf)
+            zf.writestr(f"{t}.parquet", buf.getvalue())
+    return out
+
+
+def check_parquet(out: Path, con: sqlite3.Connection) -> list[str]:
+    """Each table in the zip, read back, has the rows and columns of its SQLite table."""
+    import pyarrow.parquet as pq
+
+    problems = []
+    with zipfile.ZipFile(out) as zf:
+        names = set(zf.namelist())
+        for (t,) in con.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"):
+            if f"{t}.parquet" not in names:
+                problems.append(f"{out.name}: no {t}.parquet")
+                continue
+            table = pq.read_table(io.BytesIO(zf.read(f"{t}.parquet")))
+            want = con.execute(f'SELECT count(*) FROM "{t}"').fetchone()[0]
+            cols = [r[1] for r in con.execute(f'PRAGMA table_info("{t}")')]
+            if table.num_rows != want:
+                problems.append(f"{out.name}: {t}.parquet has {table.num_rows} row(s), expected {want}")
+            if table.column_names != cols:
+                problems.append(f"{out.name}: {t}.parquet has other columns than the SQLite table")
+    return problems
+
+
 # ---------------------------------------------------------------- DuckDB
 
 
@@ -492,7 +578,7 @@ def export(
 
     tables = fmts & {"csv", "tsv"}
     per_class = cfg["tabular_layout"] == "per_class"
-    if fmts & {"sqlite", "sql"} or (tables and per_class):
+    if fmts & {"sqlite", "sql", "parquet"} or (tables and per_class):
         db = out_dir / f"{SLUG}-records.sqlite"
         build_sqlite(sv, records, db)
         con = sqlite3.connect(db)
@@ -517,6 +603,16 @@ def export(
             if probe.execute(f'SELECT count(*) FROM "{RECORD_CLASS}"').fetchone()[0] != n:
                 problems.append(f"{dump.name}: does not load back to {n} records")
             probe.close()
+        if "parquet" in fmts:
+            try:
+                out = write_parquet(con, out_dir / f"{SLUG}-tables-parquet.zip")
+            except ModuleNotFoundError as exc:
+                if exc.name != "pyarrow":  # installed, but something it needs is not: show that
+                    raise
+                problems.append(PARQUET_MISSING)
+            else:
+                written.append(out)
+                problems += check_parquet(out, con)
         for fmt in sorted(tables) if per_class else []:
             sep = "," if fmt == "csv" else "\t"
             out = out_dir / f"{SLUG}-tables-{fmt}.zip"

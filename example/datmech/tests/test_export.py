@@ -24,6 +24,12 @@ try:
 except ImportError:
     HAS_DUCKDB = False
 try:
+    import pyarrow  # noqa: F401  only installed when this Mech exports Parquet
+
+    HAS_PYARROW = True
+except ImportError:
+    HAS_PYARROW = False
+try:
     import biolink_model  # noqa: F401  only installed when this Mech exports KGX
 
     HAS_BIOLINK = True
@@ -32,7 +38,8 @@ except ImportError:
 # Every format this Mech can write as installed.
 KGX_READY = HAS_BIOLINK or not kgx.settings()["biolink"]
 INSTALLED = [f for f in export.FORMATS
-             if (f != "duckdb" or HAS_DUCKDB) and (not f.startswith("kgx") or KGX_READY)]
+             if (f != "duckdb" or HAS_DUCKDB) and (f != "parquet" or HAS_PYARROW)
+             and (not f.startswith("kgx") or KGX_READY)]
 
 
 @pytest.mark.parametrize("layout", ["per_class", "flat"])
@@ -48,6 +55,9 @@ def test_every_format_reads_back(tmp_path, layout):
     else:
         with zipfile.ZipFile(tmp_path / f"{SLUG}-tables-csv.zip") as zf:
             assert f"{RECORD_CLASS}.csv" in zf.namelist()
+    if HAS_PYARROW:  # one table per class, whatever the layout
+        with zipfile.ZipFile(tmp_path / f"{SLUG}-tables-parquet.zip") as zf:
+            assert f"{RECORD_CLASS}.parquet" in zf.namelist()
 
 
 def test_nested_rows_name_their_field(tmp_path):
@@ -106,7 +116,7 @@ def test_registry_entry_lists_the_export():
 
 def test_settings_are_checked(tmp_path, monkeypatch):
     bad = tmp_path / "export.yaml"
-    bad.write_text("formats: [parquet]\n", encoding="utf-8")
+    bad.write_text("formats: [xlsx]\n", encoding="utf-8")
     monkeypatch.setattr(export, "SETTINGS", bad)
     with pytest.raises(SystemExit):
         export.settings()
@@ -151,6 +161,42 @@ def test_a_broken_linkml_store_is_not_called_missing(tmp_path, monkeypatch):
     monkeypatch.setattr(export, "write_duckdb", broken)
     with pytest.raises(ModuleNotFoundError):
         export.export({"formats": ["duckdb"], "tabular_layout": "per_class"}, [EXAMPLE], tmp_path)
+
+
+@pytest.mark.skipif(HAS_PYARROW, reason="pyarrow is installed")
+def test_parquet_without_pyarrow_says_what_to_install(tmp_path):
+    cfg = {"formats": ["parquet"], "tabular_layout": "per_class"}
+    written, problems = export.export(cfg, [EXAMPLE], tmp_path)
+    assert problems == [export.PARQUET_MISSING]
+    assert written == []
+
+
+@pytest.mark.skipif(not HAS_PYARROW, reason="pyarrow is not installed")
+def test_parquet_holds_the_sqlite_tables(tmp_path):
+    import pyarrow.parquet as pq
+
+    cfg = {"formats": ["sqlite", "parquet"], "tabular_layout": "per_class"}
+    written, problems = export.export(cfg, [EXAMPLE], tmp_path)
+    assert problems == []
+    con = sqlite3.connect(tmp_path / f"{SLUG}-records.sqlite")
+    tables = [t for (t,) in con.execute("SELECT name FROM sqlite_master WHERE type='table'")]
+    with zipfile.ZipFile(tmp_path / f"{SLUG}-tables-parquet.zip") as zf:
+        assert sorted(zf.namelist()) == sorted(f"{t}.parquet" for t in tables)
+        record = pq.read_table(io.BytesIO(zf.read(f"{RECORD_CLASS}.parquet")))
+    assert record.num_rows == 1
+    assert record.column("id").to_pylist() == [con.execute(f'SELECT id FROM "{RECORD_CLASS}"').fetchone()[0]]
+
+
+@pytest.mark.skipif(not HAS_PYARROW, reason="pyarrow is not installed")
+def test_parquet_columns_take_their_declared_types():
+    import pyarrow as pa
+
+    assert export.arrow_column([1, None], export.arrow_type("INTEGER")).type == pa.int64()
+    assert export.arrow_column([1, 0], export.arrow_type("BOOLEAN")).to_pylist() == [True, False]
+    assert export.arrow_column([1.5], export.arrow_type("FLOAT")).type == pa.float64()
+    assert export.arrow_column(["2024-01-02"], export.arrow_type("DATE")).type == pa.string()
+    # A value that does not fit its declared type keeps the column, as text.
+    assert export.arrow_column(["n/a", 3], export.arrow_type("INTEGER")).to_pylist() == ["n/a", "3"]
 
 
 def reference_schema(tmp_path):
