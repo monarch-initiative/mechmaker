@@ -192,7 +192,9 @@ def test_parquet_columns_take_their_declared_types():
     import pyarrow as pa
 
     assert export.arrow_column([1, None], export.arrow_type("INTEGER")).type == pa.int64()
-    assert export.arrow_column([1, 0], export.arrow_type("BOOLEAN")).to_pylist() == [True, False]
+    assert export.arrow_column([1, 0, None], export.arrow_type("BOOLEAN")).to_pylist() == [True, False, None]
+    # Only 0 and 1 are booleans: anything else is not read as true.
+    assert export.arrow_column(["no", 1], export.arrow_type("BOOLEAN")).to_pylist() == ["no", "1"]
     assert export.arrow_column([1.5], export.arrow_type("FLOAT")).type == pa.float64()
     assert export.arrow_column(["2024-01-02"], export.arrow_type("DATE")).type == pa.string()
     # A value that does not fit its declared type keeps the column, as text.

@@ -394,7 +394,7 @@ def arrow_column(values: list, kind):
     import pyarrow as pa
 
     if kind == pa.bool_():
-        values = [None if v is None else bool(v) for v in values]
+        values = [bool(v) if v in (0, 1) and not isinstance(v, str) else v for v in values]
     try:
         return pa.array(values, type=kind)
     except (pa.ArrowInvalid, pa.ArrowTypeError, TypeError, OverflowError):
