@@ -132,7 +132,7 @@ SCENARIOS["fleet-member"] = {
 }
 SCENARIOS["minimal"]["workflows"] = []
 ALL_FORMATS = ["yaml", "json", "jsonld", "ttl", "sqlite", "duckdb", "parquet", "sql", "csv", "tsv", "kgx",
-               "kgx_maximal"]
+               "kgx_maximal", "croissant"]
 SCENARIOS["disease"].update({"site_palette": "brown", "site_theme": "light", "deep_research": True,
                              "output_formats": ALL_FORMATS, "tabular_layout": "flat",
                              "load_targets": ["mongodb", "neo4j"],
@@ -500,6 +500,19 @@ def test_pyarrow_only_when_chosen(generated):
     _, answers, dest = generated
     deps = tomllib.loads((dest / "pyproject.toml").read_text())["project"]["dependencies"]
     assert any(d.startswith("pyarrow") for d in deps) == ("parquet" in answers["output_formats"])
+
+
+def test_mlcroissant_only_when_chosen(generated):
+    _, answers, dest = generated
+    deps = tomllib.loads((dest / "pyproject.toml").read_text())["project"]["dependencies"]
+    assert any(d.startswith("mlcroissant") for d in deps) == ("croissant" in answers["output_formats"])
+
+
+def test_croissant_without_a_readable_format_is_rejected(tmp_path):
+    data = {**BASE, "mech_name": "LoneCroissantMech", "record_class": "Thing",
+            "output_formats": ["ttl", "croissant"]}
+    with pytest.raises(Exception):  # noqa: B017
+        render(tmp_path / "out", data)
 
 
 def test_kgx_settings_follow_answers(generated):

@@ -20,6 +20,8 @@ Every format comes from LinkML or the libraries it brings:
            <slug>-records.sql          the database as SQL: DDL and INSERTs
   csv/tsv  tabular_layout per_class:   <slug>-tables-csv.zip, one file per class
            tabular_layout flat:        <slug>-records.csv, one row per record
+  croissant  <slug>-croissant.json     Croissant metadata about the other files and
+                                       where the data came from (see croissant.py)
 
 Tables, one per class, follow gen-sqltables: a nested object's row points at
 its parent through a `<ParentClass>_id` column, and a `parent_slot` column
@@ -57,7 +59,9 @@ from .validate import iter_records, load
 EXPORT_DIR = BUILD_DIR / "export"
 SETTINGS = REPO_ROOT / "conf" / "export.yaml"
 FORMATS = ("yaml", "json", "jsonld", "ttl", "sqlite", "duckdb", "parquet", "sql", "csv", "tsv",
-           "kgx", "kgx_maximal")
+           "kgx", "kgx_maximal", "croissant")
+# Croissant describes the other files; these are the ones its RecordSets can read.
+CROISSANT_NEEDS = {"csv", "tsv", "parquet", "json"}
 # The duckdb and parquet formats need packages a Mech does not always install.
 DUCKDB_MISSING = (
     "duckdb: needs linkml-store, which this Mech does not install. Run `uv add 'linkml-store>=0.3.2'` "
@@ -79,6 +83,9 @@ def settings() -> dict:
         raise SystemExit(f"conf/export.yaml: unknown format(s) {bad}; choose from {list(FORMATS)}")
     if out["tabular_layout"] not in LAYOUTS:
         raise SystemExit(f"conf/export.yaml: tabular_layout must be one of {list(LAYOUTS)}")
+    if "croissant" in out["formats"] and not CROISSANT_NEEDS & set(out["formats"]):
+        raise SystemExit(f"conf/export.yaml: croissant describes the other files; add one of "
+                         f"{sorted(CROISSANT_NEEDS)}")
     return out
 
 
@@ -142,6 +149,9 @@ def downloads(cfg: dict) -> list[dict]:
                     add(fmt, f"{fmt}_{kind}.{ext}", f"{graph} {kind} as {serial}",
                         f"The {kind} of a KGX graph of {what}.",
                         category="GraphProduct", fmt_value="kgx", compatibility=standards)
+    add("croissant", "croissant.json", "Croissant metadata",
+        "Croissant (MLCommons) metadata: every file here with its checksum, the records field by field, "
+        "and where the data came from.", category="OtherProduct", fmt_value="jsonld")
     return out
 
 
@@ -579,8 +589,8 @@ def export(
 
     tables = fmts & {"csv", "tsv"}
     per_class = cfg["tabular_layout"] == "per_class"
+    db = out_dir / f"{SLUG}-records.sqlite"
     if fmts & {"sqlite", "sql", "parquet"} or (tables and per_class):
-        db = out_dir / f"{SLUG}-records.sqlite"
         build_sqlite(sv, records, db)
         con = sqlite3.connect(db)
         got = con.execute(f'SELECT count(*) FROM "{RECORD_CLASS}"').fetchone()[0]
@@ -633,8 +643,6 @@ def export(
             if n and len(list(csv.reader(io.StringIO(text), delimiter=sep))) - 1 != n:
                 problems.append(f"{out.name}: {RECORD_CLASS}.{fmt} does not have {n} rows")
         con.close()
-        if "sqlite" not in fmts:
-            db.unlink()
 
     for fmt in sorted(tables) if not per_class else []:
         sep = "," if fmt == "csv" else "\t"
@@ -645,6 +653,24 @@ def export(
         with out.open(newline="", encoding="utf-8") as fh:
             if len(list(csv.reader(fh, delimiter=sep))) - 1 != n:
                 problems.append(f"{out.name}: does not have {n} rows")
+
+    if "croissant" in fmts:
+        from . import croissant
+
+        out = out_dir / f"{SLUG}-croissant.json"
+        rows = croissant.write(sv, [d for _, d in records], written, db if db.exists() else None, out)
+        written.append(out)
+        try:
+            croissant_problems, warnings = croissant.check(out, rows)
+            problems += croissant_problems
+            for w in warnings:
+                print(f"WARNING {w}")
+        except ModuleNotFoundError as exc:
+            if exc.name != "mlcroissant":  # installed, but something it needs is not: show that
+                raise
+            problems.append(croissant.MISSING)
+    if "sqlite" not in fmts:
+        db.unlink(missing_ok=True)  # kept until now for Croissant's table types and keys
     return written, problems
 
 

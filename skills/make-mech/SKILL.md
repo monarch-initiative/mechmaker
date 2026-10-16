@@ -143,6 +143,7 @@ news_leads: false        # true when records are events local news reports; see 
 ingests: []              # Monarch ingests the person chose, e.g. [hpoa]; see ingest-structured-data
 koza_ingests: false      # true for the Mech's own Koza ingest of a structured source
 output_formats: [yaml, json, jsonld, ttl, sqlite, sql, csv]   # what just export writes; add kgx for a knowledge graph
+# add parquet for data frames, croissant for dataset metadata (with csv, tsv, parquet or json)
 # kgx_biolink: false   # with kgx: when Biolink does not fit the domain
 tabular_layout: per_class   # or flat: one row per record in CSV/TSV
 python_min: "3.11"
