@@ -283,6 +283,17 @@ def test_croissant_names_the_sources(tmp_path, monkeypatch):
     assert "Software Collection" in doc["rai:dataCollectionType"]
 
 
+def test_croissant_license_falls_back_to_the_schema(tmp_path, monkeypatch):
+    monkeypatch.setattr(croissant, "REGISTRY", tmp_path / "none.md")  # no registry entry
+    sv = export.schemaview()
+    if sv.schema.license:
+        doc, _ = croissant.build(sv, [], [], None)
+        assert doc["license"].startswith("https://")
+    sv.schema.license = None
+    doc, _ = croissant.build(sv, [], [], None)
+    assert "license" not in doc  # not a made-up URL
+
+
 def reference_schema(tmp_path):
     """A record class whose `parent` and `kin` refer to other records by id."""
     import yaml as _yaml

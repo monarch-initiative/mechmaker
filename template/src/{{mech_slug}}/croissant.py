@@ -455,7 +455,8 @@ def build(sv, records: list[dict], written: list[Path], db: Path | None) -> tupl
     repo = reg.get("repository") or REPO_URL
     url = reg.get("homepage_url") or repo
     license_ = ((reg.get("license") or {}).get("id")
-                or LICENSES.get(sv.schema.license or "", f"https://spdx.org/licenses/{sv.schema.license}"))
+                or (LICENSES.get(sv.schema.license, f"https://spdx.org/licenses/{sv.schema.license}")
+                    if sv.schema.license else None))
     version = mech_version()
     today = datetime.datetime.now(datetime.UTC).date().isoformat()
     people = creators(reg)
