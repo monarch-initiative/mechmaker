@@ -393,10 +393,11 @@ def arrow_column(values: list, kind):
     """The column as its declared type; as text when a value does not fit it."""
     import pyarrow as pa
 
-    if kind == pa.bool_():
-        values = [bool(v) if v in (0, 1) and not isinstance(v, str) else v for v in values]
+    typed = values
+    if kind == pa.bool_():  # SQLite holds booleans as 0 and 1; anything else is text
+        typed = [bool(v) if v in (0, 1) and not isinstance(v, str) else v for v in values]
     try:
-        return pa.array(values, type=kind)
+        return pa.array(typed, type=kind)
     except (pa.ArrowInvalid, pa.ArrowTypeError, TypeError, OverflowError):
         return pa.array([None if v is None else str(v) for v in values], type=pa.string())
 
