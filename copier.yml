@@ -1268,6 +1268,7 @@ output_formats:
     "Turtle (RDF)": ttl
     "SQLite database": sqlite
     "DuckDB database (adds linkml-store and its dependencies)": duckdb
+    "Parquet: one file per class, as in the SQL export (adds pyarrow)": parquet
     "KGX, an edge from each record to each term it binds": kgx
     "KGX, the whole record graph as nodes and edges": kgx_maximal
     "SQL: schema DDL, and the data as SQL": sql

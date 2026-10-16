@@ -131,7 +131,8 @@ SCENARIOS["fleet-member"] = {
     "workflows": ["sweep"],
 }
 SCENARIOS["minimal"]["workflows"] = []
-ALL_FORMATS = ["yaml", "json", "jsonld", "ttl", "sqlite", "duckdb", "sql", "csv", "tsv", "kgx", "kgx_maximal"]
+ALL_FORMATS = ["yaml", "json", "jsonld", "ttl", "sqlite", "duckdb", "parquet", "sql", "csv", "tsv", "kgx",
+               "kgx_maximal"]
 SCENARIOS["disease"].update({"site_palette": "brown", "site_theme": "light", "deep_research": True,
                              "output_formats": ALL_FORMATS, "tabular_layout": "flat",
                              "load_targets": ["mongodb", "neo4j"],
@@ -274,7 +275,8 @@ def test_registry_entry_lists_released_exports(generated):
     assert len(ids) == len(set(ids))
     for p in released:
         assert p["product_url"].rsplit("/", 1)[1].startswith(f"{slug}-")
-        assert p["format"] != "other", p["id"]  # each export format has its own value
+        # Each export format has its own value, but Parquet: MechRegistry's FormatEnum has none.
+        assert p["format"] != "other" or p["id"] == f"{slug}.tables-parquet-zip", p["id"]
         for key, allowed in REGISTRY_ENUMS.items():
             assert p.get(key, "other") in allowed, (p["id"], key)
 
@@ -492,6 +494,12 @@ def test_linkml_store_only_when_chosen(generated):
         assert t in store[0]
     load_cfg = yaml.safe_load((dest / "conf" / "load.yaml").read_text())
     assert sorted(load_cfg["targets"]) == sorted(targets)
+
+
+def test_pyarrow_only_when_chosen(generated):
+    _, answers, dest = generated
+    deps = tomllib.loads((dest / "pyproject.toml").read_text())["project"]["dependencies"]
+    assert any(d.startswith("pyarrow") for d in deps) == ("parquet" in answers["output_formats"])
 
 
 def test_kgx_settings_follow_answers(generated):

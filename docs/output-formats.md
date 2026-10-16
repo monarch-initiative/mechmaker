@@ -16,6 +16,7 @@ Every format comes from LinkML or the libraries it brings.
 | `ttl` | `<slug>-records.ttl` | Linked data, as Turtle, for triple stores |
 | `sqlite` | `<slug>-records.sqlite` | A database to query directly |
 | `duckdb` | `<slug>-records.duckdb` | Analytics in DuckDB: one table of records, nested values as JSON. Optional, see below |
+| `parquet` | `<slug>-tables-parquet.zip` | Data frames and analytics engines: one typed Parquet file per class. Optional, see below |
 | `sql` | `<slug>-schema.sql`, `<slug>-records.sql` | The schema as SQL DDL, and the data as SQL to load anywhere |
 | `kgx` | `<slug>-kgx_nodes`, `_edges` (`.jsonl`, `.tsv`) | A knowledge graph in KGX: an edge from each record to each term it binds. See below |
 | `kgx_maximal` | `<slug>-kgx_maximal_nodes`, `_edges` | The whole record graph in KGX: every object a node. See below |
@@ -24,7 +25,7 @@ Every format comes from LinkML or the libraries it brings.
 ## Choosing
 
 Copier asks `output_formats` when the Mech is made. The default is every
-format but TSV, DuckDB and the two KGX formats. Change the choice any time in `conf/export.yaml`:
+format but TSV, DuckDB, Parquet and the two KGX formats. Change the choice any time in `conf/export.yaml`:
 
 ```yaml
 formats:
@@ -142,6 +143,32 @@ To add DuckDB to an existing Mech, put `duckdb` in `conf/export.yaml`, then
 `uv add 'linkml-store>=0.3.2'` and `just install`. Without the package,
 `just export` fails and says exactly that.
 
+## Parquet, an optional extra
+
+The Parquet export holds the tables of the SQLite export, one Parquet file
+per class, zipped as `<slug>-tables-parquet.zip`: the `per_class` layout
+below, whatever `tabular_layout` says. Each column takes the Arrow type of
+its `gen-sqltables` declaration (integers, floats and booleans as such;
+text, dates and anything else as strings). A value that does not fit its
+declared type turns its column into text rather than fail the export. Each
+file is read back, and its rows and columns must match its SQLite table.
+
+The files are written with [pyarrow](https://arrow.apache.org/docs/python/),
+which a Mech installs only when `output_formats` includes `parquet`. To add
+Parquet to an existing Mech, put `parquet` in `conf/export.yaml`, then
+`uv add 'pyarrow>=18.0'` and `just install`. Without the package,
+`just export` fails and says exactly that.
+
+Unzipped, each file reads directly in pandas, Polars or DuckDB, and the
+tables join on their `_id` columns as in SQLite:
+
+```sql
+SELECT * FROM 'GoatBreed.parquet';
+```
+
+MechRegistry has no `parquet` format, so the registry entry lists the zip
+as `format: other`.
+
 ## Loading into a database
 
 Some uses need the records in a running database, not a file. `just load`
@@ -236,5 +263,7 @@ thing.
 - The KGX files are not run through the `kgx` package's validator, which
   brings over thirty dependencies; the export's own checks cover categories,
   predicates and dangling edges.
-- Parquet and Croissant are not LinkML-native and not yet offered
+- Parquet has one layout only, one table per class; there is no flattened
+  Parquet to match `tabular_layout: flat`.
+- Croissant metadata is not yet offered
   ([#95](https://github.com/monarch-initiative/mechmaker/issues/95)).

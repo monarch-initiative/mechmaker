@@ -166,6 +166,7 @@ products:
   ['ttl', 'records.ttl', 'Records as Turtle (RDF)', "The records as an RDF graph, through the schema's URIs.", 'GraphProduct', 'turtle', ''],
   ['sqlite', 'records.sqlite', 'SQLite database', "One table per class, as gen-sqltables defines them; a nested object's row points at its parent.", 'RecordCorpus', 'sqlite', ''],
   ['duckdb', 'records.duckdb', 'DuckDB database', 'One table of records, with nested values as DuckDB JSON, written through linkml-store.', 'RecordCorpus', 'duckdb', ''],
+  ['parquet', 'tables-parquet.zip', 'Tables as Parquet (zip)', 'One Parquet file per class, linked by ids, as in the SQL export.', 'RecordCorpus', 'other', 'zip'],
   ['sql', 'schema.sql', 'Schema as SQL DDL', 'The tables of the SQL export, as gen-sqltables writes them.', 'DataModelProduct', 'sql', ''],
   ['sql', 'records.sql', 'Records as SQL', 'The SQLite database as SQL: its tables and an INSERT per row.', 'RecordCorpus', 'sql', ''],
   ['csv', 'records.csv' if flat else 'tables-csv.zip', 'Records as CSV' if flat else 'Tables as CSV (zip)', flat_csv if flat else graph_csv, 'RecordCorpus', 'csv', '' if flat else 'zip'],
