@@ -21,11 +21,12 @@ Every format comes from LinkML or the libraries it brings.
 | `kgx` | `<slug>-kgx_nodes`, `_edges` (`.jsonl`, `.tsv`) | A knowledge graph in KGX: an edge from each record to each term it binds. See below |
 | `kgx_maximal` | `<slug>-kgx_maximal_nodes`, `_edges` | The whole record graph in KGX: every object a node. See below |
 | `csv`, `tsv` | see below | Spreadsheets and data frames |
+| `croissant` | `<slug>-croissant.json` | [Croissant](https://docs.mlcommons.org/croissant/) metadata: the other files, the records field by field, and where the data came from. Optional, see below |
 
 ## Choosing
 
 Copier asks `output_formats` when the Mech is made. The default is every
-format but TSV, DuckDB, Parquet and the two KGX formats. Change the choice any time in `conf/export.yaml`:
+format but TSV, DuckDB, Parquet, the two KGX formats and Croissant. Change the choice any time in `conf/export.yaml`:
 
 ```yaml
 formats:
@@ -169,6 +170,57 @@ SELECT * FROM 'GoatBreed.parquet';
 MechRegistry has no `parquet` format, so the registry entry lists the zip
 as `format: other`.
 
+## Croissant: metadata about the data
+
+[Croissant](https://docs.mlcommons.org/croissant/docs/croissant-spec-1.1.html)
+is MLCommons' JSON-LD vocabulary for describing a dataset, read by dataset
+search engines and machine learning tools. It is not a data format: it
+describes the other files, so a Mech that chooses `croissant` must also
+choose `csv`, `tsv`, `parquet` or `json`. The export writes it last, as
+`<slug>-croissant.json` (Croissant 1.1), beside the files it describes. It
+holds:
+
+- **The dataset**: name, description, home page, repository, version (the
+  latest git tag), license, creators (with ORCIDs), keywords and a BibTeX
+  citation, read from `registry/<slug>.md`, so keep that entry current.
+  How the records are made (agent curation, human review, the evidence
+  policy, the disclaimer) goes in Croissant's Responsible AI terms
+  (`rai:dataCollection`, `rai:machineAnnotationTools`, `rai:dataLimitations`).
+- **Every file**, with its size and sha256. Each `contentUrl` is the file's
+  name: the metadata travels with the files, in `build/export/` and in
+  each release.
+- **The records, field by field**, as RecordSets. They come from the first
+  of these the export wrote: the per-class tables (CSV, TSV or Parquet, one
+  RecordSet per table, typed from `gen-sqltables`; a column that points at
+  another table says so in its description); the flat CSV or TSV; or the
+  JSON Lines records (the single, plain values every record has).
+- **Where the data came from**, in [PROV-O](https://www.w3.org/TR/prov-o/):
+  - each structured ingest in `conf/ingests.lock.yaml`, as
+    `prov:wasDerivedFrom`: the ingest's release (or Koza run), its files with
+    their checksums, and the sources upstream of it, by infores id, version
+    and retrieval date;
+  - each ontology the records bind, from `conf/oak_config.yaml`: an OBO
+    Foundry ontology by its PURL, with its OLS page;
+  - `data_sources` from `registry/<slug>.md`, each under the PROV relation
+    it names (`prov:hadPrimarySource`, `prov:wasDerivedFrom`, `prov:used`);
+  - every work the records cite as evidence, as a schema.org `citation`
+    with its identifier, its URL where the schema's prefixes expand it, and
+    its title from `references_cache/`.
+
+The export reads the file back with MLCommons'
+[mlcroissant](https://pypi.org/project/mlcroissant/): it must validate, and
+every RecordSet must load with the rows the export wrote. Loading checks
+each file's sha256, so a file changed after the export fails. Warnings
+(before the first release tag, the version is not `MAJOR.MINOR.PATCH`) are
+printed and do not fail. mlcroissant brings pandas and scipy, so a Mech
+installs it only when `output_formats` includes `croissant`. To add Croissant
+to an existing Mech, put `croissant` in `conf/export.yaml`, then
+`uv add 'mlcroissant>=1.1.1'` and `just install`.
+
+Each check runs in its own process with an empty cache: mlcroissant caches
+an archive's contents by its name, so a rebuilt zip would otherwise be read
+as it was.
+
 ## Loading into a database
 
 Some uses need the records in a running database, not a file. `just load`
@@ -265,5 +317,9 @@ thing.
   predicates and dangling edges.
 - Parquet has one layout only, one table per class; there is no flattened
   Parquet to match `tabular_layout: flat`.
-- Croissant metadata is not yet offered
-  ([#95](https://github.com/monarch-initiative/mechmaker/issues/95)).
+- Croissant names a link between tables in a column's description, not with
+  `references`: mlcroissant 1.1.1 joins the tables on a reference when it
+  loads them, which changes the rows a table gives, and its 1.1 syntax for
+  one crashes the validator.
+- Croissant names each ontology, but not its version: a Mech does not record
+  the version it checked terms against.

@@ -1274,8 +1274,12 @@ output_formats:
     "SQL: schema DDL, and the data as SQL": sql
     "CSV": csv
     "TSV": tsv
+    "Croissant metadata about the files and their sources (adds mlcroissant)": croissant
   default: [yaml, json, jsonld, ttl, sqlite, sql, csv]
-  validator: "{% if not output_formats %}Pick at least one format.{% endif %}"
+  validator: >-
+    {% if not output_formats %}Pick at least one format.{% elif 'croissant' in output_formats
+    and not ['csv', 'tsv', 'parquet', 'json'] | select('in', output_formats) | list %}Croissant
+    describes the other files: pick CSV, TSV, Parquet or JSON too.{% endif %}
 
 kgx_biolink:
   type: bool

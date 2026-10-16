@@ -337,10 +337,10 @@ INGEST_WORDS = re.compile(
 # records and schema_import.py imports a schema; neither brings data in. tests/test_mech_registry.py
 # keeps this list equal to the template's.
 TEMPLATE_MODULES = {
-    "__init__.py", "compliance.py", "docs.py", "evidence.py", "export.py", "fleet.py", "history.py",
-    "ingest.py", "kgx.py", "literature.py", "load.py", "news.py", "oak_compat.py", "ols.py", "paths.py",
-    "qc.py", "records.py", "render.py", "report.py", "research.py", "schema_import.py", "shapes.py",
-    "site.py", "termcheck.py", "terms.py", "titles.py", "validate.py", "warm.py"}
+    "__init__.py", "compliance.py", "croissant.py", "docs.py", "evidence.py", "export.py", "fleet.py",
+    "history.py", "ingest.py", "kgx.py", "literature.py", "load.py", "news.py", "oak_compat.py", "ols.py",
+    "paths.py", "qc.py", "records.py", "render.py", "report.py", "research.py", "schema_import.py",
+    "shapes.py", "site.py", "termcheck.py", "terms.py", "titles.py", "validate.py", "warm.py"}
 
 
 def ingests(name: str) -> bool:
