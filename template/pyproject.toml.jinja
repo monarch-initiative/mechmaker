@@ -33,6 +33,11 @@ dependencies = [
     # pyarrow, for the Parquet export. Only here because this Mech chose it.
     "pyarrow>=18.0",
 {%- endif %}
+{%- if 'croissant' in output_formats %}
+    # mlcroissant, to check the Croissant metadata: it validates the file and
+    # loads every record set. Only here because this Mech chose it.
+    "mlcroissant>=1.1.1",
+{%- endif %}
 {%- if kgx_biolink and ('kgx' in output_formats or 'kgx_maximal' in output_formats) %}
     # The Biolink model, for the KGX exports: they check every category and
     # predicate against it. Only here because this Mech exports KGX.

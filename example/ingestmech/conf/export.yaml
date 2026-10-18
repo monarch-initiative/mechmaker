@@ -11,6 +11,9 @@
 #   parquet is always one table per class. It needs the pyarrow package.
 # kgx, kgx_maximal: a knowledge graph as KGX nodes and edges, mapped onto
 #   Biolink in conf/kgx.yaml. They need the biolink-model package.
+# croissant: Croissant metadata about the other files, the records field by
+#   field, and where the data came from. Needs csv, tsv, parquet or json
+#   beside it, and the mlcroissant package to check it.
 
 formats:
   - yaml

@@ -7,13 +7,14 @@ does not know.
 
 import csv
 import io
+import json
 import sqlite3
 import zipfile
 from pathlib import Path
 
 import pytest
 
-from ingestmech import export, kgx
+from ingestmech import croissant, export, kgx
 from ingestmech.paths import RECORD_CLASS, REPO_ROOT, SLUG
 
 EXAMPLE = Path(__file__).parent / "data" / "example_record.yaml"
@@ -30,6 +31,12 @@ try:
 except ImportError:
     HAS_PYARROW = False
 try:
+    import mlcroissant  # noqa: F401  only installed when this Mech exports Croissant
+
+    HAS_MLCROISSANT = True
+except ImportError:
+    HAS_MLCROISSANT = False
+try:
     import biolink_model  # noqa: F401  only installed when this Mech exports KGX
 
     HAS_BIOLINK = True
@@ -39,7 +46,7 @@ except ImportError:
 KGX_READY = HAS_BIOLINK or not kgx.settings()["biolink"]
 INSTALLED = [f for f in export.FORMATS
              if (f != "duckdb" or HAS_DUCKDB) and (f != "parquet" or HAS_PYARROW)
-             and (not f.startswith("kgx") or KGX_READY)]
+             and (f != "croissant" or HAS_MLCROISSANT) and (not f.startswith("kgx") or KGX_READY)]
 
 
 @pytest.mark.parametrize("layout", ["per_class", "flat"])
@@ -199,6 +206,92 @@ def test_parquet_columns_take_their_declared_types():
     assert export.arrow_column(["2024-01-02"], export.arrow_type("DATE")).type == pa.string()
     # A value that does not fit its declared type keeps the column, as text.
     assert export.arrow_column(["n/a", 3], export.arrow_type("INTEGER")).to_pylist() == ["n/a", "3"]
+
+
+def test_croissant_alone_is_refused(tmp_path, monkeypatch):
+    bad = tmp_path / "export.yaml"
+    bad.write_text("formats: [croissant, ttl]\n", encoding="utf-8")
+    monkeypatch.setattr(export, "SETTINGS", bad)
+    with pytest.raises(SystemExit, match="croissant describes the other files"):
+        export.settings()
+
+
+@pytest.mark.skipif(HAS_MLCROISSANT, reason="mlcroissant is installed")
+def test_croissant_without_mlcroissant_says_what_to_install(tmp_path):
+    cfg = {"formats": ["json", "croissant"], "tabular_layout": "per_class"}
+    written, problems = export.export(cfg, [EXAMPLE], tmp_path)
+    assert problems == [croissant.MISSING]
+    assert (tmp_path / f"{SLUG}-croissant.json").exists()
+
+
+@pytest.mark.skipif(not HAS_MLCROISSANT, reason="mlcroissant is not installed")
+@pytest.mark.parametrize("formats,layout,first", [
+    (["csv", "croissant"], "per_class", RECORD_CLASS),
+    (["tsv", "croissant"], "flat", RECORD_CLASS),
+    (["json", "croissant"], "per_class", RECORD_CLASS),
+])
+def test_croissant_validates_and_loads(tmp_path, formats, layout, first):
+    written, problems = export.export({"formats": formats, "tabular_layout": layout}, [EXAMPLE], tmp_path)
+    assert problems == []
+    doc = json.loads((tmp_path / f"{SLUG}-croissant.json").read_text(encoding="utf-8"))
+    assert doc["conformsTo"] == croissant.CONFORMS_TO
+    assert first in [r["@id"] for r in doc["recordSet"]]
+    files = {d["@id"]: d for d in doc["distribution"] if "containedIn" not in d}
+    assert set(files) == {p.name for p in written if p.name != f"{SLUG}-croissant.json"}
+    assert all(len(d["sha256"]) == 64 for d in files.values())
+
+
+@pytest.mark.skipif(not HAS_MLCROISSANT, reason="mlcroissant is not installed")
+def test_croissant_check_catches_a_changed_file(tmp_path):
+    written, _ = export.export({"formats": ["csv", "croissant"], "tabular_layout": "per_class"},
+                               [EXAMPLE], tmp_path)
+    tables = tmp_path / f"{SLUG}-tables-csv.zip"
+    with zipfile.ZipFile(tables, "a") as zf:
+        zf.writestr("extra.csv", "x\n1\n")  # the zip's sha256 no longer matches
+    problems, _ = croissant.check(tmp_path / f"{SLUG}-croissant.json", {RECORD_CLASS: 1})
+    assert problems
+
+
+def test_croissant_names_the_sources(tmp_path, monkeypatch):
+    lock = tmp_path / "ingests.lock.yaml"
+    lock.write_text(
+        "ingests:\n"
+        "  demo:\n"
+        "    kind: release\n"
+        "    repo: example/demo-ingest\n"
+        "    release: v1\n"
+        "    build_version: '2026-10-01'\n"
+        "    sources: [{id: 'infores:demo', version: '1', retrieved_at: '2026-10-01'}]\n"
+        "    files: {demo_edges.tsv: {sha256: abc, bytes: 3}}\n", encoding="utf-8")
+    monkeypatch.setattr(croissant, "INGEST_LOCK", lock)
+    sv = export.schemaview()
+    records = [export.load(EXAMPLE)]
+    doc, _ = croissant.build(sv, records, [], None)
+    derived = doc["prov:wasDerivedFrom"]
+    ingest = next(e for e in derived if e["prov:label"].startswith("demo ingest"))
+    assert ingest["@id"] == "https://github.com/example/demo-ingest/releases/tag/v1"
+    assert ingest["prov:hadMember"][0]["sha256"] == "abc"
+    assert ingest["prov:wasDerivedFrom"][0]["@id"] == croissant.INFORES + "demo"
+    import yaml as _yaml
+
+    adapters = _yaml.safe_load(croissant.OAK_CONFIG.read_text(encoding="utf-8"))["ontology_adapters"]
+    bound = sorted(p for p, a in adapters.items() if a and p != SLUG)
+    assert [e["prov:label"] for e in derived if e["prov:label"].endswith(" ontology")] == [
+        f"{p} ontology" for p in bound]
+    refs = croissant.references(records)
+    assert [c["identifier"] for c in doc.get("citation", [])] == refs
+    assert "Software Collection" in doc["rai:dataCollectionType"]
+
+
+def test_croissant_license_falls_back_to_the_schema(tmp_path, monkeypatch):
+    monkeypatch.setattr(croissant, "REGISTRY", tmp_path / "none.md")  # no registry entry
+    sv = export.schemaview()
+    if sv.schema.license:
+        doc, _ = croissant.build(sv, [], [], None)
+        assert doc["license"].startswith("https://")
+    sv.schema.license = None
+    doc, _ = croissant.build(sv, [], [], None)
+    assert "license" not in doc  # not a made-up URL
 
 
 def reference_schema(tmp_path):
