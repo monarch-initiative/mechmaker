@@ -90,24 +90,32 @@ as a map to the evidence, rather than a verdict, uses it as it was meant.
 ## 3. One record, one file, one thing
 
 **Decision.** A Mech has one record class. Each record is one YAML file
-under the records folder, validated against that class. The filename comes
-from the record's `name`: lowercase, with each run of other characters
-replaced by one underscore.
+under the records folder, validated against that class.
 
-Each Mech decides in its `docs/DOMAIN.md` what counts as one record, what
+Filenames follow one convention per Mech, and no two records share a
+filename stem, because the record browser, history and research name a
+record by its stem. The template's default derives the stem from the
+record's `name`: lowercase, with each run of other characters replaced by
+one underscore.
+
+Each Mech defines in its `docs/DOMAIN.md` what counts as one record, what
 does not, and where the near misses go instead: a section of a record,
 another Mech, or nowhere.
 
-**Rationale.** With one file per record, two curators rarely edit the same
-file, and a pull request shows one record's change whole. Plain YAML is
-easy for people and agents to read and edit.
+**Rationale.** The aim is efficient curation by agents and efficient review
+by people, with as little friction from technical problems and parsing as
+possible. A record in plain YAML is easy for an agent to write and for a
+person to read. Two curators may still edit the same file at once; YAML
+makes the conflict easier to resolve, and the validator catches a merge
+that leaves a record broken.
 
 **Enforced by.** The `records_dir` and `record_class` answers; the schema;
-`just validate`; `docs/DOMAIN.md`.
+`just validate`, whose default filename check is in `validate.py`;
+`docs/DOMAIN.md`.
 
 **How Mechs adapt it.** Granularity belongs to each Mech:
 
-- Where an ontology already names the things, it can decide granularity:
+- Where an ontology already names the things, it can set granularity:
   one term, one record, and a synonym is not a second record.
 - Where nothing names them, the Mech states its own rule, such as one
   software repository per record however many components it holds, or one
@@ -175,7 +183,7 @@ checked with `skills/make-mech/scripts/check_terms.py`;
 `just validate`; `conf/oak_config.yaml`, which says which service checks
 each prefix; `cache/`.
 
-**How Mechs adapt it.** Each Mech chooses its ontologies and roots. When an
+**How Mechs adapt it.** Each Mech's creators choose its ontologies and roots. When an
 ontology cannot serve (its terms lack the parents a dynamic enum needs, or
 it lacks the terms), the Mech binds a broader term from another ontology,
 keeps the finer detail in `preferred_term`, and records the choice in
@@ -225,8 +233,8 @@ papers by PMID.
 
 **Decision.** A Mech's data model is a [LinkML](https://linkml.io/) schema
 in its repository, and the schema is closed: a field it does not define is
-an error. Exchange standards such as Biolink are used in the exports, not
-in the curation model.
+an error. Exchange standards are applied in the exports, not in the
+curation model.
 
 - **Closed.** When something real has nowhere to go, the schema gets a slot
   (with the Mech's `extend-schema` skill) and records migrate. It does not
@@ -234,9 +242,12 @@ in the curation model.
 - **One schema, many formats.** `just export` writes the records as JSON,
   RDF, SQL, tables and knowledge graph files from the one schema, and reads
   each back.
-- **Biolink in the exports.** `conf/kgx.yaml` maps sections to Biolink
-  categories and predicates. A Mech whose things Biolink does not cover sets
-  `biolink: false` and names its own.
+- **Knowledge graph mapping in the exports.** When a Mech exports a
+  knowledge graph (KGX), `conf/kgx.yaml` maps its sections to categories
+  and predicates. Biolink is the usual choice in biology and biomedicine,
+  the fields it was built for. A Mech in another field sets
+  `biolink: false` and names its own categories and predicates, or leaves
+  the knowledge graph export out.
 - **Every prefix declared.** Each CURIE prefix a record can carry has its
   full URI in the schema, so the RDF exports can expand it.
 
@@ -294,7 +305,7 @@ schema modules, copied byte for byte into each Mech:
   `SupportingReference`;
 - `history.yaml`: curation history.
 
-A Mech never edits them. They change upstream in culturebotai-claw, and
+Nobody edits them inside a Mech. They change upstream in culturebotai-claw, and
 reach a Mech through mechmaker or, in a Fleet, through its Coordinator.
 
 **Rationale.** Tools that read many Mechs (fleet audits, MechRegistry, a
@@ -328,21 +339,91 @@ places, that thing may be better kept in a Mech of its own and linked to.
 
 ## 12. Agents and automation
 
-**Decision.** Agents do most of the curation, started by people or by
-GitHub workflows. Every agent reads the Mech's `CLAUDE.md` (or `AGENTS.md`)
-and uses its skills.
+**Decision.** Agents do most of the curation. A person can start one in a
+local session, and GitHub workflows start them in the repository itself:
+on a schedule, on a new issue or pull request, or when someone with write
+access asks. These workflows are a large part of what makes a Mech work.
+They keep it checked, keep its work moving between sessions, and put each
+change in front of a person in a form that is quick to review.
 
-- An agent that reads text anyone can write (an issue, a comment, a news
-  story) gets no write permission. It returns structured output, and a step
-  with no model publishes it.
-- Agent workflows are opt-in, chosen per Mech, and pin the action they run.
+Every agent, local or in a workflow, reads the Mech's `CLAUDE.md` (or
+`AGENTS.md`) and uses the Mech's skills, so it curates by the same rules a
+person would.
 
-**Rationale.** Text from the public can carry instructions. An agent that
-reads it must not be able to act on them with the repository's credentials.
+**The parts.** Each Mech carries a catalog of its workflows,
+`docs/WORKFLOWS.md`; [Workflows](workflows.md) lists them all. They fall
+into three groups:
 
-**Enforced by.** The workflow templates under `template/.github/`; the
-`workflows` answer; mechmaker's tests, which check that the pinned action
-and credential lines match across workflows, and `actionlint`.
+| Group | What they do | Examples |
+|---|---|---|
+| Checks, no model | Run the checks and publish the site. `qc` is always on and is the required check on every pull request | `qc`, the weekly `sweep` against live services, `docs`, `news-watch` |
+| Agents that read and report | Read a pull request, an issue or new papers, and return a structured result. A step with no model posts it | `review`, `triage`, `dedupe`, `literature-scan`, `pr-shepherd`, `post-review` |
+| Agents that write | Curate: open branches and pull requests that change records | `curation-scanner`, `compliance`, and `claude`, which answers `@claude` from people with write access |
+
+**The loop.** A typical change goes:
+
+1. Work is found. A person opens an issue, `literature-scan` files new papers
+   that match records, `news-watch` files new stories, or `just compliance`
+   ranks the least complete records.
+2. Work is accepted. `triage` labels issues. An issue becomes curation work
+   only when it has the `curation` label, which goes on automatically only
+   when the author can write to the repository; otherwise a person adds it
+   after reading the issue.
+3. Work is done. `curation-scanner` takes accepted issues and advances them;
+   `compliance` improves the least complete records. Each opens a pull
+   request with records at `PROPOSED` at most, and history for what it did.
+4. Work is checked. `qc` runs every check on the pull request, and `review`
+   reviews it with the `review-record` skill.
+5. A person decides. They read the change and the review, and merge it or
+   not. `post-review` turns their review comments into suggestions and
+   replies; `pr-shepherd` names the most stuck pull request and what would
+   unstick it.
+
+**The rules.**
+
+- **No agent merges.** Merging is for people. This is what makes the pull
+  request the review gate (§8).
+- **An agent that reads text anyone can write gets no write permission.**
+  Issues, comments, pull request bodies, abstracts and news stories can
+  carry instructions. Agents that read them return structured output, and a
+  step with no model checks and publishes it.
+- **Agents that write never read the public thread directly.** A step with
+  no model gives them the issue's title, body, and the comments of people
+  with write access and of the Mech's own Apps.
+- **Separate identities.** The agent App pushes, so its pull requests get
+  CI. A separate reviewer App approves, so the writer never approves its
+  own work.
+- **Instructions come from the default branch.** Prompts and helper scripts
+  load from `main`, so a pull request cannot change the instructions it is
+  reviewed under.
+- **Explicit tools.** Each agent has a fixed list of tools. No workflow
+  runs with permissions bypassed.
+- **Failures are loud.** Every agent run ends with a check that fails the
+  job with its cause (out of turns, out of credit, a usage limit), rather
+  than a silent pass.
+- **Opt-in, and pinned.** Every agent workflow is off until chosen. Each
+  pins the exact version of the action it runs. Scheduled agents run only
+  when started by hand until `agent_schedules` is turned on.
+
+**Rationale.** Agents curate quickly, and the workflows let them do it
+continuously, with every change arriving as a checked, reviewed pull
+request. People spend their time on the decision only they can make:
+whether a change is right. Text from the public can carry instructions, so
+nothing that reads it can act on it with the repository's credentials.
+
+**Enforced by.** The workflow templates under `template/.github/`, and the
+prompts in `.github/prompts/`; the `workflows` and `agent_schedules`
+answers; `.github/agent-config.yaml` for models and turn budgets;
+mechmaker's tests, which check that the pinned action and credential lines
+match across workflows, and `actionlint`.
+
+**How Mechs adapt it.** A Mech's creators choose which workflows to turn on,
+and when to turn on schedules. They edit the prompts in `.github/prompts/`
+to fit the field, set models and turn budgets, tune what
+`literature-scan` searches for, and may trace every run with Langfuse. A
+Mech at large scale may add workflows of its own. One that lets an agent
+merge approved pull requests removes a person from the loop, and is a
+policy its creators must choose deliberately.
 
 ## 13. Checks
 
@@ -363,8 +444,8 @@ their `just qc`.
 
 **Decision.** Causal graphs, the record browser, maps, deep research, news
 leads, structured ingests, agent workflows, output formats and database
-loads are Copier answers. A Mech turns on what its field needs, and its
-`.copier-answers.yml` records the choice.
+loads are Copier answers. A Mech's creators turn on what its field needs,
+and its `.copier-answers.yml` records the choice.
 
 **Rationale.** Each part has a cost: files to read, checks to keep passing,
 and for some, money per run. Parts a Mech does not use make it harder to
@@ -374,11 +455,11 @@ curate and review.
 graphs, while one about breeds has no use for them. A Mech about incidents
 that local news covers, and papers may never report, turns on news leads.
 
-## What a Mech adapts, and what it keeps
+## What each Mech defines, and what every Mech keeps
 
-| A Mech decides | Every Mech keeps |
+| Each Mech defines | Every Mech keeps |
 |---|---|
-| What one record is, and its granularity (§3) | One record, one file (§3) |
+| What one record is, its granularity, and its filename convention (§3) | One record, one file, unique filenames (§3) |
 | Its identity scheme: an ontology root, a source's ids, or minted ids (§4) | Ids that never change and never repeat (§4) |
 | Its ontologies and roots (§5) | Checked terms, ontology labels, no guessed CURIEs (§5) |
 | Its kinds of evidence and reference types (§6) | Exact, checked quotes; leads are never sources (§6) |
@@ -386,6 +467,7 @@ that local news covers, and papers may never report, turns on news leads.
 | Its scope and curation priorities (§1) | Agents stop at `PROPOSED`; people review (§8) |
 | Its optional parts (§14) | History on every change (§9) |
 | Whether and how it links to other Mechs (§11) | The shared modules, unedited (§10) |
+| Its workflows, prompts, models and schedules (§12) | No agent merges; agents that read public text cannot write (§12) |
 
 When a Mech's field needs something in the right-hand column to change,
 record the reason in that Mech's `docs/DOMAIN.md` and open an issue on
