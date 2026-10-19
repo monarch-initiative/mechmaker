@@ -13,9 +13,8 @@ One record is one ingest. One record is one YAML file under
 `src/ingestmech/schema/ingestmech.yaml`.
 
 The pattern comes from [DisMech](https://github.com/monarch-initiative/dismech).
-What every Mech shares, and why, is in mechmaker's
-[design decisions](https://monarch-initiative.github.io/mechmaker/design/). Where this Mech departs
-from them, `docs/DOMAIN.md` says so.
+mechmaker's [design decisions](https://monarch-initiative.github.io/mechmaker/design/) apply to
+every Mech. Where this one adapts them, `docs/DOMAIN.md` says how.
 The registry of Mechs is [MechRegistry](https://github.com/monarch-initiative/mechregistry).
 
 Read before changing domain content:

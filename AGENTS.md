@@ -37,9 +37,9 @@ the Mech's folder, not here. Install the skills there as above, and follow
 ## What a Mech is, and why
 
 `docs/design.md` (published at https://monarch-initiative.github.io/mechmaker/design/)
-records the decisions every Mech shares, why, and what a Mech may change.
-Read it before a structural, ontology or evidence decision, here or in a
-Mech, and do not silently contradict it.
+holds the design decisions for all Mechs, and where a Mech can adapt them.
+Read it before making a structural, ontology or evidence decision, here or
+in a Mech, and do not silently contradict it.
 
 ## If you are changing mechmaker
 
