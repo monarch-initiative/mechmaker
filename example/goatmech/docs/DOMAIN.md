@@ -2,6 +2,8 @@
 
 This file is the design record for what GoatMech knows. Every schema change
 updates it. The survey behind it is `example/survey-brief.md` in mechmaker.
+Where GoatMech departs from mechmaker's
+[design decisions](https://monarch-initiative.github.io/mechmaker/design/), this file says so, and why.
 
 ## What a record is
 

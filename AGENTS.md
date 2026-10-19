@@ -34,6 +34,13 @@ They have a Mech made from mechmaker and want its newer features. Work in
 the Mech's folder, not here. Install the skills there as above, and follow
 `sync-mech`. The person chooses which updates to take.
 
+## What a Mech is, and why
+
+`docs/design.md` (published at https://monarch-initiative.github.io/mechmaker/design/)
+records the decisions every Mech shares, why, and what a Mech may change.
+Read it before a structural, ontology or evidence decision, here or in a
+Mech, and do not silently contradict it.
+
 ## If you are changing mechmaker
 
 Read `CLAUDE.md`. It has the layout and the rules: what is vendored and
