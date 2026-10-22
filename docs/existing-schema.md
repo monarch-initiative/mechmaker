@@ -59,7 +59,10 @@ mode by `slot_usage` on the record class.
 
 `--from` converts a schema in another format to LinkML first, with
 [schema-automator](https://github.com/linkml/schema-automator), run through
-`uvx` in its own environment, so the Mech never installs it:
+`uvx` in its own environment, so the Mech never installs it. That
+environment holds Pint below 0.26.2: Pint 0.26.2 rejects a unit alias in
+ucumvert 0.3.2, which schema-automator loads on every command, so none
+would run.
 
 | `--from` | Source |
 |---|---|

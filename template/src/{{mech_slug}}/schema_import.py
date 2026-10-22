@@ -68,7 +68,10 @@ PROTECTED_SLOTS = {
     "supports", "evidence_source", "snippet", "explanation", "creation_date", "updated_date",
     "curation_history", "timestamp", "curator", "llm_assisted", "model", "action",
 }
-SCHEMAUTO = ["uvx", "--quiet", "--python", "3.13", "--from", "schema-automator==0.5.7", "schemauto"]
+# Pint 0.26.2 rejects an alias in ucumvert 0.3.2's unit definitions (`i.U.`), and linkml-map loads
+# them when schema-automator is imported, so every command fails. Lift the pin once ucumvert fixes it.
+SCHEMAUTO = ["uvx", "--quiet", "--python", "3.13", "--from", "schema-automator==0.5.7",
+             "--with", "pint<0.26.2", "schemauto"]
 # --from FORMAT: the schema-automator command that turns it into LinkML.
 CONVERTERS = {
     "json-schema": "import-json-schema",
