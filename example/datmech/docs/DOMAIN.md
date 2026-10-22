@@ -4,6 +4,8 @@ This file is the design record for what DaTMech knows. mechmaker
 wrote the skeleton; the `design-mech-schema` skill filled it in from the
 domain survey (mechmaker's `example/dat-survey-brief.md`). Every later
 schema change updates it.
+Where DaTMech adapts mechmaker's
+[design decisions](https://monarch-initiative.github.io/mechmaker/design/), this file says how, and why.
 
 ## What a record is
 

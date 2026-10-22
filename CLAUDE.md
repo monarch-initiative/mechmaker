@@ -16,6 +16,9 @@ and agent skills (`skills/`) for making Mechs, and Fleets of them. See README.md
   `coordinator/canon/schema/` links to the template's vendored modules, and
   `LICENSE.jinja` and `AGENTS.md` link to the template's.
 - `AGENTS.md`: the entry point for an agent pointed at this repository.
+- `docs/design.md`: the design decisions for all Mechs, and where a Mech
+  can adapt them. A template change that alters one updates it in the
+  same pull request.
 - `skills/`: skills for the agent that makes a Mech. `.claude/skills` is a
   symlink to it. `.claude-plugin/` makes the repository a Claude Code plugin.
 - `upgrade-notes.yml`: what an existing Mech must do, beyond taking files,

@@ -2,6 +2,8 @@
 
 This file is the design record for what IngestMech knows. Every schema
 change updates it.
+Where IngestMech adapts mechmaker's
+[design decisions](https://monarch-initiative.github.io/mechmaker/design/), this file says how, and why.
 
 ## What a record is
 

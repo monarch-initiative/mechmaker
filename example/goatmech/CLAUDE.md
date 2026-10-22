@@ -13,6 +13,8 @@ One record is one goat breed. One record is one YAML file under
 `src/goatmech/schema/goatmech.yaml`.
 
 The pattern comes from [DisMech](https://github.com/monarch-initiative/dismech).
+mechmaker's [design decisions](https://monarch-initiative.github.io/mechmaker/design/) apply to
+every Mech. Where this one adapts them, `docs/DOMAIN.md` says how.
 The registry of Mechs is [MechRegistry](https://github.com/monarch-initiative/mechregistry).
 
 Read before changing domain content:
