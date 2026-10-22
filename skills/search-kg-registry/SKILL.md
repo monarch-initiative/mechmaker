@@ -81,7 +81,7 @@ each source as rows a Mech can fetch.
 **Are there mappings for these identifiers?** `mappings <id> ...` lists
 the mapping products (SSSOM sets, cross-reference tables) that touch every
 resource named: listed on its page, or naming it as a source. `--sssom`
-keeps the SSSOM sets; `--search` matches words in a product's name. The
+keeps the SSSOM sets; `--search` matches words in a product's id, name or description. The
 `search-mappings` skill reads a set once found, and says when a Mech
 should publish its own.
 

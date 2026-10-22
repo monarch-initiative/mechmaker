@@ -143,7 +143,7 @@ add by hand instead.
 
 [sssom-py](https://github.com/mapping-commons/sssom-py) is the reference
 library and command line (`pip install sssom`, or `uvx --from sssom sssom`
-to run it once). A Mech with `sssom` on has it installed.
+to run it once). Every Mech has it, through oaklib.
 
 ```bash
 sssom validate my.sssom.tsv                    # against the SSSOM schema

@@ -708,7 +708,8 @@ def mapping_items(m: Mech) -> list[Item]:
     absent = [p for p in parts if not m.exists(p)]
     absent += [f"schema class {c}" for c in ("Mapping",) if c not in m.classes()]
     absent += [f"schema slot {s}" for s in ("mappings",) if s not in m.slots()]
-    mapped = [r for r in m.records() if isinstance(d := m._yaml(r), dict) and d.get("mappings")]
+    records = m.records()
+    mapped = [r for r in records if isinstance(d := m._yaml(r), dict) and d.get("mappings")]
     return [
         item(
             "SSSOM mappings: the record's section and the export",
@@ -723,7 +724,7 @@ def mapping_items(m: Mech) -> list[Item]:
             "Records map to other identifiers",
             "output_formats (sssom)",
             bool(mapped),
-            f"{len(mapped)} of {len(m.records())} record(s) have mappings",
+            f"{len(mapped)} of {len(records)} record(s) have mappings",
             "map a seed record with the curate-mappings skill, or take sssom out if no record will",
             status=None if mapped else CHECK,
         ),

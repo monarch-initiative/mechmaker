@@ -34,7 +34,8 @@ from pathlib import Path
 
 import yaml
 
-from .croissant import LICENSES, mech_version, registry_entry
+from .croissant import license_url, mech_version, registry_entry
+from .export import release_url
 from .paths import MECH_NAME, RECORD_CLASS, REPO_URL, SLUG
 
 MISSING = (
@@ -64,6 +65,11 @@ def expand(curie: str, prefixes: dict[str, str]) -> str:
     return prefixes[prefix] + local if local and prefix in prefixes else curie
 
 
+def one_line(value) -> str:
+    """The text with each run of whitespace (tabs, newlines) as one space: one cell, one row."""
+    return " ".join(str(value).split()) if value else ""
+
+
 def rows(sv, records: list[dict]) -> tuple[list[dict], list[str]]:
     """One row per mapping in the records, and the problems found on the way."""
     prefixes = prefix_map(sv)
@@ -76,20 +82,19 @@ def rows(sv, records: list[dict]) -> tuple[list[dict], list[str]]:
             if not isinstance(m, dict):
                 problems.append(f"sssom: {where} is not a mapping")
                 continue
-            notes = m.get("notes")
             row = {
                 "subject_id": str(rec.get("id")),
-                "subject_label": rec.get("name") or "",
+                "subject_label": one_line(rec.get("name")),
                 "predicate_id": m.get("predicate_id") or "",
                 "predicate_modifier": m.get("predicate_modifier") or "",
                 "object_id": str(m.get("object_id") or ""),
-                "object_label": m.get("object_label") or "",
+                "object_label": one_line(m.get("object_label")),
                 "mapping_justification": m.get("mapping_justification") or "",
                 "confidence": "" if m.get("confidence") is None else str(m["confidence"]),
                 "see_also": "|".join(dict.fromkeys(expand(str(e["reference"]), prefixes)
                                                    for e in m.get("evidence") or []
                                                    if isinstance(e, dict) and e.get("reference"))),
-                "comment": " ".join(str(notes).split()) if notes else "",
+                "comment": one_line(m.get("notes")),
             }
             missing = sorted(c for c in REQUIRED if not row[c])
             if missing:
@@ -119,21 +124,20 @@ def metadata(sv, table: list[dict]) -> dict:
     prefixes = prefix_map(sv)
     used = {row[c].partition(":")[0] for row in table for c in CURIE_COLUMNS}
     meta: dict = {"curie_map": {p: prefixes[p] for p in sorted(used)}}
-    people = [c for c in reg.get("contacts") or [] if c.get("label")]
+    # Those with an ORCID first, so creator_label[i] is the person creator_id[i] names.
+    people = sorted((c for c in reg.get("contacts") or [] if c.get("label")),
+                    key=lambda c: not c.get("orcid"))
     orcids = [c["orcid"] for c in people if c.get("orcid")]
     if orcids:
         meta["curie_map"]["orcid"] = "https://orcid.org/"
-    license_ = ((reg.get("license") or {}).get("id")
-                or (LICENSES.get(sv.schema.license, f"https://spdx.org/licenses/{sv.schema.license}")
-                    if sv.schema.license else None))
     meta.update({
-        "mapping_set_id": f"{REPO_URL}/releases/latest/download/{FILE}",
+        "mapping_set_id": release_url(FILE),
         "mapping_set_version": mech_version(),
         "mapping_set_title": f"{reg.get('name') or MECH_NAME} mappings",
         "mapping_set_description": (
             f"Each {RECORD_CLASS} record's mappings to identifiers elsewhere, as curated in "
             f"{reg.get('name') or MECH_NAME} ({reg.get('repository') or REPO_URL})."),
-        "license": license_,
+        "license": license_url(sv, reg),
         "creator_id": [f"orcid:{o}" for o in orcids],
         "creator_label": [c["label"] for c in people],
         "mapping_provider": reg.get("repository") or REPO_URL,

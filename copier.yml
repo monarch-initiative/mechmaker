@@ -1277,12 +1277,15 @@ output_formats:
     "CSV": csv
     "TSV": tsv
     "Croissant metadata about the files and their sources (adds mlcroissant)": croissant
-    "SSSOM: each record's mappings to other identifiers, from its mappings section (adds sssom)": sssom
+    "SSSOM: each record's mappings to other identifiers, from its mappings section (checked with sssom-py)": sssom
   default: [yaml, json, jsonld, ttl, sqlite, sql, csv]
   validator: >-
     {% if not output_formats %}Pick at least one format.{% elif 'croissant' in output_formats
     and not ['csv', 'tsv', 'parquet', 'json'] | select('in', output_formats) | list %}Croissant
-    describes the other files: pick CSV, TSV, Parquet or JSON too.{% endif %}
+    describes the other files: pick CSV, TSV, Parquet or JSON too.{% elif 'sssom' in output_formats
+    and record_class in ['Mapping', 'MappingPredicateEnum', 'PredicateModifierEnum',
+    'MappingJustificationEnum'] %}SSSOM adds a class named {{ record_class }} to the schema: give
+    the record class another name, or leave SSSOM out.{% endif %}
 
 kgx_biolink:
   type: bool

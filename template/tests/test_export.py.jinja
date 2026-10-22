@@ -232,8 +232,16 @@ MAPPING = {"predicate_id": "skos:exactMatch", "object_id": "schema:Thing", "obje
            "mapping_justification": "semapv:ManualMappingCuration"}
 
 
-@pytest.mark.skipif(HAS_SSSOM, reason="sssom is installed")
-def test_sssom_without_sssom_says_what_to_install(tmp_path):
+def test_sssom_without_sssom_says_what_to_install(tmp_path, monkeypatch):
+    # oaklib brings sssom to every Mech, so make it look absent to test the message.
+    import importlib.util
+
+    real = importlib.util.find_spec
+
+    def find_spec(name, *args):
+        return None if name == "sssom" else real(name, *args)
+
+    monkeypatch.setattr(importlib.util, "find_spec", find_spec)
     written, problems = export.export(SSSOM_ONLY, [EXAMPLE], tmp_path)
     assert problems == [mappings.MISSING]
     assert (tmp_path / mappings.FILE).exists()

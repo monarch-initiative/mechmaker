@@ -532,6 +532,14 @@ def test_croissant_without_a_readable_format_is_rejected(tmp_path):
         render(tmp_path / "out", data)
 
 
+def test_sssom_with_a_record_class_named_mapping_is_rejected(tmp_path):
+    data = {**BASE, "mech_name": "MappingMech", "record_class": "Mapping",
+            "output_formats": ["yaml", "sssom"]}
+    with pytest.raises(Exception):  # noqa: B017
+        render(tmp_path / "out", data)
+    render(tmp_path / "ok", {**data, "output_formats": ["yaml"]})
+
+
 def test_kgx_settings_follow_answers(generated):
     _, answers, dest = generated
     deps = tomllib.loads((dest / "pyproject.toml").read_text())["project"]["dependencies"]

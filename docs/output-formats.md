@@ -224,8 +224,9 @@ The export also refuses a mapping with no justification, a record mapped to
 itself, and a mapping a record states twice. Then it reads the file back
 with [sssom-py](https://github.com/mapping-commons/sssom-py), the reference
 library: the file must parse, validate against the SSSOM schema, declare a
-prefix for every CURIE, and give back every row. A Mech installs sssom-py
-only when `output_formats` includes `sssom`.
+prefix for every CURIE, and give back every row. Every Mech has sssom-py
+already, because oaklib depends on it; choosing `sssom` also names it as a
+dependency of the Mech's own, so the export keeps the version it needs.
 
 The registry entry lists the file as a `MappingProduct` in format `sssom`.
 
