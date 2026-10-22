@@ -179,6 +179,7 @@ products:
 {%- endfor %}
 {%- endfor %}
 {%- endfor %}
+{%- set _ = rows.append(['sssom', 'mappings.sssom.tsv', 'Mappings as SSSOM', "Each record's mappings to identifiers elsewhere, with how each was found: an SSSOM mapping set.", 'MappingProduct', 'sssom', '']) %}
 {%- set _ = rows.append(['croissant', 'croissant.json', 'Croissant metadata', 'Croissant (MLCommons) metadata: every file here with its checksum, the records field by field, and where the data came from.', 'OtherProduct', 'jsonld', '']) %}
 {%- for fmt, file, label, about, category, format, compression in rows if fmt in output_formats %}
   - id: {{ mech_slug }}.{{ file | replace('.', '-') }}

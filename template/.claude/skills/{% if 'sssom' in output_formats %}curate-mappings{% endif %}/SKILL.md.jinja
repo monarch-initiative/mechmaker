@@ -1,0 +1,134 @@
+---
+name: curate-mappings
+description: >-
+  Map {{ record_article }} {{ record_noun }} record to identifiers in other
+  databases and ontologies: find candidates (the ontology's own
+  cross-references, published SSSOM mapping sets), choose a SKOS predicate
+  and a SEMAPV justification, quote evidence, declare the prefix, and check
+  the SSSOM file `just export` writes. Use when adding, reviewing or fixing
+  a record's `mappings`, when the SSSOM export fails, or when asked how a
+  record relates to an entry elsewhere.
+---
+
+# Mappings, and the SSSOM export
+
+A mapping says the record is the same as, close to, broader or narrower
+than, or related to an entity elsewhere: an entry in another database, a
+term in an ontology the record is not keyed by. Each record keeps its own
+in `mappings`. `just export` writes them all as one
+[SSSOM](https://mapping-commons.github.io/sssom/) mapping set,
+`build/export/{{ mech_slug }}-mappings.sssom.tsv`, which a release attaches
+and other resources can merge with their own.
+
+A mapping is a claim, like any other in the record. **It needs evidence,
+and its object must be checked, never guessed.**
+
+## 1. The fields
+
+The names are SSSOM's, so the record and the file read alike. The record
+is the subject.
+
+```yaml
+mappings:
+  - predicate_id: skos:exactMatch
+    object_id: MESH:D006816
+    object_label: Huntington Disease
+    mapping_justification: semapv:UnspecifiedMatching
+    confidence: 0.9            # optional, 0 to 1
+    evidence:
+      - reference: PMID:<n>
+        supports: SUPPORT
+        snippet: <verbatim, naming both>
+    notes: <optional; becomes the SSSOM comment>
+```
+
+- **`predicate_id`**, from SKOS. Read it as "the record ... the object".
+  - `skos:exactMatch`: the same thing. Interchangeable everywhere.
+  - `skos:closeMatch`: interchangeable in some uses, not all.
+  - `skos:broadMatch`: the object is broader than the record.
+  - `skos:narrowMatch`: the object is narrower.
+  - `skos:relatedMatch`: associated, but none of these.
+- **`predicate_modifier: Not`** states that the mapping does not hold. Use
+  it when a source, or a name, invites a wrong mapping: it keeps the next
+  curator from making it.
+- **`mapping_justification`**, from
+  [SEMAPV](https://mapping-commons.github.io/semantic-mapping-vocabulary/):
+  how the mapping was found, not how sure anyone is.
+  - `semapv:UnspecifiedMatching`: an agent's mapping, made by reading
+    sources. SEMAPV now has `semapv:AgentBasedMatching` for this, but
+    sssom-py, which checks the file, does not accept it yet.
+  - `semapv:ManualMappingCuration`: a person made it, reading the sources.
+  - `semapv:MappingReview`: a person checked a mapping found another way
+    and judged it right. A reviewer may set it on an agent's mapping.
+  - `semapv:LexicalMatching`: only the names were compared. Say so when it
+    is true, and never use it for `skos:exactMatch` on its own.
+  - `semapv:MappingChaining`: through other mappings (A to B, B to C).
+  - `semapv:LogicalReasoning`, the two similarity-threshold values and
+    `semapv:CompositeMatching` fit tools, not reading.
+- **`confidence`**, optional: how sure, from 0 to 1. Leave it out rather
+  than invent a number.
+
+## 2. Finding candidates
+
+- **The ontology's own cross-references.** For a record keyed by an
+  ontology term, the ontology often lists entries elsewhere:
+
+  ```bash
+  uv run runoak -i sqlite:obo:<name> mappings <CURIE> -O sssom --autolabel
+  ```
+
+  The first run downloads the ontology. An `ols:` adapter asks EBI's OxO
+  for mappings, which may not answer. An ontology's cross-reference is
+  usually `oio:hasDbXref`, which says only that the two are linked, not
+  how: choose the SKOS predicate yourself, from the definitions.
+- **Published mapping sets.** Many resources publish SSSOM: Mondo's
+  disease mappings, Bioregistry's, the biopragmatics database ingests.
+  With mechmaker's skills installed, `search-mappings` finds them through
+  KG-Registry and reads a set for the rows that name a CURIE. A mapping
+  taken from a set cites the set (or the source it names) as evidence.
+- **The source's own page.** A database entry often lists its
+  cross-references. Fetch it as a reference and quote the line.
+
+A candidate is a lead. Confirm it before writing it.
+
+## 3. Confirming one
+
+1. **The object exists, with that label.** When its prefix has an adapter
+   in `conf/oak_config.yaml`: `just term-info <prefix> <CURIE>`. Otherwise
+   read the entry at its source. Copy the label as the source gives it.
+2. **The predicate is right.** Compare definitions and scope, not names.
+   Two entries with the same name can differ (a disease and its subtype; a
+   breed and a population of it). When unsure between exact and close,
+   choose close.
+3. **The evidence says it.** A quote that names both entities, or states
+   the cross-reference, or gives the definition the predicate rests on.
+   Add it with `just add-evidence <file> --at mappings[<i>] ...`, as the
+   `evidence-references` skill says.
+4. **The prefix is declared.** Every `object_id` prefix must be in the
+   schema's `prefixes` with its full URI, as Bioregistry gives it (with
+   mechmaker's skills, `search-bioregistry`). The export writes the
+   prefixes it uses into the file's `curie_map`, and fails on one the
+   schema does not declare. Use the prefix the community uses for that
+   namespace (Bioregistry's preferred prefix), not a new one.
+
+## 4. Checking the file
+
+```bash
+just validate {{ records_dir }}/<stem>.yaml
+just export
+```
+
+The export reads the file back with sssom-py: it must parse, validate
+against the SSSOM schema, and give back every mapping. It reports a
+mapping with no justification, an undeclared prefix, a record mapped to
+itself, and a mapping a record states twice. Read the file once: each row
+is one of the record's mappings, with its evidence's references in
+`see_also`.
+
+## What not to do
+
+- Map to an identifier you have not seen at its source.
+- Write `skos:exactMatch` because the names match.
+- Map a record to another record of this Mech: that is a link between
+  records, which the schema models in its own sections.
+- Leave a mapping without evidence because a tool proposed it.

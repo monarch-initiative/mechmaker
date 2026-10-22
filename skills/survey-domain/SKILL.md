@@ -171,7 +171,22 @@ holds, whether the Mech should use its identifiers, link to it, align its
 schema with it (a data model), or curate what it lacks, and cite its
 KG-Registry page.
 
-## 6. Mechanism
+## 6. Mappings
+
+Records are keyed by one namespace; users join them to others. Find the
+mappings that already exist between them, with the `search-mappings`
+skill: the SSSOM sets KG-Registry lists for the identity ontology and the
+main sources (`kg_registry.py mappings <id> --sssom`), and the ontology's
+own cross-references. For each namespace the Mech's users will want, say
+which set already maps it, or that none does.
+
+Then decide whether the Mech publishes its own mappings, as SSSOM: the
+`sssom` answer to `output_formats`. Usually not when an ontology keys the
+records and already maps them; yes when records mint their own ids, when
+reconciling identifiers is the Mech's purpose, or when a source already
+holds columns of other ids. Say why, either way.
+
+## 7. Mechanism
 
 Does this domain have causal chains worth a graph? DisMech's pathographs
 link a cause through processes to phenotypes. If the domain's literature
@@ -181,6 +196,6 @@ and measurements, set it false.
 ## The brief
 
 Write it as markdown with these headings: Record, Identity, Grounding,
-Sources, Neighbors, Mechanism, Open questions. End with a draft
+Sources, Neighbors, Mappings, Mechanism, Open questions. End with a draft
 `answers.yml` for the parts the survey decides. Leave the user's own facts
 (names, org, licenses) for the user.

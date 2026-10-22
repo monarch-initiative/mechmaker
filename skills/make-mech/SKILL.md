@@ -72,11 +72,13 @@ wait and run it again rather than working around it.
 ## 1. Survey
 
 Run the `survey-domain` skill. It answers: what is one record, what keys it,
-which ontologies ground it, what sources feed it, and which existing Mechs,
-knowledge graphs and ingests overlap. It searches MechRegistry, KG-Registry
-and the Bioregistry with the `search-mechregistry`, `search-kg-registry` and
-`search-bioregistry` skills, and mechmaker's catalog of structured data
-ingests with `ingest-structured-data`. If a registered Mech already records the same
+which ontologies ground it, what sources feed it, which existing Mechs,
+knowledge graphs and ingests overlap, and which mappings already link its
+identifiers to others. It searches MechRegistry, KG-Registry and the
+Bioregistry with the `search-mechregistry`, `search-kg-registry` and
+`search-bioregistry` skills, published SSSOM mapping sets with
+`search-mappings`, and mechmaker's catalog of structured data ingests with
+`ingest-structured-data`. If a registered Mech already records the same
 entity, stop and ask the person whether to go on. Do not continue until the brief names the record entity in one
 sentence.
 
@@ -144,6 +146,7 @@ ingests: []              # Monarch ingests the person chose, e.g. [hpoa]; see in
 koza_ingests: false      # true for the Mech's own Koza ingest of a structured source
 output_formats: [yaml, json, jsonld, ttl, sqlite, sql, csv]   # what just export writes; add kgx for a knowledge graph
 # add parquet for data frames, croissant for dataset metadata (with csv, tsv, parquet or json)
+# add sssom when records map to other databases' ids (the survey's Mappings section; see search-mappings)
 # kgx_biolink: false   # with kgx: when Biolink does not fit the domain
 tabular_layout: per_class   # or flat: one row per record in CSV/TSV
 python_min: "3.11"
@@ -186,7 +189,8 @@ show: a failed BioPortal request prints its URL with the key in it. Tell them a 
 
 If `output_formats` includes `jsonld` or `ttl`, the schema's prefixes and
 URIs are part of the design: `design-mech-schema` says what to declare, and
-`just export` fails until they are right.
+`just export` fails until they are right. The same holds for `sssom`: every
+prefix a mapping points into is declared with its URI.
 
 **Check the identity root before generating.** Take three to five entities
 you expect to be records, find their CURIEs, and check they sit under the

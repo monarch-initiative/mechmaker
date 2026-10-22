@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from ingestmech import croissant, export, kgx
+from ingestmech import croissant, export, kgx, mappings
 from ingestmech.paths import RECORD_CLASS, REPO_ROOT, SLUG
 
 EXAMPLE = Path(__file__).parent / "data" / "example_record.yaml"
@@ -37,16 +37,24 @@ try:
 except ImportError:
     HAS_MLCROISSANT = False
 try:
+    import sssom  # noqa: F401  only installed when this Mech exports SSSOM
+
+    HAS_SSSOM = True
+except ImportError:
+    HAS_SSSOM = False
+try:
     import biolink_model  # noqa: F401  only installed when this Mech exports KGX
 
     HAS_BIOLINK = True
 except ImportError:
     HAS_BIOLINK = False
-# Every format this Mech can write as installed.
+# Every format this Mech can write as installed: SSSOM also needs the schema's `mappings`.
+SSSOM_READY = HAS_SSSOM and mappings.has_slot(export.schemaview())
 KGX_READY = HAS_BIOLINK or not kgx.settings()["biolink"]
 INSTALLED = [f for f in export.FORMATS
              if (f != "duckdb" or HAS_DUCKDB) and (f != "parquet" or HAS_PYARROW)
-             and (f != "croissant" or HAS_MLCROISSANT) and (not f.startswith("kgx") or KGX_READY)]
+             and (f != "croissant" or HAS_MLCROISSANT) and (f != "sssom" or SSSOM_READY)
+             and (not f.startswith("kgx") or KGX_READY)]
 
 
 @pytest.mark.parametrize("layout", ["per_class", "flat"])
@@ -206,6 +214,15 @@ def test_parquet_columns_take_their_declared_types():
     assert export.arrow_column(["2024-01-02"], export.arrow_type("DATE")).type == pa.string()
     # A value that does not fit its declared type keeps the column, as text.
     assert export.arrow_column(["n/a", 3], export.arrow_type("INTEGER")).to_pylist() == ["n/a", "3"]
+
+
+SSSOM_ONLY = {"formats": ["sssom"], "tabular_layout": "per_class"}
+
+
+def test_sssom_needs_the_mappings_slot(tmp_path):
+    # This Mech did not choose SSSOM, so its schema has no `mappings` for the export to read.
+    written, problems = export.export(SSSOM_ONLY, [EXAMPLE], tmp_path)
+    assert problems == [mappings.NO_SLOT] and written == []
 
 
 def test_croissant_alone_is_refused(tmp_path, monkeypatch):

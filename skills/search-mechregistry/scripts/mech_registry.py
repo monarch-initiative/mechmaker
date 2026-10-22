@@ -338,9 +338,10 @@ INGEST_WORDS = re.compile(
 # keeps this list equal to the template's.
 TEMPLATE_MODULES = {
     "__init__.py", "compliance.py", "croissant.py", "docs.py", "evidence.py", "export.py", "fleet.py",
-    "history.py", "ingest.py", "kgx.py", "literature.py", "load.py", "news.py", "oak_compat.py", "ols.py",
-    "paths.py", "qc.py", "records.py", "render.py", "report.py", "research.py", "schema_import.py",
-    "shapes.py", "site.py", "termcheck.py", "terms.py", "titles.py", "validate.py", "warm.py"}
+    "history.py", "ingest.py", "kgx.py", "literature.py", "load.py", "mappings.py", "news.py",
+    "oak_compat.py", "ols.py", "paths.py", "qc.py", "records.py", "render.py", "report.py", "research.py",
+    "schema_import.py", "shapes.py", "site.py", "termcheck.py", "terms.py", "titles.py", "validate.py",
+    "warm.py"}
 
 
 def ingests(name: str) -> bool:

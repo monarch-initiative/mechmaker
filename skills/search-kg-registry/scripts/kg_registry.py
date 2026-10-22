@@ -8,6 +8,7 @@ ontologies, aggregators and data models, with what each one is built from. Stand
     kg_registry.py show kg-microbe bacdive               # one resource in full
     kg_registry.py used-by bacdive                       # which resources take it as a source
     kg_registry.py domains                               # the domain words, with counts
+    kg_registry.py mappings mondo omim --sssom           # mapping sets that touch every id given
 
 A word or "quoted phrase" matches a resource's id, name, synonyms, domains,
 infores id or description, at the start of a word and ignoring a plural or
@@ -26,7 +27,14 @@ The registry is one file, downloaded once and kept for a week in
 $XDG_CACHE_HOME/mechmaker (~/.cache/mechmaker); --refresh downloads it
 again. If the download fails, an older copy is used, with a warning.
 
-Add --json to search, show or used-by for output a program reads.
+`mappings` lists mapping products: files that map identifiers between
+resources, such as SSSOM mapping sets. A product touches a resource when
+KG-Registry lists it on the resource's page or names the resource as one of
+its sources; given ids, only products that touch every one are listed.
+--sssom keeps the SSSOM ones; words after --search must all match the
+product's id, name or description.
+
+Add --json to search, show, used-by or mappings for output a program reads.
 
 Exit status: 0 found, 1 nothing matched or an id is unknown, 2 the registry
 could not be downloaded and no copy is kept, 64 a usage error.
@@ -232,6 +240,54 @@ def used_by(resources: list[dict], rid: str, ids: set[str]) -> list[dict]:
     return [r for r in resources if r["id"] in users]
 
 
+def mapping_products(resources: list[dict], ids: set[str]) -> list[dict]:
+    """Every mapping product once, with its maker and every resource it touches."""
+    found: dict[str, dict] = {}
+    for r in resources:
+        for p in r.get("products") or []:
+            if p.get("category") != "MappingProduct" or not p.get("id"):
+                continue
+            entry = found.setdefault(p["id"], {"product": p, "touches": set()})
+            entry["touches"].add(r["id"])
+            for src in (p.get("original_source") or []) + (p.get("secondary_source") or []):
+                if isinstance(src, dict) and src.get("source"):
+                    entry["touches"].add(src["source"])
+    out = []
+    for pid, entry in sorted(found.items()):
+        p, maker = entry["product"], owner(pid, ids)
+        out.append({"id": pid, "name": p.get("name", ""), "description": p.get("description", ""),
+                    "format": p.get("format", ""), "url": p.get("product_url", ""), "maker": maker,
+                    "size": p.get("product_file_size"),
+                    "touches": sorted(entry["touches"] | ({maker} if maker else set()))})
+    return out
+
+
+def select_mappings(products: list[dict], touching: list[str] = (), words: list[str] = (),
+                    sssom: bool = False) -> list[dict]:
+    """The products that touch every id in touching, match every word, and are SSSOM if asked."""
+    patterns = [word_pattern(w) for w in words]
+    out = []
+    for p in products:
+        if sssom and p["format"] != "sssom":
+            continue
+        if not set(touching) <= set(p["touches"]):
+            continue
+        text = " ".join([p["id"], p["name"], p["description"]]).lower()
+        if all(pattern.search(text) for pattern in patterns):
+            out.append(p)
+    return out
+
+
+def print_mapping(p: dict) -> None:
+    size = f", {p['size']:,} bytes" if isinstance(p["size"], int) else ""
+    print(f"{p['id']}  ({p['format'] or 'no format'}{size})  by {p['maker'] or 'unknown'}")
+    if p["name"] and p["name"] != p["id"]:
+        print(f"  {p['name']}")
+    if p["url"]:
+        print(f"  {p['url']}")
+    print(f"  touches: {', '.join(p['touches'])}")
+
+
 def summary(r: dict) -> dict:
     return {"id": r["id"], "name": r.get("name", ""), "category": r.get("category", ""),
             "status": r.get("activity_status", ""), "domains": r.get("domains") or [], "page": page(r["id"])}
@@ -330,6 +386,13 @@ def main(argv: list[str] | None = None) -> int:
     u.add_argument("ids", nargs="+")
     u.add_argument("--json", action="store_true")
     sub.add_parser("domains", help="the domain words, with counts", parents=[common])
+    m = sub.add_parser("mappings", help="mapping products that touch every id", parents=[common])
+    m.add_argument("ids", nargs="*", help="resources each product must touch")
+    m.add_argument("--search", nargs="+", default=[], metavar="WORD",
+                   help="words the product's id, name or description must all match")
+    m.add_argument("--sssom", action="store_true", help="SSSOM mapping sets only")
+    m.add_argument("--limit", type=int, default=50, help="at most this many (0: all)")
+    m.add_argument("--json", action="store_true")
     try:
         args = parser.parse_args(argv)
     except SystemExit as e:
@@ -366,9 +429,30 @@ def main(argv: list[str] | None = None) -> int:
             print(f"no resource matched {'any' if args.any else 'every'} word", file=sys.stderr)
         return 0 if hits else 1
 
+    ids = {r["id"] for r in resources}
+    if args.command == "mappings":
+        touching = []
+        for key in args.ids:
+            r = find(resources, key)
+            if r is None:
+                print(f"{key}: not in KG-Registry (try `search {key}`)", file=sys.stderr)
+                return 1
+            touching.append(r["id"])
+        hits = select_mappings(mapping_products(resources, ids), touching, args.search, args.sssom)
+        shown = hits[:args.limit] if args.limit else hits
+        if args.json:
+            print(json.dumps(shown, indent=1))
+        for p in [] if args.json else shown:
+            print_mapping(p)
+            print()
+        if len(shown) < len(hits) and not args.json:
+            print(f"... {len(hits) - len(shown)} more (--limit 0 lists them)")
+        if not hits:
+            print("no mapping product matched", file=sys.stderr)
+        return 0 if hits else 1
+
     status = 0
     out = []
-    ids = {r["id"] for r in resources}
     for key in args.ids:
         r = find(resources, key)
         if r is None:

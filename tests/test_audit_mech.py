@@ -311,6 +311,21 @@ def test_news_leads_are_audited_and_unset_searches_are_to_check(tmp_path):
     assert status(items, "News searches set for the domain") == audit_mech.DONE
 
 
+def test_sssom_is_audited_and_unmapped_records_are_to_check(tmp_path):
+    dest = render(tmp_path / "mapmech", {**SCENARIOS["habitat"],
+                                         "output_formats": ["yaml", "json", "sssom"]})
+    _, items = audit(dest)
+    assert status(items, "SSSOM mappings") == audit_mech.DONE
+    assert status(items, "Records map to other identifiers") == audit_mech.CHECK
+    records = dest / yaml.safe_load((dest / ".copier-answers.yml").read_text())["records_dir"]
+    records.mkdir(exist_ok=True)
+    (records / "one.yaml").write_text("id: x:1\nname: one\nmappings:\n  - object_id: schema:Thing\n")
+    (dest / ".claude" / "skills" / "curate-mappings" / "SKILL.md").unlink()
+    _, items = audit(dest)
+    assert status(items, "SSSOM mappings") == audit_mech.MISSING
+    assert status(items, "Records map to other identifiers") == audit_mech.DONE
+
+
 def test_ingests_are_audited_and_unfetched_ones_are_to_check(tmp_path):
     dest = render(tmp_path / "ingestmech", {**SCENARIOS["minimal"], "mech_name": "AuditIngestMech",
                                             "ingests": ["omim", "hpoa"], "koza_ingests": True})

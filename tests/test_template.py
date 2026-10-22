@@ -132,7 +132,7 @@ SCENARIOS["fleet-member"] = {
 }
 SCENARIOS["minimal"]["workflows"] = []
 ALL_FORMATS = ["yaml", "json", "jsonld", "ttl", "sqlite", "duckdb", "parquet", "sql", "csv", "tsv", "kgx",
-               "kgx_maximal", "croissant"]
+               "kgx_maximal", "sssom", "croissant"]
 SCENARIOS["disease"].update({"site_palette": "brown", "site_theme": "light", "deep_research": True,
                              "output_formats": ALL_FORMATS, "tabular_layout": "flat",
                              "load_targets": ["mongodb", "neo4j"],
@@ -506,6 +506,23 @@ def test_mlcroissant_only_when_chosen(generated):
     _, answers, dest = generated
     deps = tomllib.loads((dest / "pyproject.toml").read_text())["project"]["dependencies"]
     assert any(d.startswith("mlcroissant") for d in deps) == ("croissant" in answers["output_formats"])
+
+
+def test_sssom_parts_only_when_chosen(generated):
+    _, answers, dest = generated
+    on = "sssom" in answers["output_formats"]
+    deps = tomllib.loads((dest / "pyproject.toml").read_text())["project"]["dependencies"]
+    assert any(d.startswith("sssom") for d in deps) == on
+    schema = yaml.safe_load((dest / "src" / answers["mech_slug"] / "schema" / f"{answers['mech_slug']}.yaml")
+                            .read_text())
+    assert ("Mapping" in schema["classes"]) == on
+    assert ("mappings" in schema["classes"][answers["record_class"]]["slots"]) == on
+    assert (dest / ".claude" / "skills" / "curate-mappings" / "SKILL.md").exists() == on
+    assert ("curate-mappings" in (dest / "CLAUDE.md").read_text()) == on
+    if on:
+        assert schema["prefixes"]["semapv"] == "https://w3id.org/semapv/vocab/"
+        assert set(schema["enums"]["MappingPredicateEnum"]["permissible_values"]) == {
+            "skos:exactMatch", "skos:closeMatch", "skos:broadMatch", "skos:narrowMatch", "skos:relatedMatch"}
 
 
 def test_croissant_without_a_readable_format_is_rejected(tmp_path):

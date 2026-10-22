@@ -2,7 +2,7 @@
 # attach. `just qc` runs the export, so a format that stops working fails QC.
 # The formats and their files are listed in src/goatmech/export.py.
 #
-# formats: yaml, json, jsonld, ttl, sqlite, duckdb, parquet, sql, csv, tsv
+# formats: yaml, json, jsonld, ttl, sqlite, duckdb, parquet, sql, csv, tsv, sssom
 #   jsonld and ttl are RDF. Every CURIE in the records becomes an IRI through
 #   the schema's `prefixes`, so declare each prefix with its full URI. The
 #   export fails on an IRI that does not expand.
@@ -14,6 +14,9 @@
 # croissant: Croissant metadata about the other files, the records field by
 #   field, and where the data came from. Needs csv, tsv, parquet or json
 #   beside it, and the mlcroissant package to check it.
+# sssom: an SSSOM mapping set, one row per item in each record's `mappings`,
+#   as goatmech-mappings.sssom.tsv. Each object_id's prefix must be declared in
+#   the schema's `prefixes`. Needs the sssom package to check it.
 
 formats:
   - yaml

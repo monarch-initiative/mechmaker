@@ -195,6 +195,27 @@ schema's own URIs. A prefix with no URI becomes a broken IRI, and
 Check with `just export`: it reads the Turtle and JSON-LD back and lists
 any IRI that did not expand.
 
+## Mappings to other identifiers
+
+If `conf/export.yaml` has `sssom`, the record has a `mappings` section
+(the `Mapping` class, with SSSOM's field names) and `just export` writes it
+as an SSSOM mapping set. Keep its fields: the export and sssom-py read them
+by name. The design decides the rest:
+
+1. **Which namespaces.** From the survey's Mappings section: the databases
+   and ontologies users will join the records to. Declare each prefix in
+   `prefixes` with its URI from the Bioregistry.
+2. **Mapping or link.** A mapping says the record *is* (or is close to, or
+   broader or narrower than) an entity elsewhere. A relation between two
+   different things (a breed and the region it comes from, a disease and a
+   gene) is a section of its own, not a mapping.
+3. **Prove it on a record.** Map one seed record with evidence, as the
+   Mech's `curate-mappings` skill says, and run `just export`.
+
+The predicates are SKOS's five and the justifications the nine SEMAPV
+processes sssom-py accepts; extend `MappingPredicateEnum` with
+`extend-schema` only for a predicate SSSOM allows, such as `owl:sameAs`.
+
 ## The knowledge graph mapping
 
 If `conf/export.yaml` has `kgx` or `kgx_maximal`, map the domain in

@@ -77,7 +77,10 @@ Run `survey-domain` with the knowledge base as the main source. Decide:
 - **The id.** An ontology CURIE if one keys the entity; else the source's
   own identifier in the Mech's namespace, when it is stable and unique; else
   leave `id` out and `convert` mints `<slug>:<uuid>`. A source identifier
-  that is not the id goes in a slot the schema adds for it. `convert` skips
+  that is not the id goes in a slot the schema adds for it, or, when it
+  names the same entity in another database (an OMIM column, a Wikidata
+  column), in the record's `mappings`: turn on `sssom`, and see
+  `search-mappings` for the predicate each column means. `convert` skips
   an entry whose id an earlier entry or a record on disk already holds.
   Never as a synonym. Synonyms are names. A record keyed by an ontology
   CURIE names it again in `record_term`, with the ontology's label; the
