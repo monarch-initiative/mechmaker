@@ -26,6 +26,9 @@ prefixes:
   {{ mech_slug }}: https://w3id.org/{{ github_org }}/{{ mech_slug }}/
   PMID: http://www.ncbi.nlm.nih.gov/pubmed/
   DOI: https://doi.org/
+{%- if 'sssom' in output_formats %}
+  semapv: https://w3id.org/semapv/vocab/
+{%- endif %}
 {%- for p, u in prefixes | dictsort %}
   {{ p }}: {{ u }}
 {%- endfor %}
@@ -55,6 +58,9 @@ classes:
       - record_term
 {%- endif %}
       - synonyms
+{%- if 'sssom' in output_formats %}
+      - mappings
+{%- endif %}
       - status
 {%- for o in selected %}
       - {{ o.slot }}
@@ -181,6 +187,25 @@ classes:
         required: true
         description: The name of another MechanismNode in the same record.
 {%- endif %}
+{%- if 'sssom' in output_formats %}
+
+  Mapping:
+    description: >-
+      The {{ record_noun }} in another identifier space: the record (the
+      subject) is predicate_id to object_id. The fields are SSSOM's, and
+      `just export` writes every record's mappings as one SSSOM mapping set.
+      Like any claim, a mapping needs evidence: a quote from a source that
+      names both, or says they are the same. Never map to a guessed id.
+    slots:
+      - predicate_id
+      - predicate_modifier
+      - object_id
+      - object_label
+      - mapping_justification
+      - confidence
+      - evidence
+      - notes
+{%- endif %}
 
   EvidenceItem:
     description: >-
@@ -282,6 +307,40 @@ slots:
     description: Edges from this node to the nodes it causes or enables.
   target:
     description: Name of the target node.
+{%- endif %}
+{%- if 'sssom' in output_formats %}
+  mappings:
+    range: Mapping
+    multivalued: true
+    inlined_as_list: true
+    description: >-
+      This {{ record_noun }} in other identifier spaces, as SSSOM mappings.
+  predicate_id:
+    range: MappingPredicateEnum
+    required: true
+    description: How the record relates to the mapped entity (SSSOM predicate_id).
+  predicate_modifier:
+    range: PredicateModifierEnum
+    description: Not, to state that the mapping does not hold (SSSOM predicate_modifier).
+  object_id:
+    range: uriorcurie
+    required: true
+    pattern: "^[A-Za-z][A-Za-z0-9_.]*:[^\\s]+$"
+    description: >-
+      The mapped entity, as a CURIE (SSSOM object_id). Its prefix must be
+      declared in the schema's prefixes with its full URI.
+  object_label:
+    recommended: true
+    description: The mapped entity's own label in its source (SSSOM object_label).
+  mapping_justification:
+    range: MappingJustificationEnum
+    required: true
+    description: How the mapping was found (SSSOM mapping_justification, from SEMAPV).
+  confidence:
+    range: float
+    minimum_value: 0
+    maximum_value: 1
+    description: How sure the curator is that the mapping holds, from 0 to 1 (SSSOM confidence).
 {%- endif %}
   evidence:
     range: EvidenceItem
@@ -407,6 +466,72 @@ enums:
       EDIT:
       REVIEW:
       DEPRECATE:
+{%- if 'sssom' in output_formats %}
+
+  MappingPredicateEnum:
+    description: >-
+      The SKOS mapping relations, which SSSOM recommends. Read each as "the
+      record ... the mapped entity".
+    permissible_values:
+      skos:exactMatch:
+        meaning: skos:exactMatch
+        description: The same thing; the two can be used interchangeably.
+      skos:closeMatch:
+        meaning: skos:closeMatch
+        description: Close enough to use interchangeably in some applications, not all.
+      skos:broadMatch:
+        meaning: skos:broadMatch
+        description: The mapped entity is broader than the record.
+      skos:narrowMatch:
+        meaning: skos:narrowMatch
+        description: The mapped entity is narrower than the record.
+      skos:relatedMatch:
+        meaning: skos:relatedMatch
+        description: Associated, but neither the same, broader nor narrower.
+
+  PredicateModifierEnum:
+    description: SSSOM's predicate modifier.
+    permissible_values:
+      Not:
+        description: The mapping does not hold, e.g. the record is not an exact match of the entity.
+
+  MappingJustificationEnum:
+    description: >-
+      How a mapping was found: the SEMAPV processes that SSSOM's released
+      schema (sssom-py 0.4) accepts. SEMAPV's semapv:AgentBasedMatching fits
+      an agent's mapping better, but the released tools reject it, so an
+      agent's mapping is semapv:UnspecifiedMatching until they accept it.
+    permissible_values:
+      semapv:ManualMappingCuration:
+        meaning: semapv:ManualMappingCuration
+        description: A person decided the mapping, reading the sources.
+      semapv:MappingReview:
+        meaning: semapv:MappingReview
+        description: A person checked a mapping found another way, and judged it right.
+      semapv:UnspecifiedMatching:
+        meaning: semapv:UnspecifiedMatching
+        description: >-
+          Found by a process the released vocabulary cannot name, such as an
+          agent reading sources. The justification for an agent's mapping.
+      semapv:LexicalMatching:
+        meaning: semapv:LexicalMatching
+        description: The names or synonyms match, and nothing else was compared.
+      semapv:LexicalSimilarityThresholdMatching:
+        meaning: semapv:LexicalSimilarityThresholdMatching
+        description: The names are similar enough, by a string measure.
+      semapv:SemanticSimilarityThresholdMatching:
+        meaning: semapv:SemanticSimilarityThresholdMatching
+        description: Similar enough in meaning, by a measure such as embeddings.
+      semapv:LogicalReasoning:
+        meaning: semapv:LogicalReasoning
+        description: Follows from the definitions, by a reasoner.
+      semapv:MappingChaining:
+        meaning: semapv:MappingChaining
+        description: Follows from other mappings, such as A to B and B to C.
+      semapv:CompositeMatching:
+        meaning: semapv:CompositeMatching
+        description: Several of these together.
+{%- endif %}
 {%- if identity_prefix and identity_root %}
 
   IdentityTerm:

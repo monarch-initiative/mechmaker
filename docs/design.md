@@ -139,6 +139,10 @@ renamed, and no two records share one.
   term later.
 - A record that is no longer current is kept as `DEPRECATED`, not deleted,
   so links to it still resolve.
+- A record's identity in other namespaces (the same disease in OMIM, the
+  same breed in another database) is a mapping, not a second id: with the
+  `sssom` output format, an item in the record's `mappings`, with a SKOS
+  predicate, a SEMAPV justification and evidence, published as SSSOM.
 
 **Rationale.** Other Mechs, exports and people link to records by id. An
 ontology id ties a record to what the field already calls the thing. A

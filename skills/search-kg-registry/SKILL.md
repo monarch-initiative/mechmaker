@@ -40,6 +40,7 @@ python3 <scripts>/kg_registry.py search --domain "water resources" --category Da
 python3 <scripts>/kg_registry.py show kg-microbe bacdive
 python3 <scripts>/kg_registry.py used-by bacdive
 python3 <scripts>/kg_registry.py domains
+python3 <scripts>/kg_registry.py mappings mondo omim --sssom
 ```
 
 The registry is one file. The script downloads it on first use and keeps it
@@ -76,6 +77,13 @@ build (checked 2026-10-14: it lists two sources the build dropped, and
 misses several it added); mechmaker's own ingest catalog, in the
 `ingest-structured-data` skill, is current, and says which ingest releases
 each source as rows a Mech can fetch.
+
+**Are there mappings for these identifiers?** `mappings <id> ...` lists
+the mapping products (SSSOM sets, cross-reference tables) that touch every
+resource named: listed on its page, or naming it as a source. `--sssom`
+keeps the SSSOM sets; `--search` matches words in a product's id, name or description. The
+`search-mappings` skill reads a set once found, and says when a Mech
+should publish its own.
 
 **Is there a data model for these records?** `search --category DataModel`,
 and `--category Ontology` with the entity's words. A model already used

@@ -20,6 +20,8 @@ Every format comes from LinkML or the libraries it brings:
            <slug>-records.sql          the database as SQL: DDL and INSERTs
   csv/tsv  tabular_layout per_class:   <slug>-tables-csv.zip, one file per class
            tabular_layout flat:        <slug>-records.csv, one row per record
+  sssom    <slug>-mappings.sssom.tsv   SSSOM: each record's mappings to other
+                                       identifiers (see mappings.py)
   croissant  <slug>-croissant.json     Croissant metadata about the other files and
                                        where the data came from (see croissant.py)
 
@@ -59,7 +61,7 @@ from .validate import iter_records, load
 EXPORT_DIR = BUILD_DIR / "export"
 SETTINGS = REPO_ROOT / "conf" / "export.yaml"
 FORMATS = ("yaml", "json", "jsonld", "ttl", "sqlite", "duckdb", "parquet", "sql", "csv", "tsv",
-           "kgx", "kgx_maximal", "croissant")
+           "kgx", "kgx_maximal", "sssom", "croissant")
 # Croissant describes the other files; these are the ones its RecordSets can read.
 CROISSANT_NEEDS = {"csv", "tsv", "parquet", "json"}
 # The duckdb and parquet formats need packages a Mech does not always install.
@@ -149,6 +151,9 @@ def downloads(cfg: dict) -> list[dict]:
                     add(fmt, f"{fmt}_{kind}.{ext}", f"{graph} {kind} as {serial}",
                         f"The {kind} of a KGX graph of {what}.",
                         category="GraphProduct", fmt_value="kgx", compatibility=standards)
+    add("sssom", "mappings.sssom.tsv", "Mappings as SSSOM",
+        "Each record's mappings to identifiers elsewhere, with how each was found: an SSSOM mapping set.",
+        category="MappingProduct", fmt_value="sssom")
     add("croissant", "croissant.json", "Croissant metadata",
         "Croissant (MLCommons) metadata: every file here with its checksum, the records field by field, "
         "and where the data came from.", category="OtherProduct", fmt_value="jsonld")
@@ -653,6 +658,21 @@ def export(
         with out.open(newline="", encoding="utf-8") as fh:
             if len(list(csv.reader(fh, delimiter=sep))) - 1 != n:
                 problems.append(f"{out.name}: does not have {n} rows")
+
+    if "sssom" in fmts:
+        from . import mappings
+
+        out = out_dir / mappings.FILE
+        count, mapping_problems = mappings.write(sv, [d for _, d in records], out)
+        problems += mapping_problems
+        if mappings.NO_SLOT not in mapping_problems:
+            written.append(out)
+            try:
+                problems += mappings.check(out, count)
+            except ModuleNotFoundError as exc:
+                if exc.name != "sssom":  # installed, but something it needs is not: show that
+                    raise
+                problems.append(mappings.MISSING)
 
     if "croissant" in fmts:
         from . import croissant

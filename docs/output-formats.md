@@ -21,12 +21,13 @@ Every format comes from LinkML or the libraries it brings.
 | `kgx` | `<slug>-kgx_nodes`, `_edges` (`.jsonl`, `.tsv`) | A knowledge graph in KGX: an edge from each record to each term it binds. See below |
 | `kgx_maximal` | `<slug>-kgx_maximal_nodes`, `_edges` | The whole record graph in KGX: every object a node. See below |
 | `csv`, `tsv` | see below | Spreadsheets and data frames |
+| `sssom` | `<slug>-mappings.sssom.tsv` | [SSSOM](https://mapping-commons.github.io/sssom/): each record's mappings to identifiers elsewhere. Optional, see below |
 | `croissant` | `<slug>-croissant.json` | [Croissant](https://docs.mlcommons.org/croissant/) metadata: the other files, the records field by field, and where the data came from. Optional, see below |
 
 ## Choosing
 
 Copier asks `output_formats` when the Mech is made. The default is every
-format but TSV, DuckDB, Parquet, the two KGX formats and Croissant. Change the choice any time in `conf/export.yaml`:
+format but TSV, DuckDB, Parquet, the two KGX formats, SSSOM and Croissant. Change the choice any time in `conf/export.yaml`:
 
 ```yaml
 formats:
@@ -169,6 +170,74 @@ SELECT * FROM 'GoatBreed.parquet';
 
 MechRegistry has no `parquet` format, so the registry entry lists the zip
 as `format: other`.
+
+## SSSOM: mappings to other identifiers
+
+[SSSOM](https://mapping-commons.github.io/sssom/), the Simple Standard for
+Sharing Ontological Mappings, is how ontologies and databases publish which
+of their entries match which elsewhere: Mondo's mappings to OMIM and
+Orphanet, Bioregistry's between registries. A Mech that chooses `sssom`
+publishes its records' mappings the same way, so others can join its
+records to their own data.
+
+Choosing it adds a section to the record, `mappings`, whose fields are
+SSSOM's:
+
+```yaml
+mappings:
+  - predicate_id: skos:exactMatch          # or closeMatch, broadMatch, narrowMatch, relatedMatch
+    object_id: OMIM:143100                 # its prefix declared in the schema, with its URI
+    object_label: Huntington disease
+    mapping_justification: semapv:UnspecifiedMatching
+    confidence: 0.9                        # optional
+    evidence:
+      - reference: PMID:<n>
+        supports: SUPPORT
+        snippet: <a quote naming both>
+```
+
+The record is the subject. The predicates are the five
+[SKOS](https://www.w3.org/TR/skos-reference/#mapping) mapping relations,
+which SSSOM recommends; `predicate_modifier: Not` states that a mapping
+does not hold. The justification says how the mapping was found, from
+[SEMAPV](https://mapping-commons.github.io/semantic-mapping-vocabulary/).
+A mapping is a claim like any other: it needs evidence, and its object
+must be checked at its source. The Mech's `curate-mappings` skill says how;
+mechmaker's `search-mappings` skill finds the sets that already exist,
+which a survey reads before deciding whether a Mech needs its own.
+
+`just export` writes every record's mappings as one mapping set, one row
+per mapping: the record's id and name as subject, the mapping's fields, its
+evidence's references (as URLs where the schema's prefixes expand them) in
+`see_also`, and its notes in `comment`. The metadata above the table gives:
+
+- `curie_map`: every prefix the rows use, with the URI the schema declares
+  for it. A mapping whose prefix the schema does not declare fails the
+  export, as in RDF.
+- `mapping_set_id`: the file's address in the latest release, which is
+  where it is published.
+- `mapping_set_version` (the latest git tag), `license`, a title and
+  description, and creators from `registry/<slug>.md` (with ORCIDs as
+  `creator_id`).
+
+The export also refuses a mapping with no justification, a record mapped to
+itself, and a mapping a record states twice. Then it reads the file back
+with [sssom-py](https://github.com/mapping-commons/sssom-py), the reference
+library: the file must parse, validate against the SSSOM schema, declare a
+prefix for every CURIE, and give back every row. Every Mech has sssom-py
+already, because oaklib depends on it; choosing `sssom` also names it as a
+dependency of the Mech's own, so the export keeps the version it needs.
+
+The registry entry lists the file as a `MappingProduct` in format `sssom`.
+
+To add SSSOM to an existing Mech, take this template change (the
+`sync-mech` skill) and add `sssom` to the `output_formats` answer, which
+adds the schema's section, the skill and the dependency. By hand: copy the
+`Mapping` class, the `mappings` slot on the record class and its slots, the
+three enums and the `semapv` prefix from a Mech that has them; put `sssom`
+in `conf/export.yaml`; `uv add 'sssom>=0.4.17'` and `just install`.
+Without the package, `just export` fails and says so; without the
+`mappings` slot, it says that.
 
 ## Croissant: metadata about the data
 
@@ -321,5 +390,12 @@ thing.
   `references`: mlcroissant 1.1.1 joins the tables on a reference when it
   loads them, which changes the rows a table gives, and its 1.1 syntax for
   one crashes the validator.
+- SSSOM's released schema (sssom-py 0.4.17) accepts nine SEMAPV
+  justifications. SEMAPV's newer `semapv:AgentBasedMatching`, which fits an
+  agent's mapping, is not among them, so the Mech offers only the nine and
+  an agent's mapping is `semapv:UnspecifiedMatching`. Its `curate-mappings`
+  skill says when each applies.
+- The SSSOM export writes TSV only; `sssom convert` turns it into OWL,
+  JSON or RDF.
 - Croissant names each ontology, but not its version: a Mech does not record
   the version it checked terms against.

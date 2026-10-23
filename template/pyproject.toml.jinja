@@ -38,6 +38,12 @@ dependencies = [
     # loads every record set. Only here because this Mech chose it.
     "mlcroissant>=1.1.1",
 {%- endif %}
+{%- if 'sssom' in output_formats %}
+    # sssom (sssom-py), to check the SSSOM mapping set: it parses the file and
+    # validates it against the SSSOM schema. oaklib brings it too; named here
+    # so the export's minimum version holds whatever oaklib asks for.
+    "sssom>=0.4.17",
+{%- endif %}
 {%- if kgx_biolink and ('kgx' in output_formats or 'kgx_maximal' in output_formats) %}
     # The Biolink model, for the KGX exports: they check every category and
     # predicate against it. Only here because this Mech exports KGX.

@@ -21,9 +21,10 @@ from .paths import FLEET_FILE, SCHEMA_PATH
 # repository cannot see them, and mechmaker refuses a link that reuses one when
 # the member takes its answers.
 RESERVED_SLOTS = frozenset({
-    "action", "creation_date", "curation_history", "curator", "datasets", "description",
+    "action", "confidence", "creation_date", "curation_history", "curator", "datasets", "description",
     "description_evidence", "discussions", "downstream", "evidence", "evidence_source",
-    "explanation", "id", "label", "llm_assisted", "mechanisms", "model", "name", "notes",
+    "explanation", "id", "label", "llm_assisted", "mapping_justification", "mappings", "mechanisms",
+    "model", "name", "notes", "object_id", "object_label", "predicate_id", "predicate_modifier",
     "preferred_term", "record_term", "reference", "reference_title", "snippet", "status",
     "supports", "synonyms", "target", "term", "timestamp", "updated_date",
 })
@@ -33,7 +34,8 @@ RESERVED_CLASSES = frozenset({
     "DiscussionKindEnum", "DiscussionStatusEnum", "EvidenceItem", "EvidenceSourceEnum",
     "EvidenceSupportEnum", "HistoryActor", "HistoryActorTypeEnum", "HistoryEvent",
     "HistoryEventTypeEnum", "HistoryLinks", "HistoryOutcomeEnum", "HistoryRecord", "HistorySession",
-    "HistoryTarget", "HistoryTargetKindEnum", "IdentityTerm", "MechanismNode", "ProposedExperiment",
+    "HistoryTarget", "HistoryTargetKindEnum", "IdentityTerm", "Mapping", "MappingJustificationEnum",
+    "MappingPredicateEnum", "MechanismNode", "PredicateModifierEnum", "ProposedExperiment",
     "SupportLevelEnum", "SupportingReference", "Term",
 })
 

@@ -148,6 +148,47 @@ def test_an_old_copy_is_used_when_the_download_fails(registry, monkeypatch, caps
     assert kg_registry.main(["show", "chebi"]) == 2
 
 
+# A mapping set made by mondo, listed on mondo's page and on each source's, as KG-Registry does.
+MONDO_SSSOM = {"id": "mondo.sssom", "category": "MappingProduct", "format": "sssom", "name": "MONDO SSSOM",
+               "description": "Mappings from MONDO identifiers to other namespaces.",
+               "product_url": "https://example.org/mondo.sssom.tsv", "original_source": src("doid", "mondo")}
+MAPPING_RESOURCES = [
+    {"id": "mondo", "name": "Mondo", "category": "Ontology", "products": [MONDO_SSSOM]},
+    {"id": "doid", "name": "Disease Ontology", "category": "Ontology", "products": [MONDO_SSSOM]},
+    {"id": "omim", "name": "OMIM", "category": "DataSource",
+     "products": [{"id": "omim.mim2gene", "category": "MappingProduct", "format": "tsv",
+                   "original_source": src("omim")},
+                  {"id": "omim.api", "category": "ProgrammingInterface", "original_source": src("omim")}]},
+]
+
+
+def test_mapping_products_touch_their_maker_and_sources():
+    products = kg_registry.mapping_products(MAPPING_RESOURCES, {r["id"] for r in MAPPING_RESOURCES})
+    assert [p["id"] for p in products] == ["mondo.sssom", "omim.mim2gene"]  # once each; no API
+    mondo = products[0]
+    assert mondo["maker"] == "mondo" and mondo["touches"] == ["doid", "mondo"]
+    pick = kg_registry.select_mappings
+    assert [p["id"] for p in pick(products, ["doid", "mondo"])] == ["mondo.sssom"]
+    assert pick(products, ["doid", "omim"]) == []  # every id must be touched
+    assert [p["id"] for p in pick(products, sssom=True)] == ["mondo.sssom"]
+    assert [p["id"] for p in pick(products, words=["namespace"])] == ["mondo.sssom"]
+
+
+def test_mappings_command(tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path))
+    path = tmp_path / "mechmaker" / "kg-registry.jsonld"
+    path.parent.mkdir()
+    path.write_text(json.dumps({"@context": {}, "resources": MAPPING_RESOURCES}))
+    assert kg_registry.main(["mappings", "doid", "--sssom"]) == 0
+    out = capsys.readouterr().out
+    assert "mondo.sssom  (sssom)  by mondo" in out and "touches: doid, mondo" in out
+    assert kg_registry.main(["mappings", "omim", "--sssom"]) == 1
+    assert kg_registry.main(["mappings", "nonesuch"]) == 1
+    capsys.readouterr()
+    assert kg_registry.main(["mappings", "--json"]) == 0
+    assert [p["id"] for p in json.loads(capsys.readouterr().out)] == ["mondo.sssom", "omim.mim2gene"]
+
+
 @pytest.mark.parametrize("name", ["cache_dir", "download", "stem", "word_pattern"])
 def test_the_two_scripts_share_their_helpers(name):
     # Each skill stands alone, so each script carries its own copy; a fix to one goes in both.

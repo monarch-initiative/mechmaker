@@ -705,9 +705,10 @@ fleet_reserved_names:
   type: yaml
   when: false
   default:
-    slots: [action, creation_date, curation_history, curator, datasets, description,
+    slots: [action, confidence, creation_date, curation_history, curator, datasets, description,
             description_evidence, discussions, downstream, evidence, evidence_source,
-            explanation, id, label, llm_assisted, mechanisms, model, name, notes,
+            explanation, id, label, llm_assisted, mapping_justification, mappings, mechanisms,
+            model, name, notes, object_id, object_label, predicate_id, predicate_modifier,
             preferred_term, record_term, reference, reference_title, snippet, status,
             supports, synonyms, target, term, timestamp, updated_date]
     classes: [CausalEdge, CrossCorpusLink, CurationActionEnum, CurationEvent,
@@ -716,8 +717,9 @@ fleet_reserved_names:
               EvidenceItem, EvidenceSourceEnum, EvidenceSupportEnum, HistoryActor,
               HistoryActorTypeEnum, HistoryEvent, HistoryEventTypeEnum, HistoryLinks,
               HistoryOutcomeEnum, HistoryRecord, HistorySession, HistoryTarget,
-              HistoryTargetKindEnum, IdentityTerm, MechanismNode, ProposedExperiment, SupportLevelEnum,
-              SupportingReference, Term]
+              HistoryTargetKindEnum, IdentityTerm, Mapping, MappingJustificationEnum,
+              MappingPredicateEnum, MechanismNode, PredicateModifierEnum, ProposedExperiment,
+              SupportLevelEnum, SupportingReference, Term]
 
 fleet_links:
   type: yaml
@@ -1275,11 +1277,15 @@ output_formats:
     "CSV": csv
     "TSV": tsv
     "Croissant metadata about the files and their sources (adds mlcroissant)": croissant
+    "SSSOM: each record's mappings to other identifiers, from its mappings section (checked with sssom-py)": sssom
   default: [yaml, json, jsonld, ttl, sqlite, sql, csv]
   validator: >-
     {% if not output_formats %}Pick at least one format.{% elif 'croissant' in output_formats
     and not ['csv', 'tsv', 'parquet', 'json'] | select('in', output_formats) | list %}Croissant
-    describes the other files: pick CSV, TSV, Parquet or JSON too.{% endif %}
+    describes the other files: pick CSV, TSV, Parquet or JSON too.{% elif 'sssom' in output_formats
+    and record_class in ['Mapping', 'MappingPredicateEnum', 'PredicateModifierEnum',
+    'MappingJustificationEnum'] %}SSSOM adds a class named {{ record_class }} to the schema: give
+    the record class another name, or leave SSSOM out.{% endif %}
 
 kgx_biolink:
   type: bool

@@ -4,6 +4,15 @@ id: {{ mech_slug }}:example
 name: Example {{ record_noun }}
 description: A placeholder that exercises the record structure.
 status: DRAFT
+{%- if 'sssom' in output_formats %}
+mappings:
+  - predicate_id: skos:broadMatch
+    object_id: schema:Thing
+    object_label: Thing
+    mapping_justification: semapv:UnspecifiedMatching
+    confidence: 0.5
+    notes: A placeholder mapping, to a class broader than anything.
+{%- endif %}
 {%- for o in ontology_selection %}
 {{ o.slot }}:
   - preferred_term: {{ o.root_label | tojson }}

@@ -160,6 +160,9 @@ Project skills live in `.claude/skills/`. Use them.
 {%- if uses_ingests %}
 | `structured-ingests` | fetch an ingest, write the Mech's own with Koza, and seed records from rows |
 {%- endif %}
+{%- if 'sssom' in output_formats %}
+| `curate-mappings` | map a record to identifiers elsewhere, with evidence, for the SSSOM export |
+{%- endif %}
 
 {% if collection == 'xmech' %}
 ## The X-Mech fleet

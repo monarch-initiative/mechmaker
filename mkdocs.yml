@@ -74,6 +74,7 @@ nav:
       - search-mechregistry: skills/search-mechregistry.md
       - search-kg-registry: skills/search-kg-registry.md
       - search-bioregistry: skills/search-bioregistry.md
+      - search-mappings: skills/search-mappings.md
       - sync-mech: skills/sync-mech.md
   - Reference:
       - Copier questions: reference/questions.md

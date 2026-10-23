@@ -123,6 +123,14 @@ def registry_entry() -> dict:
     return (yaml.safe_load(parts[1]) or {}) if len(parts) > 2 else {}
 
 
+def license_url(sv, reg: dict) -> str | None:
+    """The data license as a URL: the registry entry's, else the schema's; None when neither has one."""
+    if (reg.get("license") or {}).get("id"):
+        return reg["license"]["id"]
+    lic = sv.schema.license
+    return LICENSES.get(lic, f"https://spdx.org/licenses/{lic}") if lic else None
+
+
 def mech_version() -> str:
     """The installed package's version: the latest git tag, through uv-dynamic-versioning."""
     from importlib.metadata import PackageNotFoundError, version
@@ -454,9 +462,7 @@ def build(sv, records: list[dict], written: list[Path], db: Path | None) -> tupl
     description = (reg.get("description") or sv.schema.description or name).strip()
     repo = reg.get("repository") or REPO_URL
     url = reg.get("homepage_url") or repo
-    license_ = ((reg.get("license") or {}).get("id")
-                or (LICENSES.get(sv.schema.license, f"https://spdx.org/licenses/{sv.schema.license}")
-                    if sv.schema.license else None))
+    license_ = license_url(sv, reg)
     version = mech_version()
     today = datetime.datetime.now(datetime.UTC).date().isoformat()
     people = creators(reg)

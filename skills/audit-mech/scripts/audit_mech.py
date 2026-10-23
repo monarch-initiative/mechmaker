@@ -672,6 +672,8 @@ def from_answers(m: Mech) -> list[Item]:
                     f"set tabular_layout: {a['tabular_layout']} in conf/export.yaml",
                 )
             )
+        if "sssom" in a["output_formats"]:
+            out += mapping_items(m)
         if {"kgx", "kgx_maximal"} & set(a["output_formats"]) and "kgx_biolink" in a:
             got = m.conf("kgx.yaml").get("biolink")
             want = bool(a["kgx_biolink"])
@@ -697,6 +699,36 @@ def from_answers(m: Mech) -> list[Item]:
             )
         )
     return out
+
+
+def mapping_items(m: Mech) -> list[Item]:
+    """The SSSOM export: its parts, and records that state mappings for it to write."""
+    slug = m.answers["mech_slug"]
+    parts = [f"src/{slug}/mappings.py", ".claude/skills/curate-mappings/SKILL.md"]
+    absent = [p for p in parts if not m.exists(p)]
+    absent += [f"schema class {c}" for c in ("Mapping",) if c not in m.classes()]
+    absent += [f"schema slot {s}" for s in ("mappings",) if s not in m.slots()]
+    records = m.records()
+    mapped = [r for r in records if isinstance(d := m._yaml(r), dict) and d.get("mappings")]
+    return [
+        item(
+            "SSSOM mappings: the record's section and the export",
+            "output_formats (sssom)",
+            not absent,
+            "mappings.py, the curate-mappings skill, and the schema's Mapping and `mappings` present"
+            if not absent
+            else f"absent: {', '.join(absent)}",
+            "regenerate with sssom in output_formats, or restore what is absent",
+        ),
+        item(
+            "Records map to other identifiers",
+            "output_formats (sssom)",
+            bool(mapped),
+            f"{len(mapped)} of {len(records)} record(s) have mappings",
+            "map a seed record with the curate-mappings skill, or take sssom out if no record will",
+            status=None if mapped else CHECK,
+        ),
+    ]
 
 
 def ingest_items(m: Mech) -> list[Item]:
