@@ -13,11 +13,37 @@ records := "data/ingests"
 oak_config := "conf/oak_config.yaml"
 ref_config := ".linkml-reference-validator.yaml"
 
+# In a git worktree with no .venv of its own, recipes use the primary
+# checkout's environment, so each worktree does not build its own. Only while
+# pyproject.toml and uv.lock match the primary's: a branch that changes
+# dependencies needs its own (`just install` there). The shared environment is
+# never synced from here, and the worktree's own src/ is imported first.
+shared_env := ```
+    common="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" || exit 0
+    [ "$common" != "$(git rev-parse --path-format=absolute --git-dir)" ] || exit 0
+    primary="$(dirname "$common")"
+    same() { if [ -e "$1" ]; then cmp -s "$1" "$2"; else [ ! -e "$2" ]; fi; }
+    if [ ! -d .venv ] && [ -d "$primary/.venv" ] \
+        && same pyproject.toml "$primary/pyproject.toml" && same uv.lock "$primary/uv.lock"; then
+        echo "$primary/.venv"
+    fi
+```
+export UV_PROJECT_ENVIRONMENT := env("UV_PROJECT_ENVIRONMENT", if shared_env != "" { shared_env } else { ".venv" })
+export UV_NO_SYNC := env("UV_NO_SYNC", if shared_env != "" { "1" } else { "false" })
+export PYTHONPATH := if shared_env != "" { justfile_directory() / "src" + if env("PYTHONPATH", "") != "" { ":" + env("PYTHONPATH") } else { "" } } else { env("PYTHONPATH", "") }
+
 default:
     @just --list --unsorted
 
-# Install the package and dev tools
+# Install the package and dev tools. In a worktree that shares the primary
+# checkout's environment, this does nothing: install there instead.
 install:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ -n "{{shared_env}}" ]; then
+        echo "This worktree uses {{shared_env}}; run just install in the primary checkout."
+        exit 0
+    fi
     uv sync --extra dev
 
 # ---------------------------------------------------------------- validation
@@ -247,6 +273,49 @@ qc:
 # qc plus the network gates: terms and references for every record.
 qc-full:
     uv run python -m {{slug}}.qc --network
+
+# ---------------------------------------------------------------- worktrees
+
+# Start work on a new branch in its own worktree, made from origin's default
+# branch, under ~/worktrees/<repository>/ (or $MECH_WORKTREES). The primary
+# checkout stays on the default branch.
+worktree branch:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    primary="$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")"
+    base="$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD || echo origin/main)"
+    dest="${MECH_WORKTREES:-$HOME/worktrees}/$(basename "$primary")/${1//\//-}"
+    git fetch --quiet origin "${base#origin/}"
+    git worktree add --no-track -b "$1" "$dest" "$base"
+    echo "Worktree for $1: $dest"
+
+# Remove worktrees, and their branches, once pushed and then merged into
+# origin's default branch or deleted on origin. Keeps any with uncommitted
+# work, and any branch never pushed.
+worktree-clean:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    primary="$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")"
+    base="$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD || echo origin/main)"
+    git fetch --quiet --prune origin
+    git worktree prune
+    git worktree list --porcelain | awk '/^worktree /{p=substr($0,10)} /^branch /{print p "\t" substr($0,19)}' |
+    while IFS=$'\t' read -r path branch; do
+        [ "$path" = "$primary" ] || [ -d "$path/.git" ] && continue
+        # Only branches that were pushed: a new one is an ancestor of the base too.
+        upstream="$(git for-each-ref --format='%(upstream)' "refs/heads/$branch")"
+        [ -n "$upstream" ] || continue
+        gone="$(git for-each-ref --format='%(upstream:track)' "refs/heads/$branch")"
+        if [ "$gone" = "[gone]" ] || git merge-base --is-ancestor "$branch" "$base"; then
+            if [ -n "$(git -C "$path" status --porcelain)" ]; then
+                echo "kept $path: uncommitted changes"
+                continue
+            fi
+            git worktree remove "$path"
+            git branch -D "$branch"
+            echo "removed $path ($branch)"
+        fi
+    done
 
 # Pull every template change from mechmaker into this repository at once.
 # To see each change and choose, use mechmaker's sync-mech skill instead.

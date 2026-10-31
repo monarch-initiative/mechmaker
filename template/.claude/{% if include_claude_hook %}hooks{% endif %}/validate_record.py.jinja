@@ -11,6 +11,7 @@ the network and are checked by `just validate` and CI.
 """
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -31,6 +32,34 @@ def after_edit(tool: str, inp: dict, path: Path) -> str | None:
             return None  # the edit tool will reject it; nothing to check
         text = text.replace(old, new) if e.get("replace_all") else text.replace(old, new, 1)
     return text
+
+
+def shared_env(root: Path) -> dict[str, str]:
+    """The environment for `uv run` in `root`, the justfile's rule for worktrees.
+
+    A linked worktree with no .venv of its own uses the primary checkout's,
+    unsynced and importing the worktree's src/ first, while its pyproject.toml
+    and uv.lock match the primary's. Otherwise `uv run` would build a new one.
+    """
+    env = dict(os.environ)
+    dot_git = root / ".git"
+    if not dot_git.is_file() or (root / ".venv").is_dir():
+        return env
+    out = subprocess.run(
+        ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
+        cwd=root, capture_output=True, text=True,
+    )
+    primary = Path(out.stdout.strip()).parent
+    if out.returncode != 0 or not (primary / ".venv").is_dir():
+        return env
+    for name in ("pyproject.toml", "uv.lock"):
+        mine, theirs = root / name, primary / name
+        if mine.exists() != theirs.exists() or (mine.exists() and mine.read_bytes() != theirs.read_bytes()):
+            return env
+    env["UV_PROJECT_ENVIRONMENT"] = str(primary / ".venv")
+    env["UV_NO_SYNC"] = "1"
+    env["PYTHONPATH"] = os.pathsep.join(filter(None, [str(root / "src"), env.get("PYTHONPATH")]))
+    return env
 
 
 def main() -> int:
@@ -56,7 +85,7 @@ def main() -> int:
         candidate.write_text(text)
         result = subprocess.run(
             ["uv", "run", "--quiet", "python", "-m", MODULE, str(candidate)],
-            cwd=root, capture_output=True, text=True,
+            cwd=root, capture_output=True, text=True, env=shared_env(root),
         )
     if result.returncode == 0:
         return 0

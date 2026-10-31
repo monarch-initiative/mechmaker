@@ -183,3 +183,19 @@
     it crosses the antimeridian. Records whose objects hold numeric
     `latitude` and `longitude` now show them on the map. To add points
     or lines, see mechmaker's `add-record-map` skill.
+
+- id: worktrees
+  pr: 112
+  summary: Work in git worktrees; commands find the repository from the working directory, not __file__.
+  action: |
+    If the primary checkout is on a branch other than the default one,
+    commit or stash that work, move it to a worktree
+    (`git worktree add ~/worktrees/<checkout folder>/<branch> <branch>`
+    after switching the primary back), and leave the primary on the
+    default branch. Copier carries `paths.py`, the justfile, the hook and
+    `CLAUDE.md`, unless the Mech edited them: if `src/<slug>/paths.py` still
+    sets `REPO_ROOT = PACKAGE_DIR.parents[1]`, give it the template's
+    `repo_root()` and set `REPO_ROOT = repo_root()`. Then search the Mech's
+    own code for `Path(__file__)` followed by `.parents[` or
+    `.parent.parent` and build those paths from `REPO_ROOT` instead;
+    `just test` fails on any left (`test_no_checkout_paths_from_file`).
