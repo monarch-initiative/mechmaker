@@ -354,6 +354,15 @@ Every agent, local or in a workflow, reads the Mech's `CLAUDE.md` (or
 `AGENTS.md`) and uses the Mech's skills, so it curates by the same rules a
 person would.
 
+Local sessions work in git worktrees, as in DisMech. The primary checkout
+stays on the default branch, and each change gets its own worktree and
+branch (`just worktree <branch>`), so a new session never starts inside
+another session's branch. Worktrees share the primary checkout's
+environment while their dependencies match. Commands find the repository
+from the working directory (`repo_root()` in `paths.py`), not from where the
+package was installed, because a shared environment's editable install points
+at the primary checkout. `just worktree-clean` removes merged ones.
+
 **The parts.** Each Mech carries a catalog of its workflows,
 `docs/WORKFLOWS.md`; [Workflows](workflows.md) lists them all. They fall
 into three groups:
@@ -419,7 +428,8 @@ nothing that reads it can act on it with the repository's credentials.
 prompts in `.github/prompts/`; the `workflows` and `agent_schedules`
 answers; `.github/agent-config.yaml` for models and turn budgets;
 mechmaker's tests, which check that the pinned action and credential lines
-match across workflows, and `actionlint`.
+match across workflows, and `actionlint`. For worktrees: the Mech's
+`CLAUDE.md`, the `justfile`, the record hook, and `tests/test_paths.py`.
 
 **How Mechs adapt it.** A Mech's creators choose which workflows to turn on,
 and when to turn on schedules. They edit the prompts in `.github/prompts/`

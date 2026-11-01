@@ -124,5 +124,31 @@ files; see the `github-workflows` skill.
 
 ## Git
 
-Branch before the first edit. One pull request per coherent change. The pull
-request is the human review gate. Do not merge without approval.
+One pull request per coherent change. The pull request is the human review
+gate. Do not merge without approval.
+
+**Work in worktrees.** The primary checkout (wherever the repository was
+cloned) always stays on the default branch. Branches live only in worktrees,
+so two sessions never share one set of files.
+
+- Start each change with `just worktree <branch>`. It makes the branch from
+  origin's default branch, in `~/worktrees/<checkout folder>/<branch>`, and prints
+  the path; work there. In a cloud session or a CI job that gave you a fresh
+  clone and a branch to work on, use that clone instead.
+- Never leave the primary checkout on a branch, and never check out the
+  default branch in a worktree. If `git checkout main` says it is already
+  checked out, `git worktree list` shows where.
+- A worktree with no `.venv` of its own uses the primary checkout's, so run
+  `just install` in the primary checkout, not in each worktree. A branch that
+  changes `pyproject.toml` or `uv.lock` gets its own: run `just install`
+  there. Only `just` recipes and the record hook know this: a bare `uv run`
+  in a worktree builds a new `.venv`, so run commands through `just`.
+- Commands find the repository from the working directory
+  (`repo_root()` in `src/ingestmech/paths.py`), so run them inside the
+  worktree. Set `INGESTMECH_ROOT` to name a checkout explicitly. In code, build
+  repository paths from `REPO_ROOT`, never from `__file__`; `__file__` is only
+  for files inside the package.
+- Stage files by name (`git add data/ingests/ references_cache/`). Never
+  `git add -A` or `git add .`.
+- After a pull request merges, `just worktree-clean` removes its worktree and
+  branch.
