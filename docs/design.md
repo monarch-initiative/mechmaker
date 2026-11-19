@@ -142,7 +142,9 @@ renamed, and no two records share one.
 - A record's identity in other namespaces (the same disease in OMIM, the
   same breed in another database) is a mapping, not a second id: with the
   `sssom` output format, an item in the record's `mappings`, with a SKOS
-  predicate, a SEMAPV justification and evidence, published as SSSOM.
+  predicate, a SEMAPV justification and evidence, published as SSSOM. A
+  record's `mappings`, when it has them, are SSSOM's: a Mech does not keep
+  a mapping section of another shape.
 
 **Rationale.** Other Mechs, exports and people link to records by id. An
 ontology id ties a record to what the field already calls the thing. A
@@ -151,7 +153,9 @@ minted id is the fallback when the field has no name for it.
 **Enforced by.** The `identity_prefix`, `identity_root` and
 `identity_direct_only` answers; the schema's `IdentityTerm` enum;
 `just check-identity`; the duplicate-id check in `just qc`;
-`just new-record`, which mints an id when given none.
+`just new-record`, which mints an id when given none; the SSSOM export,
+which reads `mappings` only when it has SSSOM's fields, and `audit-mech`,
+which reports a `mappings` section that lacks them.
 
 ## 5. Ontologies
 

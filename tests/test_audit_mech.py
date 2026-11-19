@@ -326,6 +326,25 @@ def test_sssom_is_audited_and_unmapped_records_are_to_check(tmp_path):
     assert status(items, "Records map to other identifiers") == audit_mech.DONE
 
 
+def test_a_mappings_section_of_another_shape_is_reported(tmp_path):
+    dest = render(tmp_path / "oldmapmech", SCENARIOS["habitat"])
+    _, items = audit(dest)
+    assert "The record's `mappings` are SSSOM's" not in items
+    answers = yaml.safe_load((dest / ".copier-answers.yml").read_text())
+    path = dest / "src" / answers["mech_slug"] / "schema" / f"{answers['mech_slug']}.yaml"
+    schema = yaml.safe_load(path.read_text())
+    schema["classes"]["OldMapping"] = {"attributes": {"id": {}, "predicate": {}, "source": {}}}
+    schema["classes"][answers["record_class"]].setdefault("slots", []).append("mappings")
+    schema["slots"]["mappings"] = {"range": "OldMapping", "multivalued": True}
+    path.write_text(yaml.safe_dump(schema, sort_keys=False))
+    _, items = audit(dest)
+    assert status(items, "The record's `mappings` are SSSOM's") == audit_mech.MISSING
+    schema["classes"]["OldMapping"]["attributes"] = {f: {} for f in audit_mech.SSSOM_FIELDS}
+    path.write_text(yaml.safe_dump(schema, sort_keys=False))
+    _, items = audit(dest)
+    assert status(items, "The record's `mappings` are SSSOM's") == audit_mech.DONE
+
+
 def test_ingests_are_audited_and_unfetched_ones_are_to_check(tmp_path):
     dest = render(tmp_path / "ingestmech", {**SCENARIOS["minimal"], "mech_name": "AuditIngestMech",
                                             "ingests": ["omim", "hpoa"], "koza_ingests": True})

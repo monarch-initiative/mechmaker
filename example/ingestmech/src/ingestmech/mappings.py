@@ -11,7 +11,8 @@ row:
   object_id, object_label     the mapped entity
   mapping_justification       how it was found, from SEMAPV
   confidence                  from 0 to 1, when the curator gave one
-  see_also                    the evidence's references, as URLs where the schema's prefixes expand them
+  see_also                    the evidence's references as URLs: a url: reference as its URL, a CURIE
+                              where the schema declares its prefix
   comment                     the mapping's notes
 
 The metadata names the set (its id is the file's address in the latest
@@ -19,6 +20,10 @@ release), its version (the latest git tag), license, title, description,
 creators (ORCIDs from registry/<slug>.md) and the curie_map: every prefix the
 rows use, with the URI the schema declares for it. A row whose CURIE has an
 undeclared prefix fails the export, as in RDF.
+
+A `mappings` slot counts only when it is SSSOM's: its range is a class with
+predicate_id, object_id and mapping_justification. A Mech whose own older
+`mappings` has another shape is told to move it to SSSOM's fields.
 
 The file is read back with sssom-py: it must parse, validate against the
 SSSOM schema, have a prefix for every CURIE, and give back every row. sssom
@@ -42,11 +47,30 @@ MISSING = (
     "sssom: needs sssom (sssom-py) to check the mapping set, which this Mech does not install. Run "
     "`uv add 'sssom>=0.4.17'` and `just install`, or take sssom out of conf/export.yaml."
 )
-NO_SLOT = (
-    f"sssom: {RECORD_CLASS} has no `mappings` slot, so there is nothing to export. Add the Mapping "
-    "class and its enums (see the Output formats page of mechmaker's docs), or take sssom out of "
-    "conf/export.yaml."
-)
+
+
+def no_slot(record_class: str) -> str:
+    return (
+        f"sssom: {record_class} has no `mappings` slot, so there is nothing to export. Add the Mapping "
+        "class and its enums (see the Output formats page of mechmaker's docs), or take sssom out of "
+        "conf/export.yaml."
+    )
+
+
+NO_SLOT = no_slot(RECORD_CLASS)
+# The fields a mapping needs to be an SSSOM row; the record supplies subject_id.
+SSSOM_FIELDS = ("predicate_id", "object_id", "mapping_justification")
+
+
+def not_sssom(record_class: str, range_: str | None, absent: list[str]) -> str:
+    return (
+        f"sssom: {record_class}.mappings is not SSSOM's: its range, {range_ or 'a string'}, has no "
+        f"{', '.join(absent)}. Move it to SSSOM's fields (the Mapping class on the Output formats page of "
+        "mechmaker's docs; add sssom to the output_formats answer for the curate-mappings skill), "
+        "or take sssom out of conf/export.yaml."
+    )
+
+
 FILE = f"{SLUG}-mappings.sssom.tsv"
 # The columns, in SSSOM's order. A column no row fills is left out, but for the required four.
 COLUMNS = ["subject_id", "subject_label", "predicate_id", "predicate_modifier", "object_id", "object_label",
@@ -60,8 +84,10 @@ def prefix_map(sv) -> dict[str, str]:
 
 
 def expand(curie: str, prefixes: dict[str, str]) -> str:
-    """The CURIE as a URL, when its prefix is declared; else as it is."""
+    """The CURIE as a URL, when its prefix is declared; a url: reference as its URL; else as it is."""
     prefix, _, local = curie.partition(":")
+    if prefix.lower() == "url" and local:
+        return local
     return prefixes[prefix] + local if local and prefix in prefixes else curie
 
 
@@ -145,15 +171,22 @@ def metadata(sv, table: list[dict]) -> dict:
     return {k: v for k, v in meta.items() if v not in ([], None, "")}
 
 
-def has_slot(sv) -> bool:
-    """Whether the record class has the `mappings` the export reads."""
-    return "mappings" in {s.name for s in sv.class_induced_slots(RECORD_CLASS)}
+def shape_problem(sv, record_class: str = RECORD_CLASS) -> str | None:
+    """Why the record class's `mappings` cannot be exported as SSSOM, or None when it can."""
+    slot = next((s for s in sv.class_induced_slots(record_class) if s.name == "mappings"), None)
+    if slot is None:
+        return no_slot(record_class)
+    fields = ({s.name for s in sv.class_induced_slots(slot.range)}
+              if slot.range in sv.all_classes() else set())
+    absent = [f for f in SSSOM_FIELDS if f not in fields]
+    return not_sssom(record_class, slot.range, absent) if absent else None
 
 
 def write(sv, records: list[dict], out: Path) -> tuple[int, list[str]]:
-    """Write the mapping set. (rows written, problems)"""
-    if not has_slot(sv):
-        return 0, [NO_SLOT]
+    """Write the mapping set. (rows written, problems) Nothing is written when the schema is not SSSOM's."""
+    problem = shape_problem(sv)
+    if problem:
+        return 0, [problem]
     table, problems = rows(sv, records)
     columns = [c for c in COLUMNS if c in REQUIRED or any(row[c] for row in table)]
     head = yaml.safe_dump(metadata(sv, table), sort_keys=False, allow_unicode=True, width=1000)

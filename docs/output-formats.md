@@ -208,7 +208,8 @@ which a survey reads before deciding whether a Mech needs its own.
 
 `just export` writes every record's mappings as one mapping set, one row
 per mapping: the record's id and name as subject, the mapping's fields, its
-evidence's references (as URLs where the schema's prefixes expand them) in
+evidence's references (as URLs: a `url:` reference as its URL, a CURIE
+where the schema's prefixes expand it) in
 `see_also`, and its notes in `comment`. The metadata above the table gives:
 
 - `curie_map`: every prefix the rows use, with the URI the schema declares
@@ -238,6 +239,18 @@ three enums and the `semapv` prefix from a Mech that has them; put `sssom`
 in `conf/export.yaml`; `uv add 'sssom>=0.4.17'` and `just install`.
 Without the package, `just export` fails and says so; without the
 `mappings` slot, it says that.
+
+A Mech with a `mappings` section of its own, made before SSSOM (an `id`,
+a `predicate` like `BROAD_MATCH`, a `source`), should move it to SSSOM's
+fields rather than keep a second shape. The export counts `mappings` as
+SSSOM's only when its class has `predicate_id`, `object_id` and
+`mapping_justification`, and otherwise names what is missing; the
+`audit-mech` skill reports it too. To migrate: add `sssom` to
+`output_formats`, take the template's `Mapping` class, and rewrite each
+item, choosing the SKOS predicate from the old one and a SEMAPV
+justification from how the mapping was made (an agent's reading of
+sources is `semapv:UnspecifiedMatching`). Keep any text with no SSSOM
+field in `notes`.
 
 ## Croissant: metadata about the data
 
