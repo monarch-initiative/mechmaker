@@ -21,6 +21,12 @@ just new-record [--id <CURIE>] --name "<name>"            # dry run
 just new-record [--id <CURIE>] --name "<name>" --model <model-id> --apply
 ```
 
+The record's other top-level slots are flags named for them, read from the
+schema (`just new-record --help` lists them). Each slot the schema requires is
+a required flag; an enum's flag takes only its values. A domain rule that
+needs a value at the start (one slot that requires another) is checked when
+the record is written, so pass every flag it needs.
+
 Find the id first, below. An id with the VBO prefix also
 takes `--term-label "<its label>"`; `new-record` refuses it without one.
 
