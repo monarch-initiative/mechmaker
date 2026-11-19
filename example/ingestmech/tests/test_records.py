@@ -8,8 +8,10 @@ import yaml
 
 from ingestmech import records
 from ingestmech.paths import IDENTITY_PREFIX, SLUG
+from ingestmech.validate import loads, schema_errors
 
-EXAMPLE = yaml.safe_load((Path(__file__).parent / "data" / "example_record.yaml").read_text())
+# Read as a record file is read: dates stay strings.
+EXAMPLE = loads((Path(__file__).parent / "data" / "example_record.yaml").read_text())
 
 
 @pytest.fixture
@@ -23,7 +25,7 @@ UUID = r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
 
 def slot_args(example: dict = EXAMPLE) -> list[str]:
     """The flags for every slot the schema requires, with the example record's values."""
-    args = []
+    args = ["--description", example["description"]] if records.description_required() else []
     for f in records.slot_flags():
         if not f.required:
             continue
@@ -70,10 +72,9 @@ def test_without_an_id_one_is_minted(records_dir, monkeypatch):
 
 
 def test_every_required_slot_has_a_flag():
-    # Without them the scaffold is invalid whatever it is given.
-    required = {f.slot for f in records.slot_flags() if f.required}
-    from ingestmech.validate import schema_errors
-
+    # Without them the scaffold is invalid whatever it is given. The slots
+    # the scaffold sets itself (record_term from --term-label) are not flags.
+    required = {f.slot for f in records.slot_flags() if f.required} | records.SCAFFOLD_SLOTS
     bare = {"id": EXAMPLE["id"], "name": EXAMPLE["name"]}
     missing = {m.split("'")[1] for m in schema_errors(bare) if "is a required property" in m}
     assert missing <= required
@@ -126,7 +127,9 @@ classes:
     attributes:
       id: {identifier: true, required: true}
       name: {required: true}
+      description: {required: true}
       status: {range: Kind}
+      founded: {range: date, required: true}
       category: {range: Kind, required: true, description: "What it is, 100% of the time."}
       experimental: {range: boolean}
       count: {range: integer}
@@ -148,7 +151,9 @@ def test_slot_flags_follow_the_schema(tmp_path):
     schema.write_text(FLAG_SCHEMA)
     flags = {f.slot: f for f in records.slot_flags(schema, "Thing")}
     # The scaffold's own slots get no flag, nor does an optional slot holding objects.
-    assert set(flags) == {"category", "experimental", "count", "tags", "model", "license"}
+    assert set(flags) == {"category", "founded", "experimental", "count", "tags", "model", "license"}
+    assert flags["founded"].kind == "string" and flags["founded"].required
+    assert records.description_required(schema, "Thing")
     assert flags["category"][2:6] == (True, False, "enum", ("A", "B"))
     assert "100%% of the time" in flags["category"].help
     assert flags["experimental"].kind == "boolean" and not flags["experimental"].required

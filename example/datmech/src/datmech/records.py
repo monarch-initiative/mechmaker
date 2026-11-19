@@ -33,7 +33,7 @@ from typing import NamedTuple
 import yaml
 
 from .paths import IDENTITY_PREFIX, RECORD_CLASS, RECORD_NOUN, RECORDS_DIR, REPO_ROOT, SCHEMA_PATH, SLUG
-from .validate import evidence_errors, record_ids, rule_errors, schema_errors, slugify
+from .validate import evidence_errors, loads, record_ids, rule_errors, schema_errors, slugify
 
 
 class _Dumper(yaml.SafeDumper):
@@ -131,6 +131,11 @@ def id_pattern(schema: Path = SCHEMA_PATH, record_class: str = RECORD_CLASS) -> 
     return _view(str(schema)).induced_slot("id", record_class).pattern
 
 
+def description_required(schema: Path = SCHEMA_PATH, record_class: str = RECORD_CLASS) -> bool:
+    view = _view(str(schema))
+    return any(s.name == "description" and s.required for s in view.class_induced_slots(record_class))
+
+
 def _add_flag(parser, f: SlotFlag) -> None:
     kw: dict = {"dest": f"slot__{f.slot}", "help": f.help, "required": f.required,
                 "metavar": f.slot.upper()}
@@ -148,7 +153,7 @@ def _add_flag(parser, f: SlotFlag) -> None:
         parser.add_argument(f"--{f.flag}", **kw)
         return
     if f.kind == "object":
-        kw["type"] = yaml.safe_load
+        kw["type"] = loads  # dates stay strings, as in a record file
         kw["metavar"] = "YAML"
     elif f.kind in NUMBERS:
         kw["type"] = NUMBERS[f.kind]
@@ -215,7 +220,7 @@ def main(argv: list[str] | None = None) -> int:
     new = sub.add_parser("new", help="scaffold a record (dry-run unless --apply)")
     new.add_argument("--id", help=f"CURIE for the record (default: a minted {SLUG}:<uuid>)")
     new.add_argument("--name", required=True)
-    new.add_argument("--description")
+    new.add_argument("--description", required=description_required())
     new.add_argument("--term-label", help="the ontology's label for --id, from `just term-info`; "
                      "required when --id is an ontology term")
     new.add_argument("--curator", default="claude-code")
