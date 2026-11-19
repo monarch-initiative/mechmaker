@@ -4,6 +4,7 @@
 
 1. Pick a target. From the source queue, an issue, or a gap in `just report`.
 2. Scaffold or open the record. `just new-record [--id ...] --name ... --apply`.
+   Each slot the schema requires is a required flag (`just new-record --help`).
    An id with the VBO prefix also goes in `record_term`, with
    the ontology's label: add `--term-label "<label>"`.
 3. Research. Fetch every source you cite: `just fetch-reference PMID:NNN`.

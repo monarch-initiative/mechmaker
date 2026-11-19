@@ -1,12 +1,17 @@
-"""`just new-record`: a minted id by default, and never an id already in use."""
+"""`just new-record`: a minted id by default, never an id already in use, and a valid record."""
 
 import re
+from pathlib import Path
 
 import pytest
 import yaml
 
 from {{ mech_slug }} import records
-from {{ mech_slug }}.paths import SLUG
+from {{ mech_slug }}.paths import IDENTITY_PREFIX, SLUG
+from {{ mech_slug }}.validate import loads, schema_errors
+
+# Read as a record file is read: dates stay strings.
+EXAMPLE = loads((Path(__file__).parent / "data" / "example_record.yaml").read_text())
 
 
 @pytest.fixture
@@ -18,6 +23,29 @@ def records_dir(tmp_path, monkeypatch):
 UUID = r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
 
 
+def slot_args(example: dict = EXAMPLE) -> list[str]:
+    """The flags for every slot the schema requires, with the example record's values."""
+    args = ["--description", example["description"]] if records.description_required() else []
+    for f in records.slot_flags():
+        if not f.required:
+            continue
+        value = example[f.slot]
+        if f.kind == "object":
+            args += [f"--{f.flag}", yaml.safe_dump(value, default_flow_style=True)]
+        else:
+            for v in value if f.multivalued else [value]:
+                args += [f"--{f.flag}", str(v).lower() if isinstance(v, bool) else str(v)]
+    return args
+
+
+def id_args(example: dict = EXAMPLE) -> list[str]:
+    """--id from the example record, with --term-label when the id is an ontology term."""
+    args = ["--id", example["id"]]
+    if IDENTITY_PREFIX and example["id"].startswith(f"{IDENTITY_PREFIX}:"):
+        args += ["--term-label", example["record_term"]["label"]]
+    return args
+
+
 def test_mint_id_is_unique_and_in_the_mechs_namespace():
     a, b = records.mint_id(), records.mint_id()
     assert a != b
@@ -26,18 +54,110 @@ def test_mint_id_is_unique_and_in_the_mechs_namespace():
 
 def test_an_id_in_use_is_refused(records_dir, capsys):
     (records_dir / "alpha.yaml").write_text(yaml.safe_dump({"id": "X:1", "name": "Alpha"}))
-    assert records.main(["new", "--id", "X:1", "--name", "Beta", "--term-label", "beta"]) == 1
+    assert records.main(["new", "--id", "X:1", "--name", "Beta", "--term-label", "beta", *slot_args()]) == 1
     assert "id X:1 is already used by" in capsys.readouterr().out
     assert sorted(p.name for p in records_dir.iterdir()) == ["alpha.yaml"]
 
 
 def test_without_an_id_one_is_minted(records_dir, monkeypatch):
-    # Capture what would be validated and written: a designed schema may need
-    # more than a name, which is not what this test is about.
+    # Capture what would be validated and written: the id is what this test is about.
     written = []
+    monkeypatch.setattr(records, "id_pattern", lambda: None)
     monkeypatch.setattr(records, "write_validated_record", lambda data, path, **_: written.append(data))
-    assert records.main(["new", "--name", "Alpha"]) == 0
-    assert records.main(["new", "--name", "Beta"]) == 0
+    assert records.main(["new", "--name", "Alpha", *slot_args()]) == 0
+    assert records.main(["new", "--name", "Beta", *slot_args()]) == 0
     a, b = (d["id"] for d in written)
     assert a != b and re.fullmatch(re.escape(SLUG) + ":" + UUID, a)
     assert "record_term" not in written[0]
+
+
+def test_every_required_slot_has_a_flag():
+    # Without them the scaffold is invalid whatever it is given. The slots
+    # the scaffold sets itself (record_term from --term-label) are not flags.
+    required = {f.slot for f in records.slot_flags() if f.required} | records.SCAFFOLD_SLOTS
+    bare = {"id": EXAMPLE["id"], "name": EXAMPLE["name"]}
+    missing = {m.split("'")[1] for m in schema_errors(bare) if "is a required property" in m}
+    assert missing <= required
+
+
+def test_a_required_slot_is_a_required_flag(records_dir, capsys):
+    required = [f for f in records.slot_flags() if f.required]
+    if not required:
+        pytest.skip("the schema requires no slot beyond those the scaffold sets")
+    with pytest.raises(SystemExit):
+        records.main(["new", *id_args(), "--name", "Alpha"])
+    assert f"--{required[0].flag}" in capsys.readouterr().err
+
+
+def test_with_an_id_the_scaffold_is_valid(records_dir):
+    # Through the real write_validated_record: the record written must validate.
+    assert records.main(["new", *id_args(), "--name", EXAMPLE["name"], *slot_args(), "--apply"]) == 0
+    (path,) = records_dir.iterdir()
+    data = yaml.safe_load(path.read_text())
+    assert data["id"] == EXAMPLE["id"] and data["status"] == "DRAFT"
+    for f in records.slot_flags():
+        if f.required:
+            assert data[f.slot] == EXAMPLE[f.slot]
+
+
+def test_without_an_id_the_scaffold_is_valid_or_refused_plainly(records_dir, capsys):
+    # A schema may key records by a pattern a minted id cannot match; then
+    # new-record says so before anything else.
+    code = records.main(["new", "--name", EXAMPLE["name"], *slot_args(), "--apply"])
+    pattern = records.id_pattern()
+    if pattern and not re.search(pattern, records.mint_id()):
+        assert code == 1 and "Pass --id" in capsys.readouterr().out
+        assert not list(records_dir.iterdir())
+    else:
+        assert code == 0, capsys.readouterr().out
+        (path,) = records_dir.iterdir()
+        assert yaml.safe_load(path.read_text())["id"].startswith(f"{SLUG}:")
+
+
+FLAG_SCHEMA = """
+id: https://example.org/flags
+name: flags
+prefixes:
+  linkml: https://w3id.org/linkml/
+imports: [linkml:types]
+default_range: string
+classes:
+  Thing:
+    tree_root: true
+    attributes:
+      id: {identifier: true, required: true}
+      name: {required: true}
+      description: {required: true}
+      status: {range: Kind}
+      founded: {range: date, required: true}
+      category: {range: Kind, required: true, description: "What it is, 100% of the time."}
+      experimental: {range: boolean}
+      count: {range: integer}
+      tags: {multivalued: true}
+      model: {}
+      license: {range: License, required: true}
+      parts: {range: License, multivalued: true}
+  License:
+    attributes:
+      spdx_id: {}
+enums:
+  Kind:
+    permissible_values: {A: {}, B: {}}
+"""
+
+
+def test_slot_flags_follow_the_schema(tmp_path):
+    schema = tmp_path / "flags.yaml"
+    schema.write_text(FLAG_SCHEMA)
+    flags = {f.slot: f for f in records.slot_flags(schema, "Thing")}
+    # The scaffold's own slots get no flag, nor does an optional slot holding objects.
+    assert set(flags) == {"category", "founded", "experimental", "count", "tags", "model", "license"}
+    assert flags["founded"].kind == "string" and flags["founded"].required
+    assert records.description_required(schema, "Thing")
+    assert flags["category"][2:6] == (True, False, "enum", ("A", "B"))
+    assert "100%% of the time" in flags["category"].help
+    assert flags["experimental"].kind == "boolean" and not flags["experimental"].required
+    assert flags["count"].kind == "integer"
+    assert flags["tags"].multivalued
+    assert flags["model"].flag == "slot-model"  # --model is the scaffold's own
+    assert flags["license"].kind == "object" and flags["license"].required

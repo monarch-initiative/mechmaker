@@ -199,3 +199,19 @@
     own code for `Path(__file__)` followed by `.parents[` or
     `.parent.parent` and build those paths from `REPO_ROOT` instead;
     `just test` fails on any left (`test_no_checkout_paths_from_file`).
+
+- id: new-record-schema-flags
+  pr: 117
+  summary: just new-record takes a flag for each slot of the record class, read from the schema, required where the schema requires it.
+  action: |
+    Nothing to migrate in records. Check whether the Mech changed
+    `src/<slug>/records.py` to add flags for its own slots (as DentaMech
+    did, with --category and --purpose): `git log -- src/<slug>/records.py`
+    or the drift sync-mech shows. If it did, take the template's file and
+    drop the local flags; the template's are named for the slots, so
+    `--category`, `--purpose`, `--restorative-class` and `--experimental`
+    keep their names. Update any test that passed the old flags. Check
+    `just new-record --help` lists what the local version took.
+    A Mech that made a slot `recommended` only because new-record could not
+    set it may now make it `required` in the schema (`extend-schema`),
+    after every record has it.

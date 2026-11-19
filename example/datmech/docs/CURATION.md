@@ -4,6 +4,7 @@
 
 1. Pick a target. From the source queue, an issue, or a gap in `just report`.
 2. Scaffold or open the record. `just new-record [--id ...] --name ... --apply`.
+   Each slot the schema requires is a required flag (`just new-record --help`).
 3. Research. Fetch every source you cite: `just fetch-reference PMID:NNN`.
    Read what came back. For a thin record in a large literature,
    `just research PROVIDER <stem>` writes a deep-research report to

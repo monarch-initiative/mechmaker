@@ -199,10 +199,12 @@ leads a search:
     a descriptive User-Agent, so the source sends one.
 
 !!! note "Required fields and `new-record`"
-    `just new-record` writes a bare record and refuses it if the schema
-    requires more than a name. `state` and `curation_priority` are
-    therefore `recommended`, and `validate.py` requires them once a record
-    leaves `DRAFT`.
+    When DaTMech was made, `just new-record` wrote a bare record and
+    refused it if the schema required more than a name. `state` and
+    `curation_priority` were therefore made `recommended`, and
+    `validate.py` requires them once a record leaves `DRAFT`. `new-record`
+    now takes a flag for each slot the schema requires, so a Mech made
+    today can require them in the schema.
 
 !!! note "Personal details in a source"
     EPA's `WATER_SYSTEM` table names each system's staff, with their
