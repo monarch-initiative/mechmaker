@@ -215,3 +215,25 @@
     A Mech that made a slot `recommended` only because new-record could not
     set it may now make it `required` in the schema (`extend-schema`),
     after every record has it.
+
+- id: mappings-are-sssom
+  pr: 118
+  summary: The SSSOM export reads `mappings` only when its class has SSSOM's fields; a Mech's own older `mappings` should move to them.
+  action: |
+    Look at the schema's `mappings` slot on the record class. If there is
+    none, or its class already has `predicate_id`, `object_id` and
+    `mapping_justification`, nothing is needed. Otherwise the Mech has a
+    `mappings` section of its own, made before SSSOM, and mappings are
+    SSSOM's (docs/design.md, identity). Move it, asking the person first:
+    add `sssom` to the `output_formats` answer
+    (`copier update --vcs-ref=:current: --data ...`), which brings the
+    template's `Mapping` class, its enums, the `semapv` prefix, the
+    curate-mappings skill and the sssom dependency. Then rewrite each
+    record's items with a script: the old predicate becomes a SKOS
+    `predicate_id`; `mapping_justification` comes from how the mapping was
+    made (an agent's reading of sources is `semapv:UnspecifiedMatching`;
+    never guess one it was not); `object_id` and `object_label` from the
+    old id and label; text with no SSSOM field goes to `notes`. Declare
+    every object prefix in the schema, add a curation_history event to
+    each record changed, and run `just export` and `just qc`. DentaMech's
+    migration is caufieldjh/dentamech#45.
