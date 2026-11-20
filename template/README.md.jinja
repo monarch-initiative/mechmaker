@@ -30,6 +30,9 @@ people review it through pull requests. It follows the pattern of
 {%- if include_site %}
 | `pages/` | Record browser from `just render`, for a local look (not committed) |
 {%- endif %}
+{%- if query_engines %}
+| `conf/queries.yaml` | The prewritten queries on the record browser's query page; `just query-check` runs them |
+{%- endif %}
 | `registry/{{ mech_slug }}.md` | Draft entry for MechRegistry |
 | `.claude/skills/` | Curation skills for agents |
 | `.github/workflows/` | GitHub workflows; `docs/WORKFLOWS.md` describes them |

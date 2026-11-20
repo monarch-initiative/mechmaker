@@ -312,7 +312,12 @@ site-check:
 # `just docs-build` renders it fresh into the site.
 render:
     uv run python -m {{slug}}.render
-{% endraw %}{% endif %}{% raw %}
+{% endraw %}{% if query_engines %}{% raw %}
+# Run every query in conf/queries.yaml over the records, with the engines the
+# query page uses. `just qc` runs it too.
+query-check:
+    uv run python -m {{slug}}.query check
+{% endraw %}{% endif %}{% endif %}{% raw %}
 # ---------------------------------------------------------------- code
 
 # Run the test suite

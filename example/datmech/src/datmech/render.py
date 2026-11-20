@@ -25,6 +25,10 @@ text from the schema:
     sections, with OpenStreetMap tiles through Leaflet. conf/site.yaml
     `map: false` turns it off; a record with no shape has no map.
 
+When the Mech has a query page (query.py and conf/queries.yaml), it is
+query.html, beside the front page, and its data are under data/ (see
+query.py). The front page links to it.
+
 A field's label is its schema `title` if it has one, else its name with
 underscores as spaces. Its schema description is shown as help. URLs and
 CURIEs are links.
@@ -402,6 +406,25 @@ def cell(v) -> str:
     return "" if v is None else str(v)
 
 
+def has_query_page() -> bool:
+    return (PACKAGE_DIR / "query.py").exists() and (PACKAGE_DIR / "templates" / "query.html").exists()
+
+
+def query_config() -> tuple[list[str], list[dict], Markup]:
+    """The query page's languages, its queries, and both as JSON to embed in the page."""
+    from . import query
+
+    cfg = query.settings()
+    errors = query.problems(cfg)
+    if errors:
+        raise SystemExit("conf/queries.yaml: " + "; ".join(errors))
+    queries = query.page_queries(cfg)
+    # The page links a reference as a record page does: CURIE_BASES, url:, else the Bioregistry.
+    found = {"slug": SLUG, "languages": cfg["languages"], "queries": queries, "curie_bases": CURIE_BASES}
+    # "</" would end the script element the JSON sits in.
+    return cfg["languages"], queries, Markup(json.dumps(found, ensure_ascii=False).replace("</", "<\\/"))
+
+
 def build() -> dict[Path, str]:
     settings = site.load()
     errors = site.problems(settings)
@@ -425,13 +448,18 @@ def build() -> dict[Path, str]:
         s = str(r["data"].get("status") or "")
         if s:
             statuses[s] = statuses.get(s, 0) + 1
-    ctx = {"mech_name": MECH_NAME, "record_noun": RECORD_NOUN, "repo_url": REPO_URL, "site": settings}
+    ctx = {"mech_name": MECH_NAME, "record_noun": RECORD_NOUN, "repo_url": REPO_URL, "site": settings,
+           "has_query": has_query_page()}
     out = {PAGES_DIR / "index.html": env.get_template("index.html").render(
         records=records, statuses=sorted(statuses.items()), **ctx)}
     tmpl = env.get_template("record.html")
     for r in records:
         body = record_body(r["data"], settings["hidden_sections"], settings["map"])
         out[PAGES_DIR / "records" / f"{r['stem']}.html"] = tmpl.render(record=r, body=body, **ctx)
+    if ctx["has_query"]:
+        languages, queries, config = query_config()
+        out[PAGES_DIR / "query.html"] = env.get_template("query.html").render(
+            languages=languages, queries=queries, config=config, **ctx)
     css = env.get_template("style.css").render(theme=settings["theme"], **site.colors(settings))
     out[PAGES_DIR / "style.css"] = css
     return out
@@ -448,6 +476,16 @@ def main(argv: list[str] | None = None) -> int:
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(text, encoding="utf-8")
     print(f"Wrote {len(wanted)} files to {PAGES_DIR.relative_to(REPO_ROOT)}/.")
+    if has_query_page():
+        from . import query
+
+        files, problems = query.build(PAGES_DIR / "data")
+        for p in problems:
+            print(f"ERROR query page: {p}")
+        if problems:
+            return 1
+        print(f"Wrote the query page's {len(files)} data files to {PAGES_DIR.relative_to(REPO_ROOT)}/data/. "
+              "It reads them over the web: `python -m http.server -d pages` serves it.")
     return 0
 
 

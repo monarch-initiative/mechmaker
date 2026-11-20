@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Query | {{ site.title }}</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+<nav><a href="index.html">{{ site.title }}</a> · <a href="../index.html">Documentation</a></nav>
+<h1>Query the records</h1>
+<p class="meta">Pick a question to run it, or write your own. The queries run in your browser; nothing is sent anywhere.</p>
+</header>
+<main class="query">
+<p id="no-server" class="notice" hidden>This page reads its data over the web, so it does not work opened as a file.
+Run <code>just docs-serve</code> and open <code>/records/query.html</code> there.</p>
+{%- if languages | length > 1 %}
+<div class="langs" role="radiogroup" aria-label="Query language">
+{%- for lang in languages %}
+<label><input type="radio" name="lang" value="{{ lang }}"{% if loop.first %} checked{% endif %}> {{ "SQL" if lang == "sql" else "SPARQL" }}</label>
+{%- endfor %}
+</div>
+{%- endif %}
+<h2>Questions</h2>
+<ul id="questions" class="questions">
+{%- for q in queries %}
+<li data-lang="{{ q.language }}"><button type="button" data-id="{{ q.id }}">{{ q.title }}</button>
+{%- if q.description %} <span class="muted">{{ q.description }}</span>{% endif %}</li>
+{%- endfor %}
+</ul>
+<h2>Query</h2>
+<label for="editor" class="muted" id="editor-label">{{ "SQL" if languages[0] == "sql" else "SPARQL" }}. Ctrl+Enter runs it.</label>
+<textarea id="editor" rows="10" spellcheck="false"></textarea>
+<div class="actions">
+<button type="button" id="run" disabled>Run</button>
+<button type="button" id="download" disabled>Download CSV</button>
+<span id="status" class="muted" role="status">Loading the query engine…</span>
+</div>
+<div id="results"></div>
+{%- if "sql" in languages %}
+<details id="tables" class="tables"><summary>Tables you can query in SQL</summary><div id="table-list"></div></details>
+{%- endif %}
+</main>
+<footer><p>{{ site.footer }}</p></footer>
+<script type="application/json" id="query-config">{{ config }}</script>
+<script type="module">
+// Pinned engines: DuckDB-WASM for SQL, Oxigraph for SPARQL. Change a version
+// here, and run `just docs-serve` to try the page before it ships. The check
+// (`just query-check`) runs the same releases in Python: DuckDB-WASM 1.32.0 is
+// DuckDB 1.4 (pyproject.toml's duckdb), and Oxigraph 0.5 is pyoxigraph 0.5.
+const DUCKDB = "https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.32.0/+esm";
+const OXIGRAPH = "https://cdn.jsdelivr.net/npm/oxigraph@0.5.13/web.js";
+
+const config = JSON.parse(document.getElementById("query-config").textContent);
+const $ = id => document.getElementById(id);
+const editor = $("editor"), status = $("status"), results = $("results");
+const engines = {};
+let manifest, current = {lang: config.languages[0], columns: [], rows: []};
+
+const say = (text, bad = false) => { status.textContent = text; status.classList.toggle("error", bad); };
+
+async function loadManifest() {
+  if (!manifest) {
+    const resp = await fetch("data/tables.json");
+    if (!resp.ok) throw new Error(`data/tables.json: ${resp.status} ${resp.statusText}`);
+    manifest = await resp.json();
+    manifest.pages = new Map();
+    for (const r of manifest.records) { manifest.pages.set(r.id, r.page); manifest.pages.set(r.iri, r.page); }
+  }
+  return manifest;
+}
+
+async function fetchBytes(name) {
+  const resp = await fetch(`data/${name}`);
+  if (!resp.ok) throw new Error(`data/${name}: ${resp.status} ${resp.statusText}`);
+  return new Uint8Array(await resp.arrayBuffer());
+}
+
+const quoteName = name => `"${name.replaceAll('"', '""')}"`;
+
+async function sqlEngine() {
+  const duckdb = await import(DUCKDB);
+  const bundle = await duckdb.selectBundle(duckdb.getJsDelivrBundles());
+  const workerUrl = URL.createObjectURL(new Blob([`importScripts("${bundle.mainWorker}");`],
+                                                 {type: "text/javascript"}));
+  const db = new duckdb.AsyncDuckDB(new duckdb.VoidLogger(), new Worker(workerUrl));
+  await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
+  URL.revokeObjectURL(workerUrl);
+  const conn = await db.connect();
+  const {tables} = await loadManifest();
+  for (const t of tables) {
+    const file = `${t.name}.parquet`;
+    await db.registerFileBuffer(file, await fetchBytes(file));
+    await conn.query(`CREATE VIEW ${quoteName(t.name)} AS SELECT * FROM read_parquet('${file.replaceAll("'", "''")}')`);
+  }
+  return async text => {
+    const table = await conn.query(text);
+    const fields = table.schema.fields;
+    const columns = fields.map(f => f.name);
+    // By position, not name: a result may repeat a name (two tables' "id" in a join).
+    const vectors = fields.map((_, i) => table.getChildAt(i));
+    const rows = Array.from({length: table.numRows}, (_, r) => fields.map((f, i) => sqlValue(vectors[i].get(r), f.type)));
+    return {columns, rows};
+  };
+}
+
+function sqlValue(v, type) {
+  if (v === null || v === undefined) return null;
+  const kind = String(type);
+  if (/^Date/.test(kind)) return new Date(Number(v)).toISOString().slice(0, 10);  // milliseconds, as Arrow gives them
+  if (/^Timestamp/.test(kind)) return new Date(Number(v)).toISOString();
+  if (typeof v === "bigint") return v.toString();
+  if (type && type.scale !== undefined && type.precision !== undefined) {  // a DECIMAL: unscaled digits
+    const digits = String(v), neg = digits.startsWith("-"), d = (neg ? digits.slice(1) : digits).padStart(type.scale + 1, "0");
+    return (neg ? "-" : "") + (type.scale ? `${d.slice(0, -type.scale)}.${d.slice(-type.scale)}` : d);
+  }
+  if (v instanceof Date) return v.toISOString();
+  if (typeof v === "object") return JSON.stringify(v.toJSON ? v.toJSON() : v, (k, x) => typeof x === "bigint" ? x.toString() : x);
+  return String(v);
+}
+
+async function sparqlEngine() {
+  const oxigraph = await import(OXIGRAPH);
+  await oxigraph.default();
+  const store = new oxigraph.Store();
+  const {graph} = await loadManifest();
+  const text = new TextDecoder().decode(await fetchBytes(graph));
+  if (text.trim()) store.load(text, {format: "text/turtle"});
+  return async query => {
+    const out = store.query(query);
+    if (typeof out === "boolean") return {columns: ["answer"], rows: [[String(out)]]};
+    if (!out.length) return {columns: [], rows: []};
+    if (!(out[0] instanceof Map)) {  // CONSTRUCT or DESCRIBE: triples
+      return {columns: ["subject", "predicate", "object"],
+              rows: out.map(q => [q.subject.value, q.predicate.value, q.object.value])};
+    }
+    const columns = [...new Set(out.flatMap(b => [...b.keys()]))];
+    return {columns, rows: out.map(b => columns.map(c => (b.get(c) ? b.get(c).value : null)))};
+  };
+}
+
+function engine(lang) {
+  engines[lang] ??= (lang === "sql" ? sqlEngine() : sparqlEngine());
+  return engines[lang];
+}
+
+// Where a value links, by the record pages' rules (render.curie_url): a URL to itself; a CURIE to its
+// source's site, or the Bioregistry; a url: reference to its URL. A minted id links nowhere.
+function linkFor(v) {
+  if (/^https?:\/\/\S+$/.test(v)) return v;
+  if (!/^[A-Za-z][A-Za-z0-9_.]*:[^\s]+$/.test(v)) return null;
+  const at = v.indexOf(":"), prefix = v.slice(0, at), local = v.slice(at + 1);
+  if (prefix === "url") return /^https?:\/\//.test(local) ? local : null;
+  if (prefix === config.slug) return null;
+  const base = Object.hasOwn(config.curie_bases, prefix) ? config.curie_bases[prefix] : null;  // not "constructor:"
+  return base ? base + local : `https://bioregistry.io/${v}`;
+}
+
+function cell(value, column) {
+  const td = document.createElement("td");
+  td.dataset.label = column;
+  if (value === null) { td.className = "muted"; return td; }
+  const page = manifest.pages.get(value);
+  if (page) {
+    const a = document.createElement("a");
+    a.href = page; a.textContent = value; td.append(a);
+  } else if (linkFor(value)) {
+    const a = document.createElement("a");
+    a.href = linkFor(value); a.textContent = value; td.append(a);
+  } else {
+    td.textContent = value;
+  }
+  return td;
+}
+
+function show({columns, rows}) {
+  current = {...current, columns, rows};
+  results.replaceChildren();
+  $("download").disabled = !rows.length;
+  if (!rows.length) { say("The query ran. It returned no rows."); return; }
+  say(`${rows.length} row${rows.length === 1 ? "" : "s"}.`);
+  const table = document.createElement("table"), head = document.createElement("tr"), body = document.createElement("tbody");
+  table.className = "data";
+  for (const c of columns) { const th = document.createElement("th"); th.textContent = c; head.append(th); }
+  const thead = document.createElement("thead"); thead.append(head);
+  for (const r of rows) { const tr = document.createElement("tr"); tr.append(...r.map((v, i) => cell(v, columns[i]))); body.append(tr); }
+  table.append(thead, body);
+  const wrap = document.createElement("div"); wrap.className = "table-wrap"; wrap.append(table);
+  results.append(wrap);
+}
+
+async function run() {
+  const text = editor.value.trim();
+  if (!text) return;
+  $("run").disabled = true;
+  say("Running…");
+  try {
+    show(await (await engine(current.lang))(text));
+  } catch (e) {
+    results.replaceChildren();
+    $("download").disabled = true;
+    say(`The query failed: ${e.message}`, true);
+  } finally {
+    $("run").disabled = false;
+  }
+}
+
+function download() {
+  const esc = v => (v === null ? "" : `"${String(v).replaceAll('"', '""')}"`);
+  const csv = [current.columns.map(esc), ...current.rows.map(r => r.map(esc))].map(r => r.join(",")).join("\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv + "\n"], {type: "text/csv;charset=utf-8"}));
+  a.download = `${config.slug}-query.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+async function prepare(lang) {
+  current.lang = lang;
+  for (const li of document.querySelectorAll("#questions li")) li.hidden = li.dataset.lang !== lang;
+  if ($("tables")) $("tables").hidden = lang !== "sql";
+  $("editor-label").textContent = `${lang === "sql" ? "SQL" : "SPARQL"}. Ctrl+Enter runs it.`;
+  const first = config.queries.find(q => q.language === lang);
+  editor.value = first ? first.query : "";
+  $("run").disabled = true;
+  say("Loading the query engine…");
+  try {
+    await engine(lang);
+    if (lang !== current.lang) return;  // the reader switched languages while this one loaded
+    $("run").disabled = false;
+    say("Ready. Pick a question, or write a query and run it.");
+  } catch (e) {
+    if (lang !== current.lang) return;
+    say(`The query engine did not load: ${e.message}`, true);
+  }
+}
+
+if (location.protocol === "file:") {
+  $("no-server").hidden = false;
+  say("Not loaded: open this page through a web server.", true);
+} else {
+  for (const b of document.querySelectorAll("#questions button")) {
+    b.addEventListener("click", () => {
+      editor.value = config.queries.find(q => q.id === b.dataset.id).query;
+      run();
+    });
+  }
+  for (const r of document.querySelectorAll("input[name=lang]")) r.addEventListener("change", () => prepare(r.value));
+  $("run").addEventListener("click", run);
+  $("download").addEventListener("click", download);
+  editor.addEventListener("keydown", e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); run(); } });
+  loadManifest().then(m => {
+    const list = $("table-list");
+    if (!list) return;
+    for (const t of m.tables) {
+      const p = document.createElement("p"), name = document.createElement("code");
+      name.textContent = t.name;
+      p.append(name, ` (${t.rows} row${t.rows === 1 ? "" : "s"}${t.made_for_queries ? ", made for querying" : ""}): ${t.columns.join(", ")}`);
+      list.append(p);
+    }
+  }).catch(() => {});
+  prepare(current.lang);
+}
+</script>
+</body>
+</html>

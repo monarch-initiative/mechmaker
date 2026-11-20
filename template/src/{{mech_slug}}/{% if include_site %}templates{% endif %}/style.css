@@ -99,6 +99,24 @@ input[type=search] { width: 100%; padding: .55rem .7rem; margin: 0 0 1rem; borde
   background: var(--card); color: var(--fg); border: 1px solid var(--line); font-size: 1rem; }
 input[type=search]:focus { outline: 2px solid var(--accent); }
 footer { color: var(--muted); font-size: .85rem; margin: 2.5rem auto 2rem; }
+.notice { background: var(--warn-bg); color: var(--warn); border-radius: 6px; padding: .6rem .8rem; }
+.langs { display: flex; gap: 1rem; margin: 0 0 .5rem; }
+.questions { list-style: none; padding: 0; margin: 0; display: grid; gap: .35rem; }
+.questions button { all: unset; cursor: pointer; color: var(--link); font-weight: 600; text-decoration: underline;
+  text-underline-offset: 2px; }
+.questions button:hover, .questions button:focus-visible { color: var(--accent); }
+.questions button:focus-visible { outline: 2px solid var(--accent); }
+#editor { width: 100%; margin: .3rem 0 .5rem; padding: .55rem .7rem; border-radius: 6px; background: var(--card);
+  color: var(--fg); border: 1px solid var(--line); font: .9rem/1.45 ui-monospace, monospace; resize: vertical; }
+#editor:focus { outline: 2px solid var(--accent); }
+.actions { display: flex; flex-wrap: wrap; gap: .5rem .8rem; align-items: center; margin-bottom: 1rem; }
+.actions button { padding: .4rem .9rem; border-radius: 6px; border: 1px solid var(--line); background: var(--primary);
+  color: var(--on-primary); font: inherit; cursor: pointer; }
+.actions button:disabled { opacity: .5; cursor: default; }
+.actions button#download { background: var(--card); color: var(--fg); }
+#status.error { color: var(--bad); }
+.tables { margin-top: 1.2rem; }
+.tables p { margin: .3rem 0; font-size: .9rem; overflow-wrap: anywhere; }
 @media (max-width: 40rem) {
   header h1 { font-size: 1.5rem; }
   table.kv th { width: 7.5rem; }

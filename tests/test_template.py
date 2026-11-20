@@ -139,9 +139,13 @@ SCENARIOS["disease"].update({"site_palette": "brown", "site_theme": "light", "de
                              # Releases on, so the registry draft lists every format's files.
                              "workflows": ["sweep", "docs", "comment-guard", "release-records"],
                              # Two Monarch ingests, and Koza for the Mech's own.
-                             "ingests": ["hpoa", "omim"], "koza_ingests": True})
+                             "ingests": ["hpoa", "omim"], "koza_ingests": True,
+                             # The query page, in both languages.
+                             "query_page": True, "query_languages": "both"})
 # A Monarch ingest without Koza.
 SCENARIOS["extras"]["ingests"] = ["zfin"]
+# The query page with no preference of language: SQL, over a Mech that exports no RDF.
+SCENARIOS["extras"].update({"query_page": True})
 SCENARIOS["all-workflows"].update({"site_palette": "yellow", "site_accent": "amber", "site_theme": "dark"})
 
 VENDORED_MD5 = {
@@ -150,7 +154,7 @@ VENDORED_MD5 = {
 }
 
 # Rendered files that legitimately contain Jinja or just syntax of their own.
-OWN_BRACES = {"justfile", "index.html", "record.html", "style.css"}
+OWN_BRACES = {"justfile", "index.html", "record.html", "query.html", "style.css"}
 
 
 def render(dest: Path, data: dict) -> Path:
@@ -846,6 +850,33 @@ def test_ingest_fetches_a_real_release(tmp_path):
     assert lock["files"]["omim_gene_to_disease_edges.tsv"]["checked"] == "release-metadata"
     check = subprocess.run(["just", "ingest-check"], cwd=dest, capture_output=True, text=True, env=env)
     assert check.returncode == 0, check.stdout
+
+
+@pytest.mark.parametrize("answers,languages", [
+    ({"query_page": True, "query_languages": "sql"}, ["sql"]),
+    ({"query_page": True, "query_languages": "sparql"}, ["sparql"]),
+    ({"query_page": True, "query_languages": "both"}, ["sql", "sparql"]),
+    ({"query_page": True}, ["sql"]),  # no preference: SQL for now
+    ({"query_page": False}, []),
+    # Asked only with the record browser: without it, nothing of the page is laid down.
+    ({"include_site": False, "query_page": True, "query_languages": "both"}, []),
+])
+def test_query_page_follows_its_answers(tmp_path, answers, languages):
+    dest = render(tmp_path / "q", {**SCENARIOS["minimal"], "include_site": True, **answers})
+    slug = "minimalmech"
+    files = [dest / "conf" / "queries.yaml", dest / "src" / slug / "query.py",
+             dest / "tests" / "test_query.py"]
+    assert [f.exists() for f in files] == [bool(languages)] * 3
+    page = dest / "src" / slug / "templates" / "query.html"
+    assert page.exists() == bool(languages)
+    deps = tomllib.loads((dest / "pyproject.toml").read_text())["project"]["dependencies"]
+    assert any(d.startswith("duckdb") for d in deps) == ("sql" in languages)
+    assert any(d.startswith("pyoxigraph") for d in deps) == ("sparql" in languages)
+    assert ("query-check:" in (dest / "justfile").read_text()) == bool(languages)
+    if languages:
+        conf = yaml.safe_load(files[0].read_text())
+        assert conf["languages"] == languages
+        assert {q["language"] for q in conf["queries"]} == set(languages)
 
 
 def test_news_watch_needs_news_leads(tmp_path):

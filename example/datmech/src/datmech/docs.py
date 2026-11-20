@@ -13,7 +13,8 @@ Generated, and not committed:
   docs/downloads.md  the files the export writes, in the formats conf/export.yaml
                      names, linked to the latest release when releases attach them
   docs/schema/       the schema with imports merged, and as JSON Schema
-  docs/records/      the record browser, rendered fresh, when the Mech has one
+  docs/records/      the record browser, rendered fresh, when the Mech has one,
+                     with its query page's data under docs/records/data/
 
 Colors and light or dark mode come from conf/site.yaml: `build` and `serve`
 write .mkdocs.site.yml, which inherits mkdocs.yml and replaces its palette.
@@ -125,11 +126,18 @@ def generate() -> None:
         # pages/ is a local preview and not committed. Rendering here means the
         # browser exists even before the first record, and always matches them.
         from .render import build as render_browser
+        from .render import has_query_page
 
         for path, text in render_browser().items():
             out = records / path.relative_to(PAGES_DIR)
             out.parent.mkdir(parents=True, exist_ok=True)
             out.write_text(text, encoding="utf-8")
+        if has_query_page():  # the browser's own rule, so the data come only with the page
+            from . import query
+
+            _, problems = query.build(records / "data")
+            if problems:
+                raise SystemExit("query page: " + "; ".join(problems))
 
     stats = compute()
     rows = "\n".join(

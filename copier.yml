@@ -839,6 +839,32 @@ site_theme:
   choices: [auto, light, dark]
   default: auto
 
+query_page:
+  type: bool
+  when: "{{ kind == 'mech' and include_site }}"
+  help: >-
+    Add a query page to the record browser: prewritten queries for common
+    questions (records by creation date, the most cited sources, disputed
+    claims) that run with one click, and an editor for your own. The
+    queries run in the visitor's browser, so the site stays static and
+    nobody needs a command line. Queries live in conf/queries.yaml
+  default: false
+
+query_languages:
+  type: str
+  when: "{{ kind == 'mech' and include_site and query_page }}"
+  help: >-
+    Query languages the page offers. SQL runs in DuckDB over the record
+    tables; SPARQL runs in Oxigraph over the records as RDF, so it is only
+    as good as the schema's prefixes and URIs. Each adds a package, and
+    its queries are checked in `just qc`
+  choices:
+    "SQL": sql
+    "SPARQL": sparql
+    "Both SQL and SPARQL": both
+    "No preference (SQL for now)": no_preference
+  default: no_preference
+
 include_claude_hook:
   type: bool
   when: "{{ kind == 'mech' }}"
@@ -1350,6 +1376,17 @@ fleet_link_selection:
     {%- endfor -%}
     {%- endif -%}
     {{ sel | tojson }}
+
+# The languages the query page offers: no_preference means SQL.
+query_engines:
+  type: yaml
+  when: false
+  default: >-
+    {%- if kind == 'mech' and include_site and query_page -%}
+    {{ {'sql': ['sql'], 'sparql': ['sparql'], 'both': ['sql', 'sparql']}.get(query_languages, ['sql']) | tojson }}
+    {%- else -%}
+    []
+    {%- endif %}
 
 uses_agents:
   type: bool

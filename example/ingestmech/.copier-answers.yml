@@ -1,5 +1,5 @@
 # Changes here will be overwritten by Copier. Do not edit by hand.
-_commit: 0.2.1-41-gf419d9c
+_commit: 0.2.1-57-g43021ba
 _src_path: gh:monarch-initiative/mechmaker
 author_email: jhc@lbl.gov
 author_name: J. Harry Caufield
@@ -45,6 +45,7 @@ output_formats:
 - sql
 - csv
 python_min: '3.11'
+query_page: false
 record_class: Ingest
 record_noun: ingest
 records_dir: data/ingests
