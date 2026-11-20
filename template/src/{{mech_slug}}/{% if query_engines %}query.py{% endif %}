@@ -1,7 +1,7 @@
 """The record browser's query page: its data, and a check of every prewritten query.
 
     python -m <slug>.query check          # run every query in conf/queries.yaml; fail on an error
-    python -m <slug>.query build DIR      # write the page's data files into DIR
+    python -m <slug>.query build DIR      # write the page's data files into DIR, replacing its old ones
 
 The query page (records/query.html) runs queries in the visitor's browser, so
 the site stays static. Its data are written beside it, under records/data/,
@@ -213,7 +213,8 @@ def build(out_dir: Path, cfg: dict | None = None) -> tuple[list[Path], list[str]
     """Write the page's data into out_dir. (files written, problems)"""
     cfg = cfg or settings()
     out_dir.mkdir(parents=True, exist_ok=True)
-    for old in out_dir.iterdir():
+    # The files an earlier build wrote (a table whose class is gone goes too); nothing else.
+    for old in [*out_dir.glob("*.parquet"), out_dir / "records.ttl", out_dir / "tables.json"]:
         if old.is_file():
             old.unlink()
     recs = records()
@@ -234,7 +235,8 @@ def build(out_dir: Path, cfg: dict | None = None) -> tuple[list[Path], list[str]
         manifest["records"].append({"id": rid, "iri": iri, "page": f"records/{path.stem}.html"})
     (out_dir / "tables.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=1) + "\n",
                                          encoding="utf-8")
-    return sorted(out_dir.iterdir()), found
+    written = [*out_dir.glob("*.parquet"), out_dir / "records.ttl", out_dir / "tables.json"]
+    return sorted(p for p in written if p.is_file()), found
 
 
 # ---------------------------------------------------------------- checking the queries

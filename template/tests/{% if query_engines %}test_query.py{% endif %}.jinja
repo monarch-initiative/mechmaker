@@ -59,6 +59,15 @@ def test_every_query_runs_over_the_example_record(example_corpus, tmp_path):
     assert query.check(data_dir=tmp_path) == []
 
 
+def test_a_build_replaces_its_own_files_and_leaves_the_rest(example_corpus, tmp_path):
+    (tmp_path / "Gone.parquet").write_bytes(b"from a class since removed")
+    (tmp_path / "index.html").write_text("not the page's data", encoding="utf-8")
+    files, _ = query.build(tmp_path)
+    assert not (tmp_path / "Gone.parquet").exists()
+    assert (tmp_path / "index.html").read_text(encoding="utf-8") == "not the page's data"
+    assert tmp_path / "index.html" not in files
+
+
 def test_every_query_runs_with_no_records(monkeypatch, tmp_path):
     monkeypatch.setattr(query, "records", lambda: [])
     assert query.build(tmp_path)[1] == []
