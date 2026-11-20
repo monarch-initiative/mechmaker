@@ -852,6 +852,33 @@ def test_ingest_fetches_a_real_release(tmp_path):
     assert check.returncode == 0, check.stdout
 
 
+@pytest.mark.parametrize("answers,languages", [
+    ({"query_page": True, "query_languages": "sql"}, ["sql"]),
+    ({"query_page": True, "query_languages": "sparql"}, ["sparql"]),
+    ({"query_page": True, "query_languages": "both"}, ["sql", "sparql"]),
+    ({"query_page": True}, ["sql"]),  # no preference: SQL for now
+    ({"query_page": False}, []),
+    # Asked only with the record browser: without it, nothing of the page is laid down.
+    ({"include_site": False, "query_page": True, "query_languages": "both"}, []),
+])
+def test_query_page_follows_its_answers(tmp_path, answers, languages):
+    dest = render(tmp_path / "q", {**SCENARIOS["minimal"], "include_site": True, **answers})
+    slug = "minimalmech"
+    files = [dest / "conf" / "queries.yaml", dest / "src" / slug / "query.py",
+             dest / "tests" / "test_query.py"]
+    assert [f.exists() for f in files] == [bool(languages)] * 3
+    page = dest / "src" / slug / "templates" / "query.html"
+    assert page.exists() == bool(languages)
+    deps = tomllib.loads((dest / "pyproject.toml").read_text())["project"]["dependencies"]
+    assert any(d.startswith("duckdb") for d in deps) == ("sql" in languages)
+    assert any(d.startswith("pyoxigraph") for d in deps) == ("sparql" in languages)
+    assert ("query-check:" in (dest / "justfile").read_text()) == bool(languages)
+    if languages:
+        conf = yaml.safe_load(files[0].read_text())
+        assert conf["languages"] == languages
+        assert {q["language"] for q in conf["queries"]} == set(languages)
+
+
 def test_news_watch_needs_news_leads(tmp_path):
     data = {**BASE, "mech_name": "NoNewsMech", "record_class": "Thing", "workflows": ["news-watch"],
             "news_leads": False}

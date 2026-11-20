@@ -419,7 +419,8 @@ def query_config() -> tuple[list[str], list[dict], Markup]:
     if errors:
         raise SystemExit("conf/queries.yaml: " + "; ".join(errors))
     queries = query.page_queries(cfg)
-    found = {"slug": SLUG, "languages": cfg["languages"], "queries": queries}
+    # The page links a reference as a record page does: CURIE_BASES, url:, else the Bioregistry.
+    found = {"slug": SLUG, "languages": cfg["languages"], "queries": queries, "curie_bases": CURIE_BASES}
     # "</" would end the script element the JSON sits in.
     return cfg["languages"], queries, Markup(json.dumps(found, ensure_ascii=False).replace("</", "<\\/"))
 

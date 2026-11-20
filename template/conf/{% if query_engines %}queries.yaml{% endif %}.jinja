@@ -15,6 +15,9 @@
 #   record_terms     record_id, record_name, section, term_id, term_label
 # SPARQL runs in Oxigraph over the records as RDF, through the schema's URIs.
 #
+# A SPARQL query that looks for quotes walks down through the record's parts
+# (blank nodes) only, so it never reaches into another record.
+#
 # Each query: id (unique), title, description (one sentence), language
 # (sql or sparql), query. A value in a result that is a record's id or IRI
 # links to its page.
@@ -145,7 +148,7 @@ queries:
 
   - id: sources-sparql
     title: Sources and the records that quote them (SPARQL)
-    description: Each reference a record quotes, directly or in one of its sections, and how it bears on the claim.
+    description: Each reference a record quotes, anywhere in the record, and how it bears on the claim.
     language: sparql
     query: |
       PREFIX {{ mech_slug }}: <https://w3id.org/{{ github_org }}/{{ mech_slug }}/>
@@ -154,9 +157,13 @@ queries:
       WHERE {
         ?record a {{ mech_slug }}:{{ record_class }} ;
                 schema:name ?name .
-        { ?record ?p ?evidence }
-        UNION
-        { ?record ?p1 ?part . FILTER(isBlank(?part)) ?part ?p2 ?evidence }
+        # Quotes sit up to four levels down, inside parts with no id of their
+        # own (blank nodes), never inside another record or a term.
+        { ?record ?p1 ?evidence }
+        UNION { ?record ?p1 ?a . ?a ?p2 ?evidence . FILTER(isBlank(?a)) }
+        UNION { ?record ?p1 ?a . ?a ?p2 ?b . ?b ?p3 ?evidence . FILTER(isBlank(?a) && isBlank(?b)) }
+        UNION { ?record ?p1 ?a . ?a ?p2 ?b . ?b ?p3 ?c . ?c ?p4 ?evidence .
+                FILTER(isBlank(?a) && isBlank(?b) && isBlank(?c)) }
         ?evidence {{ mech_slug }}:reference ?reference ;
                   {{ mech_slug }}:supports ?supports .
       }
@@ -173,9 +180,13 @@ queries:
       WHERE {
         ?record a {{ mech_slug }}:{{ record_class }} ;
                 schema:name ?name .
-        { ?record ?p ?evidence }
-        UNION
-        { ?record ?p1 ?part . FILTER(isBlank(?part)) ?part ?p2 ?evidence }
+        # Quotes sit up to four levels down, inside parts with no id of their
+        # own (blank nodes), never inside another record or a term.
+        { ?record ?p1 ?evidence }
+        UNION { ?record ?p1 ?a . ?a ?p2 ?evidence . FILTER(isBlank(?a)) }
+        UNION { ?record ?p1 ?a . ?a ?p2 ?b . ?b ?p3 ?evidence . FILTER(isBlank(?a) && isBlank(?b)) }
+        UNION { ?record ?p1 ?a . ?a ?p2 ?b . ?b ?p3 ?c . ?c ?p4 ?evidence .
+                FILTER(isBlank(?a) && isBlank(?b) && isBlank(?c)) }
         ?evidence {{ mech_slug }}:supports ?supports ;
                   {{ mech_slug }}:reference ?reference .
         OPTIONAL { ?evidence {{ mech_slug }}:snippet ?snippet }

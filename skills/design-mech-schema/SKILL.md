@@ -42,8 +42,12 @@ details.
    below). Fix what does not fit.
 5. If the Mech has `research/` (deep research is on), rewrite the research
    prompt from `docs/DOMAIN.md` (see "The research prompt", below).
-6. `just lint`, `just test`, `just qc`.
-7. Record the change: `just new-history --kind schema --slug <slug>
+6. If the Mech has `conf/queries.yaml` (the record browser's query page),
+   fix each query that names a class or slot the design renamed or
+   removed, and add one or two for the questions the domain's readers ask
+   most. `just query-check` runs them all.
+7. `just lint`, `just test`, `just qc`.
+8. Record the change: `just new-history --kind schema --slug <slug>
    --path src/<slug>/schema/<slug>.yaml
    --event EDIT --outcome changed --summary ... --details ... --apply`.
 

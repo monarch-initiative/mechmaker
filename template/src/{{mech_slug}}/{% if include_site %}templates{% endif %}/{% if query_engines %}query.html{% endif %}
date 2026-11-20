@@ -141,8 +141,17 @@ function engine(lang) {
   return engines[lang];
 }
 
-// A CURIE from another resource links to the Bioregistry, as on the record pages. A minted id does not.
-const isCurie = v => /^[A-Za-z][A-Za-z0-9_.]*:[^\s]+$/.test(v) && !/^https?:/.test(v) && !v.startsWith(`${config.slug}:`);
+// Where a value links, by the record pages' rules (render.curie_url): a URL to itself; a CURIE to its
+// source's site, or the Bioregistry; a url: reference to its URL. A minted id links nowhere.
+function linkFor(v) {
+  if (/^https?:\/\/\S+$/.test(v)) return v;
+  if (!/^[A-Za-z][A-Za-z0-9_.]*:[^\s]+$/.test(v)) return null;
+  const at = v.indexOf(":"), prefix = v.slice(0, at), local = v.slice(at + 1);
+  if (prefix === "url") return /^https?:\/\//.test(local) ? local : null;
+  if (prefix === config.slug) return null;
+  const base = config.curie_bases[prefix];
+  return base ? base + local : `https://bioregistry.io/${v}`;
+}
 
 function cell(value, column) {
   const td = document.createElement("td");
@@ -152,10 +161,9 @@ function cell(value, column) {
   if (page) {
     const a = document.createElement("a");
     a.href = page; a.textContent = value; td.append(a);
-  } else if (/^https?:\/\/\S+$/.test(value) || isCurie(value)) {
+  } else if (linkFor(value)) {
     const a = document.createElement("a");
-    a.href = isCurie(value) ? `https://bioregistry.io/${value}` : value;
-    a.textContent = value; td.append(a);
+    a.href = linkFor(value); a.textContent = value; td.append(a);
   } else {
     td.textContent = value;
   }

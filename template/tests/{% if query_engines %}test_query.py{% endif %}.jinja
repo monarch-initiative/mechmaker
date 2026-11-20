@@ -84,6 +84,21 @@ def test_the_graph_holds_the_record(example_corpus, tmp_path):
 {%- endif %}
 
 
+{% if 'sql' in query_engines and 'sparql' in query_engines and causal_graphs -%}
+def test_sparql_finds_every_quote_sql_does_however_deep(example_corpus, tmp_path):
+    """A quote on a mechanism's downstream edge sits three levels down; both languages find it."""
+    quote = [{"reference": "PMID:2", "supports": "REFUTE", "snippet": "deep"}]
+    example_corpus["mechanisms"] = [{"name": "a", "downstream": [{"target": "b", "evidence": quote}]},
+                                    {"name": "b"}]
+    query.build(tmp_path)
+    queries = {q["id"]: q["query"] for q in query.settings()["queries"]}
+    if "sources-sparql" not in queries:
+        pytest.skip("conf/queries.yaml has no sources-sparql query")
+    sql = query.run_sql(tmp_path, "SELECT count(*) FROM record_evidence")[0][0]
+    assert sql == 2 and len(query.run_sparql(tmp_path, queries["sources-sparql"])) == sql
+
+
+{% endif -%}
 def test_a_broken_query_is_named(example_corpus, tmp_path, monkeypatch):
     lang = query.settings()["languages"][0]
     bad = {"id": "broken", "title": "Broken", "language": lang, "query": "SELECT nothing FROM nowhere"}

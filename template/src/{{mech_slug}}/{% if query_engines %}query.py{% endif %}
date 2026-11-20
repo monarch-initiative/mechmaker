@@ -175,7 +175,8 @@ def build_tables(sv, recs: list[tuple[Path, dict]], out_dir: Path) -> list[dict]
         export.build_sqlite(sv, recs, db)
         src = sqlite3.connect(db)
         names = [t for (t,) in src.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")]
-        clash = sorted(set(names) & set(DERIVED))
+        # DuckDB's table names ignore case.
+        clash = sorted(n for n in names if n.lower() in DERIVED)
         if clash:
             raise SystemExit(f"query: the schema has a class named {clash[0]!r}, the name of a table the "
                              f"query page makes ({', '.join(DERIVED)}). Rename the class.")
