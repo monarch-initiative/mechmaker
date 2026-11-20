@@ -27,6 +27,13 @@ dependencies = [
     # The Biolink model, for the KGX exports: they check every category and
     # predicate against it. Only here because this Mech exports KGX.
     "biolink-model>=4.4.5",
+    # DuckDB, for the query page's SQL: it writes the tables the page reads,
+    # and `just query-check` runs each SQL query with it. Only here because
+    # this Mech chose the query page.
+    "duckdb>=1.4",
+    # Oxigraph, for the query page's SPARQL: `just query-check` runs each
+    # SPARQL query with it. Only here because this Mech chose the query page.
+    "pyoxigraph>=0.5",
 ]
 
 [project.optional-dependencies]

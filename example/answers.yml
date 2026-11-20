@@ -28,6 +28,8 @@ collection: none
 data_license: CC-BY-4.0
 code_license: BSD-3-Clause
 include_site: true
+query_page: true
+query_languages: both
 include_claude_hook: true
 site_palette: brown
 site_accent: amber

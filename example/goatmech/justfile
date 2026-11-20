@@ -274,6 +274,11 @@ site-check:
 render:
     uv run python -m {{slug}}.render
 
+# Run every query in conf/queries.yaml over the records, with the engines the
+# query page uses. `just qc` runs it too.
+query-check:
+    uv run python -m {{slug}}.query check
+
 # ---------------------------------------------------------------- code
 
 # Run the test suite

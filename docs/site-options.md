@@ -63,6 +63,8 @@ front page, at `/records/query.html`, linked from it. Readers pick a
 question to run it, or write their own query, and download the result as
 CSV. The queries run in the reader's browser, so the site stays static and
 nobody needs a command line or a database.
+[GoatMech's query page](example/goatmech/records/query.html) offers both
+languages.
 
 The second question, `query_languages`, picks the language:
 
