@@ -225,9 +225,11 @@ async function prepare(lang) {
   say("Loading the query engine…");
   try {
     await engine(lang);
+    if (lang !== current.lang) return;  // the reader switched languages while this one loaded
     $("run").disabled = false;
     say("Ready. Pick a question, or write a query and run it.");
   } catch (e) {
+    if (lang !== current.lang) return;
     say(`The query engine did not load: ${e.message}`, true);
   }
 }
