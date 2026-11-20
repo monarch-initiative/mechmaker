@@ -266,7 +266,7 @@ def run_sql(data_dir: Path, sql: str) -> list[tuple]:
     con = duckdb.connect()
     try:
         for p in sorted(data_dir.glob("*.parquet")):
-            con.execute(f"CREATE VIEW {quote(p.stem)} AS SELECT * FROM read_parquet('{p.as_posix()}')")
+            con.execute(f"CREATE VIEW {quote(p.stem)} AS SELECT * FROM read_parquet({literal(p.as_posix())})")
         return con.execute(sql).fetchall()
     finally:
         con.close()

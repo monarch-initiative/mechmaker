@@ -68,6 +68,12 @@ def test_a_build_replaces_its_own_files_and_leaves_the_rest(example_corpus, tmp_
     assert tmp_path / "index.html" not in files
 
 
+def test_a_data_directory_may_have_a_quote_in_its_path(example_corpus, tmp_path):
+    data = tmp_path / "o'brien"
+    query.build(data)
+    assert query.check(data_dir=data) == []
+
+
 def test_every_query_runs_with_no_records(monkeypatch, tmp_path):
     monkeypatch.setattr(query, "records", lambda: [])
     assert query.build(tmp_path)[1] == []
