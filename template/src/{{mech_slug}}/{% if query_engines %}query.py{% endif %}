@@ -46,9 +46,10 @@ SETTINGS = REPO_ROOT / "conf" / "queries.yaml"
 LANGUAGES = ("sql", "sparql")
 MISSING = {
     "sql": "SQL queries need the duckdb package, which this Mech does not install. Run "
-           "`uv add 'duckdb>=1.4'` and `just install`, or take sql out of conf/queries.yaml `languages`.",
+           "`uv add 'duckdb>=1.4,<1.5'` and `just install`, or take sql out of conf/queries.yaml "
+           "`languages`.",
     "sparql": "SPARQL queries need pyoxigraph, which this Mech does not install. Run "
-              "`uv add 'pyoxigraph>=0.5'` and `just install`, or take sparql out of conf/queries.yaml "
+              "`uv add 'pyoxigraph>=0.5,<0.6'` and `just install`, or take sparql out of conf/queries.yaml "
               "`languages`.",
 }
 # Tables made for querying, beside the class tables. A class of the same name would be shadowed.

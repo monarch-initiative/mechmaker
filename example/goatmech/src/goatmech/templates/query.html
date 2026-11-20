@@ -46,7 +46,9 @@ Run <code>just docs-serve</code> and open <code>/records/query.html</code> there
 <script type="application/json" id="query-config">{{ config }}</script>
 <script type="module">
 // Pinned engines: DuckDB-WASM for SQL, Oxigraph for SPARQL. Change a version
-// here, and run `just docs-serve` to try the page before it ships.
+// here, and run `just docs-serve` to try the page before it ships. The check
+// (`just query-check`) runs the same releases in Python: DuckDB-WASM 1.32.0 is
+// DuckDB 1.4 (pyproject.toml's duckdb), and Oxigraph 0.5 is pyoxigraph 0.5.
 const DUCKDB = "https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.32.0/+esm";
 const OXIGRAPH = "https://cdn.jsdelivr.net/npm/oxigraph@0.5.13/web.js";
 
