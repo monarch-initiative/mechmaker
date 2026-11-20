@@ -311,6 +311,20 @@ def test_news_leads_are_audited_and_unset_searches_are_to_check(tmp_path):
     assert status(items, "News searches set for the domain") == audit_mech.DONE
 
 
+def test_the_query_page_is_audited_and_its_languages_checked(tmp_path):
+    dest = render(tmp_path / "querymech", {**SCENARIOS["habitat"], "query_page": True,
+                                           "query_languages": "both"})
+    _, items = audit(dest)
+    assert status(items, "Query page in the record browser") == audit_mech.DONE
+    assert status(items, "Query languages: sql, sparql") == audit_mech.DONE
+    conf = dest / "conf" / "queries.yaml"
+    conf.write_text(conf.read_text().replace('languages: ["sql", "sparql"]', 'languages: ["sql"]', 1))
+    next((dest / "src").glob("*/query.py")).unlink()
+    _, items = audit(dest)
+    assert status(items, "Query page in the record browser") == audit_mech.MISSING
+    assert status(items, "Query languages: sql, sparql") == audit_mech.CHECK
+
+
 def test_sssom_is_audited_and_unmapped_records_are_to_check(tmp_path):
     dest = render(tmp_path / "mapmech", {**SCENARIOS["habitat"],
                                          "output_formats": ["yaml", "json", "sssom"]})

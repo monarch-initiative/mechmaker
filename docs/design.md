@@ -460,9 +460,9 @@ their `just qc`.
 
 ## 14. Optional parts
 
-**Decision.** Causal graphs, the record browser, maps, deep research, news
-leads, structured ingests, agent workflows, output formats and database
-loads are Copier answers. A Mech's creators turn on what its field needs,
+**Decision.** Causal graphs, the record browser and its query page, maps,
+deep research, news leads, structured ingests, agent workflows, output
+formats and database loads are Copier answers. A Mech's creators turn on what its field needs,
 and its `.copier-answers.yml` records the choice.
 
 **Rationale.** Each part has a cost: files to read, checks to keep passing,

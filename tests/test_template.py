@@ -139,9 +139,13 @@ SCENARIOS["disease"].update({"site_palette": "brown", "site_theme": "light", "de
                              # Releases on, so the registry draft lists every format's files.
                              "workflows": ["sweep", "docs", "comment-guard", "release-records"],
                              # Two Monarch ingests, and Koza for the Mech's own.
-                             "ingests": ["hpoa", "omim"], "koza_ingests": True})
+                             "ingests": ["hpoa", "omim"], "koza_ingests": True,
+                             # The query page, in both languages.
+                             "query_page": True, "query_languages": "both"})
 # A Monarch ingest without Koza.
 SCENARIOS["extras"]["ingests"] = ["zfin"]
+# The query page with no preference of language: SQL, over a Mech that exports no RDF.
+SCENARIOS["extras"].update({"query_page": True})
 SCENARIOS["all-workflows"].update({"site_palette": "yellow", "site_accent": "amber", "site_theme": "dark"})
 
 VENDORED_MD5 = {
@@ -150,7 +154,7 @@ VENDORED_MD5 = {
 }
 
 # Rendered files that legitimately contain Jinja or just syntax of their own.
-OWN_BRACES = {"justfile", "index.html", "record.html", "style.css"}
+OWN_BRACES = {"justfile", "index.html", "record.html", "query.html", "style.css"}
 
 
 def render(dest: Path, data: dict) -> Path:

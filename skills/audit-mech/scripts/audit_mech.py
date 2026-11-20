@@ -620,6 +620,35 @@ def from_answers(m: Mech) -> list[Item]:
                 "regenerate with include_site: true",
             )
         )
+    if a.get("include_site") and a.get("query_page"):
+        parts = [f"src/{slug}/query.py", f"src/{slug}/templates/query.html", "conf/queries.yaml"]
+        absent = [p for p in parts if not m.exists(p)] + [
+            f"just {r}" for r in ("query-check",) if r not in m.recipes()]
+        out.append(
+            item(
+                "Query page in the record browser",
+                "query_page",
+                not absent,
+                "query.py, its page, conf/queries.yaml and `just query-check` present"
+                if not absent
+                else f"absent: {', '.join(absent)}",
+                "regenerate with query_page: true",
+            )
+        )
+        want = {"sql": ["sql"], "sparql": ["sparql"], "both": ["sql", "sparql"]}.get(
+            a.get("query_languages"), ["sql"])
+        got = m.conf("queries.yaml").get("languages") or []
+        # Changing the languages later is the person's to make, so a difference is to check.
+        out.append(
+            item(
+                f"Query languages: {', '.join(want)}",
+                "query_languages",
+                sorted(got) == sorted(want),
+                f"conf/queries.yaml offers {', '.join(got) or 'none'}",
+                "conf/queries.yaml was changed after generation; confirm its `languages` are wanted",
+                status=None if sorted(got) == sorted(want) else CHECK,
+            )
+        )
     site = m.conf("site.yaml")
     for key, field in (("site_palette", "palette"), ("site_accent", "accent"), ("site_theme", "theme")):
         if a.get(key):

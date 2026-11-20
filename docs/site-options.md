@@ -56,6 +56,42 @@ just docs-serve     # look at both at http://127.0.0.1:8000
 fresh on every docs build; `pages/`, from `just render`, is a local copy and
 is not committed.
 
+## The query page
+
+A Mech made with `query_page: true` has a query page beside the browser's
+front page, at `/records/query.html`, linked from it. Readers pick a
+question to run it, or write their own query, and download the result as
+CSV. The queries run in the reader's browser, so the site stays static and
+nobody needs a command line or a database.
+
+The second question, `query_languages`, picks the language:
+
+| Answer | The page offers | Runs in | Over |
+|---|---|---|---|
+| `sql` | SQL | [DuckDB-WASM](https://duckdb.org/docs/api/wasm/overview) | the tables of the SQLite export, one per class, plus `record_evidence` (one row per quote) and `record_terms` (one row per term a record binds) |
+| `sparql` | SPARQL | [Oxigraph](https://github.com/oxigraph/oxigraph) | the records as RDF, through the schema's URIs |
+| `both` | either, with a switch | both | both |
+| `no_preference` (the default) | SQL, for now | DuckDB-WASM | the tables |
+
+The prewritten questions live in `conf/queries.yaml`, each with a title,
+a one-sentence description, a language and the query. The template's
+cover records by creation and update date, records by status, the records
+with the fewest quotes, the most cited sources, evidence against a claim,
+quotes from PubMed, the most used ontology terms, and who curated what.
+Add the questions your readers ask. A value in a result that is a
+record's id or IRI links to its page.
+
+The site build writes the page's data under `/records/data/`. It is built
+from the records, whatever `conf/export.yaml` names. `just query-check`
+runs every query with the same engines, over the same files. `just qc`
+runs it too, so a query that a schema change breaks fails before it
+reaches the site. The check proves each query runs, not that it returns
+rows: a new Mech with no records passes.
+
+The page loads its engines from jsDelivr, at pinned versions, and reads
+its data over the web. Opened as a file, it says to run
+`just docs-serve` instead.
+
 A Mech made with `include_site: false` has no browser. Its
 `conf/site.yaml` holds only `palette`, `accent` and `theme`. Run
 `just site-check`, then `just docs-serve`.

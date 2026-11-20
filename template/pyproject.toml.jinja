@@ -49,6 +49,17 @@ dependencies = [
     # predicate against it. Only here because this Mech exports KGX.
     "biolink-model>=4.4.5",
 {%- endif %}
+{%- if 'sql' in query_engines %}
+    # DuckDB, for the query page's SQL: it writes the tables the page reads,
+    # and `just query-check` runs each SQL query with it. Only here because
+    # this Mech chose the query page.
+    "duckdb>=1.4",
+{%- endif %}
+{%- if 'sparql' in query_engines %}
+    # Oxigraph, for the query page's SPARQL: `just query-check` runs each
+    # SPARQL query with it. Only here because this Mech chose the query page.
+    "pyoxigraph>=0.5",
+{%- endif %}
 {%- if koza_ingests %}
     # The Mech's own structured data ingests (just ingest): Koza runs the
     # transforms in ingests/, kghub-downloader fetches their sources.

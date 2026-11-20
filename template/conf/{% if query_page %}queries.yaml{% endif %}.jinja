@@ -1,0 +1,185 @@
+# The record browser's query page (records/query.html): the languages it
+# offers, and the prewritten queries it lists, in this order. Each runs with
+# one click and opens in the editor, where a visitor can change it.
+#
+# `just query-check` runs every query over the records, with the same engines
+# the page uses, and `just qc` runs it too: a query that a schema change
+# breaks fails there, before it reaches the site. Rename a class or a slot,
+# and fix the queries that name it.
+#
+# SQL runs in DuckDB over the tables of the SQLite export (one per class; a
+# nested object's row points at its parent through a `<Class>_id` column),
+# plus two tables made for querying:
+#   record_evidence  record_id, record_name, section, reference,
+#                    reference_title, supports, evidence_source, snippet
+#   record_terms     record_id, record_name, section, term_id, term_label
+# SPARQL runs in Oxigraph over the records as RDF, through the schema's URIs.
+#
+# Each query: id (unique), title, description (one sentence), language
+# (sql or sparql), query. A value in a result that is a record's id or IRI
+# links to its page.
+
+languages: {{ query_engines | tojson }}
+
+queries:
+{%- if 'sql' in query_engines %}
+  - id: newest
+    title: {{ record_noun | capitalize }} records, newest first
+    description: Every record, ranked by the date it was created.
+    language: sql
+    query: |
+      SELECT id, name, status, creation_date, updated_date
+      FROM "{{ record_class }}"
+      ORDER BY creation_date DESC NULLS LAST, name
+
+  - id: recently-updated
+    title: Recently updated
+    description: Every record, ranked by the date it last changed.
+    language: sql
+    query: |
+      SELECT id, name, status, updated_date, creation_date
+      FROM "{{ record_class }}"
+      ORDER BY coalesce(updated_date, creation_date) DESC NULLS LAST, name
+
+  - id: by-status
+    title: Records by review status
+    description: How many records are at each status, from draft to reviewed.
+    language: sql
+    query: |
+      SELECT status, count(*) AS records
+      FROM "{{ record_class }}"
+      GROUP BY status
+      ORDER BY records DESC
+
+  - id: least-evidence
+    title: Records with the fewest quotes
+    description: Records ranked by how many quotes back them, fewest first; the ones most in need of curation.
+    language: sql
+    query: |
+      SELECT r.id, r.name, r.status, count(e.reference) AS quotes, count(DISTINCT e.reference) AS sources
+      FROM "{{ record_class }}" r
+      LEFT JOIN record_evidence e ON e.record_id = r.id
+      GROUP BY r.id, r.name, r.status
+      ORDER BY quotes, r.name
+
+  - id: most-cited
+    title: Most cited sources
+    description: Each source the records quote, with how many records and quotes cite it.
+    language: sql
+    query: |
+      SELECT reference, any_value(reference_title) AS title,
+             count(DISTINCT record_id) AS records, count(*) AS quotes
+      FROM record_evidence
+      GROUP BY reference
+      ORDER BY records DESC, quotes DESC, reference
+
+  - id: disputed
+    title: Evidence against a claim
+    description: Quotes that refute a claim or support it only in part, with the record and section they sit in.
+    language: sql
+    query: |
+      SELECT record_id, record_name, section, supports, reference, snippet
+      FROM record_evidence
+      WHERE supports IN ('REFUTE', 'PARTIAL')
+      ORDER BY record_name, section
+
+  - id: pubmed-quotes
+    title: Quotes from PubMed articles
+    description: Every quote whose source is a PubMed article. Change 'PMID:%' to another prefix, or to one reference.
+    language: sql
+    query: |
+      SELECT record_id, record_name, section, reference, reference_title, snippet
+      FROM record_evidence
+      WHERE reference LIKE 'PMID:%'
+      ORDER BY reference, record_name
+
+  - id: top-terms
+    title: Most used ontology terms
+    description: Each ontology term the records bind, with how many records bind it.
+    language: sql
+    query: |
+      SELECT term_id, any_value(term_label) AS label, count(DISTINCT record_id) AS records,
+             string_agg(DISTINCT section, ', ') AS sections
+      FROM record_terms
+      GROUP BY term_id
+      ORDER BY records DESC, term_id
+
+  - id: curators
+    title: Who curated what
+    description: Each curator, with how many changes they made and when they first and last made one.
+    language: sql
+    query: |
+      SELECT curator, count(*) AS changes, count(DISTINCT "{{ record_class }}_id") AS records,
+             min("timestamp") AS first_change, max("timestamp") AS last_change
+      FROM "CurationEvent"
+      GROUP BY curator
+      ORDER BY changes DESC
+{%- endif %}
+{%- if 'sparql' in query_engines %}
+
+  - id: graph-classes
+    title: What the graph holds
+    description: Each class in the RDF graph, with how many things belong to it.
+    language: sparql
+    query: |
+      SELECT ?class (COUNT(?thing) AS ?things)
+      WHERE { ?thing a ?class }
+      GROUP BY ?class
+      ORDER BY DESC(?things)
+
+  - id: newest-sparql
+    title: {{ record_noun | capitalize }} records, newest first (SPARQL)
+    description: Every record, ranked by the date it was created.
+    language: sparql
+    query: |
+      PREFIX {{ mech_slug }}: <https://w3id.org/{{ github_org }}/{{ mech_slug }}/>
+      PREFIX schema: <http://schema.org/>
+      SELECT ?record ?name ?status ?created
+      WHERE {
+        ?record a {{ mech_slug }}:{{ record_class }} ;
+                schema:name ?name .
+        OPTIONAL { ?record {{ mech_slug }}:status ?status }
+        OPTIONAL { ?record {{ mech_slug }}:creation_date ?created }
+      }
+      ORDER BY DESC(?created) ?name
+
+  - id: sources-sparql
+    title: Sources and the records that quote them (SPARQL)
+    description: Each reference a record quotes, directly or in one of its sections, and how it bears on the claim.
+    language: sparql
+    query: |
+      PREFIX {{ mech_slug }}: <https://w3id.org/{{ github_org }}/{{ mech_slug }}/>
+      PREFIX schema: <http://schema.org/>
+      SELECT ?record ?name ?reference ?supports
+      WHERE {
+        ?record a {{ mech_slug }}:{{ record_class }} ;
+                schema:name ?name .
+        { ?record ?p ?evidence }
+        UNION
+        { ?record ?p1 ?part . FILTER(isBlank(?part)) ?part ?p2 ?evidence }
+        ?evidence {{ mech_slug }}:reference ?reference ;
+                  {{ mech_slug }}:supports ?supports .
+      }
+      ORDER BY ?reference ?name
+
+  - id: disputed-sparql
+    title: Evidence against a claim (SPARQL)
+    description: Quotes that refute a claim or support it only in part, with the record they sit in.
+    language: sparql
+    query: |
+      PREFIX {{ mech_slug }}: <https://w3id.org/{{ github_org }}/{{ mech_slug }}/>
+      PREFIX schema: <http://schema.org/>
+      SELECT ?record ?name ?supports ?reference ?snippet
+      WHERE {
+        ?record a {{ mech_slug }}:{{ record_class }} ;
+                schema:name ?name .
+        { ?record ?p ?evidence }
+        UNION
+        { ?record ?p1 ?part . FILTER(isBlank(?part)) ?part ?p2 ?evidence }
+        ?evidence {{ mech_slug }}:supports ?supports ;
+                  {{ mech_slug }}:reference ?reference .
+        OPTIONAL { ?evidence {{ mech_slug }}:snippet ?snippet }
+        FILTER(?supports IN ("REFUTE", "PARTIAL"))
+      }
+      ORDER BY ?name
+{%- endif %}

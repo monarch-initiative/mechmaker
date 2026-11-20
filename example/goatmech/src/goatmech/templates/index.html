@@ -8,7 +8,7 @@
 </head>
 <body>
 <header>
-<nav><a href="../index.html">Documentation</a> · <a href="{{ repo_url }}">Repository</a></nav>
+<nav><a href="../index.html">Documentation</a> · <a href="{{ repo_url }}">Repository</a>{% if has_query %} · <a href="query.html">Query the records</a>{% endif %}</nav>
 <h1>{{ site.title }}</h1>
 <p class="meta">{{ records | length }} {{ record_noun }} record{{ "" if records | length == 1 else "s" }}
 {%- for s, n in statuses %} · {{ s | badge("status") }} {{ n }}{% endfor %}</p>

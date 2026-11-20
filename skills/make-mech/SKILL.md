@@ -97,6 +97,13 @@ Some answers belong to the user. Ask for them; do not invent them:
 - the collection (`monarch`, `xmech` or `none`);
 - the site's colors and light or dark mode (`site_palette`, `site_accent`,
   `site_theme`), if they care; the defaults are fine otherwise;
+- whether the record browser gets a query page (`query_page`), where
+  readers run prewritten questions (records by creation date, the most
+  cited sources, disputed claims) and their own queries in the browser,
+  with no command line. If yes, which language (`query_languages`): `sql`,
+  `sparql`, `both`, or `no_preference`, which means SQL for now. SPARQL
+  fits people who already work in RDF; it reads the records through the
+  schema's URIs. Leave it off when nobody will query the records.
 - whether to add deep research (`deep_research`), and which provider they
   can use and pay for. Recommend it when the survey found a large
   literature; skip it when records come from one database.
@@ -139,6 +146,8 @@ include_claude_hook: true
 site_palette: teal        # Material color names; see the site options page
 site_accent: amber
 site_theme: auto          # auto, light or dark
+query_page: false         # true for a query page in the record browser; see the site options page
+# query_languages: no_preference   # with query_page: sql, sparql, both, or no_preference (SQL for now)
 workflows: [sweep, docs, comment-guard]   # step 4b revisits this
 deep_research: true      # literature-heavy domain; see the deep research page
 news_leads: false        # true when records are events local news reports; see ingest-news
@@ -288,6 +297,11 @@ If records describe places (areas, regions, watersheds, sites), give them
 points, bounding boxes or outlines, and each record page gets a map. The `add-record-map`
 skill says how; it is the default for a Mech with a geography, not an
 extra to wait for a request.
+
+If the answers turned on `query_page`, add a prewritten query or two for
+the questions the domain's readers ask most, to `conf/queries.yaml`, once
+the schema is designed. The generic ones there name only the record class
+and the shared slots. `just query-check` runs every query over the records.
 
 ## 5. Seed
 

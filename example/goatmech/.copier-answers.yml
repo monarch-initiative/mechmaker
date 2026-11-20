@@ -1,5 +1,5 @@
 # Changes here will be overwritten by Copier. Do not edit by hand.
-_commit: 0.2.1-41-gf419d9c
+_commit: 0.2.1-44-g4cb6bfc
 _src_path: gh:monarch-initiative/mechmaker
 agent_schedules: false
 author_email: jhc@lbl.gov
@@ -48,6 +48,7 @@ output_formats:
 - sql
 - csv
 python_min: '3.11'
+query_page: false
 record_class: GoatBreed
 record_noun: goat breed
 records_dir: data/goat_breeds
