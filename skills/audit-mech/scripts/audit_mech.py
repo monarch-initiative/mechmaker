@@ -674,6 +674,16 @@ def from_answers(m: Mech) -> list[Item]:
             )
         if "sssom" in a["output_formats"]:
             out += mapping_items(m)
+        elif (absent := sssom_shape(m)) is not None:
+            # A `mappings` section of the Mech's own, of another shape: mappings are SSSOM's.
+            out.append(item(
+                "The record's `mappings` are SSSOM's",
+                "docs/design.md (identity: mappings)",
+                not absent,
+                "`mappings` has SSSOM's fields" if not absent else f"`mappings` has no {', '.join(absent)}",
+                "move `mappings` to SSSOM's fields and add sssom to output_formats "
+                "(the Output formats page of mechmaker's docs)",
+            ))
         if {"kgx", "kgx_maximal"} & set(a["output_formats"]) and "kgx_biolink" in a:
             got = m.conf("kgx.yaml").get("biolink")
             want = bool(a["kgx_biolink"])
@@ -701,6 +711,30 @@ def from_answers(m: Mech) -> list[Item]:
     return out
 
 
+SSSOM_FIELDS = ("predicate_id", "object_id", "mapping_justification")
+
+
+def sssom_shape(m: Mech) -> list[str] | None:
+    """The SSSOM fields the schema's `mappings` range lacks; None when there is no `mappings` slot."""
+    if "mappings" not in m.slots():
+        return None
+    classes = m.classes()
+    rng = ((m.schema.get("slots") or {}).get("mappings") or {}).get("range")
+    for cls in classes.values():  # an attribute, or a slot_usage, names the range on the class
+        cls = cls or {}
+        local = (cls.get("attributes") or {}).get("mappings") or (cls.get("slot_usage") or {}).get("mappings")
+        rng = (local or {}).get("range") or rng
+    fields: set[str] = set()
+    seen: set[str] = set()
+    while rng in classes and rng not in seen:  # the class and those it is_a
+        seen.add(rng)
+        cls = classes[rng] or {}
+        fields.update(cls.get("slots") or [])
+        fields.update(cls.get("attributes") or {})
+        rng = cls.get("is_a")
+    return [f for f in SSSOM_FIELDS if f not in fields]
+
+
 def mapping_items(m: Mech) -> list[Item]:
     """The SSSOM export: its parts, and records that state mappings for it to write."""
     slug = m.answers["mech_slug"]
@@ -708,6 +742,7 @@ def mapping_items(m: Mech) -> list[Item]:
     absent = [p for p in parts if not m.exists(p)]
     absent += [f"schema class {c}" for c in ("Mapping",) if c not in m.classes()]
     absent += [f"schema slot {s}" for s in ("mappings",) if s not in m.slots()]
+    absent += [f"SSSOM field {f} in `mappings`" for f in sssom_shape(m) or []]
     records = m.records()
     mapped = [r for r in records if isinstance(d := m._yaml(r), dict) and d.get("mappings")]
     return [

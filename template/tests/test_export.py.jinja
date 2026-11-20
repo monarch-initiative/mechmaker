@@ -49,7 +49,7 @@ try:
 except ImportError:
     HAS_BIOLINK = False
 # Every format this Mech can write as installed: SSSOM also needs the schema's `mappings`.
-SSSOM_READY = HAS_SSSOM and mappings.has_slot(export.schemaview())
+SSSOM_READY = HAS_SSSOM and mappings.shape_problem(export.schemaview()) is None
 KGX_READY = HAS_BIOLINK or not kgx.settings()["biolink"]
 INSTALLED = [f for f in export.FORMATS
              if (f != "duckdb" or HAS_DUCKDB) and (f != "parquet" or HAS_PYARROW)
@@ -272,6 +272,9 @@ def test_mapping_evidence_becomes_see_also():
     rows, problems = mappings.rows(sv, [example_with(cited)])
     assert problems == []
     assert rows[0]["see_also"] == "http://www.ncbi.nlm.nih.gov/pubmed/123"
+    page = {**MAPPING, "evidence": [{"reference": "url:https://example.org/term/1", "supports": "SUPPORT"}]}
+    rows, problems = mappings.rows(sv, [example_with(page)])
+    assert problems == [] and rows[0]["see_also"] == "https://example.org/term/1"
 
 
 @pytest.mark.parametrize("item,problem", [
@@ -291,11 +294,77 @@ def test_a_repeated_mapping_is_reported():
 
 
 def test_sssom_needs_the_mappings_slot(tmp_path):
-    # This Mech did not choose SSSOM, so its schema has no `mappings` for the export to read.
+    # This Mech did not choose SSSOM, so its schema has no SSSOM `mappings` for the export to
+    # read: none at all, or an older one of its own with another shape.
+    problem = mappings.shape_problem(export.schemaview())
+    assert problem is not None
     written, problems = export.export(SSSOM_ONLY, [EXAMPLE], tmp_path)
-    assert problems == [mappings.NO_SLOT] and written == []
+    assert problems == [problem] and written == []
 {%- endif %}
 
+
+
+MAPPING_SCHEMA = """
+id: https://example.org/shapes
+name: shapes
+prefixes:
+  linkml: https://w3id.org/linkml/
+imports: [linkml:types]
+default_range: string
+classes:
+  Sssom:
+    attributes:
+      id: {identifier: true}
+      mappings: {range: SssomMapping, multivalued: true, inlined_as_list: true}
+  Older:
+    attributes:
+      id: {identifier: true}
+      mappings: {range: OlderMapping, multivalued: true, inlined_as_list: true}
+  Strings:
+    attributes:
+      id: {identifier: true}
+      mappings: {multivalued: true}
+  Bare:
+    attributes:
+      id: {identifier: true}
+  SssomMapping:
+    attributes:
+      predicate_id: {}
+      object_id: {}
+      mapping_justification: {}
+  OlderMapping:
+    attributes:
+      id: {}
+      label: {}
+      predicate: {}
+      source: {}
+"""
+
+
+@pytest.mark.parametrize("cls,problem", [
+    ("Sssom", None),
+    ("Older", "OlderMapping, has no predicate_id, object_id, mapping_justification"),
+    ("Strings", "its range, string, has no predicate_id"),
+    ("Bare", "has no `mappings` slot"),
+])
+def test_only_an_sssom_shaped_mappings_slot_is_exported(cls, problem):
+    # A `mappings` slot of another shape (a Mech's own, from before SSSOM) is not SSSOM's.
+    from linkml_runtime.utils.schemaview import SchemaView
+
+    got = mappings.shape_problem(SchemaView(MAPPING_SCHEMA), cls)
+    if problem is None:
+        assert got is None
+    else:
+        assert problem in got
+        if cls != "Bare":
+            assert "Move it to SSSOM's fields" in got
+
+
+def test_a_url_reference_expands_to_its_url():
+    assert mappings.expand("url:https://example.org/a", {}) == "https://example.org/a"
+    assert mappings.expand("URL:https://example.org/a", {}) == "https://example.org/a"
+    assert mappings.expand("PMID:1", {"PMID": "http://x/"}) == "http://x/1"
+    assert mappings.expand("NOPE:1", {}) == "NOPE:1"
 
 def test_croissant_alone_is_refused(tmp_path, monkeypatch):
     bad = tmp_path / "export.yaml"

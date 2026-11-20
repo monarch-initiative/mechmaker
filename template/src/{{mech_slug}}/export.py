@@ -665,7 +665,7 @@ def export(
         out = out_dir / mappings.FILE
         count, mapping_problems = mappings.write(sv, [d for _, d in records], out)
         problems += mapping_problems
-        if mappings.NO_SLOT not in mapping_problems:
+        if mappings.shape_problem(sv) is None:
             written.append(out)
             try:
                 problems += mappings.check(out, count)
