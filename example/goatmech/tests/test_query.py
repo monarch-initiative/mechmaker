@@ -80,6 +80,11 @@ def test_the_graph_holds_the_record(example_corpus, tmp_path):
     assert len(found) == 1
 
 
+def test_an_ask_query_answers_yes_or_no(example_corpus, tmp_path):
+    query.build(tmp_path)
+    assert query.run_sparql(tmp_path, "ASK { ?s ?p ?o }") is True
+
+
 def test_a_broken_query_is_named(example_corpus, tmp_path, monkeypatch):
     lang = query.settings()["languages"][0]
     bad = {"id": "broken", "title": "Broken", "language": lang, "query": "SELECT nothing FROM nowhere"}

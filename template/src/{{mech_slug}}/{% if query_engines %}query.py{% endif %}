@@ -260,7 +260,8 @@ def run_sparql(data_dir: Path, sparql: str) -> list:
     if graph.stat().st_size:
         store.load(path=str(graph), format=pyoxigraph.RdfFormat.TURTLE)
     result = store.query(sparql)
-    return result if isinstance(result, bool) else list(result)
+    # An ASK query answers with a QueryBoolean, which is not iterable; the rest give rows or triples.
+    return bool(result) if isinstance(result, pyoxigraph.QueryBoolean) else list(result)
 
 
 def check(cfg: dict | None = None, data_dir: Path | None = None) -> list[str]:

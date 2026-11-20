@@ -81,6 +81,11 @@ def test_the_graph_holds_the_record(example_corpus, tmp_path):
     ns = "https://w3id.org/{{ github_org }}/{{ mech_slug }}/"
     found = query.run_sparql(tmp_path, "SELECT ?r WHERE { ?r a <" + ns + "{{ record_class }}> }")
     assert len(found) == 1
+
+
+def test_an_ask_query_answers_yes_or_no(example_corpus, tmp_path):
+    query.build(tmp_path)
+    assert query.run_sparql(tmp_path, "ASK { ?s ?p ?o }") is True
 {%- endif %}
 
 
