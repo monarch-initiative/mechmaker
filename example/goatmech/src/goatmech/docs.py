@@ -126,12 +126,13 @@ def generate() -> None:
         # pages/ is a local preview and not committed. Rendering here means the
         # browser exists even before the first record, and always matches them.
         from .render import build as render_browser
+        from .render import has_query_page
 
         for path, text in render_browser().items():
             out = records / path.relative_to(PAGES_DIR)
             out.parent.mkdir(parents=True, exist_ok=True)
             out.write_text(text, encoding="utf-8")
-        if (PACKAGE_DIR / "query.py").exists():
+        if has_query_page():  # the browser's own rule, so the data come only with the page
             from . import query
 
             _, problems = query.build(records / "data")
