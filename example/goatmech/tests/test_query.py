@@ -23,9 +23,21 @@ def test_committed_queries_are_sound():
                  {"id": "a", "title": "B", "language": "sql", "query": "SELECT 2"}]},
     {"queries": [{"id": "a", "title": "A", "language": "sql", "query": ""}]},
     {"languages": ["sql"], "queries": [{"id": "a", "title": "A", "language": "sparql", "query": "ASK {}"}]},
+    {"languages": "sql"},
+    {"languages": []},
+    {"queries": {"id": "a"}},
+    {"queries": [{"id": ["a"], "title": "A", "language": "sql", "query": "SELECT 1"}]},
+    {"shape": "the file holds a list, not a mapping"},
 ])
 def test_bad_queries_are_rejected(bad):
     assert query.problems({"languages": ["sql"], "queries": [], **bad})
+
+
+def test_a_file_that_is_not_a_mapping_is_named(monkeypatch, tmp_path):
+    path = tmp_path / "queries.yaml"
+    path.write_text("- id: a\n", encoding="utf-8")
+    monkeypatch.setattr(query, "SETTINGS", path)
+    assert query.problems(query.settings()) == ["the file holds a list, not a mapping"]
 
 
 def test_quotes_and_terms_are_found_with_their_section():

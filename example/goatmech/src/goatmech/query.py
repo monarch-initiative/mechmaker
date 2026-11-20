@@ -61,27 +61,44 @@ DERIVED = {
 
 
 def settings() -> dict:
+    """conf/queries.yaml as written; problems() says what is wrong with its shape."""
     data = yaml.safe_load(SETTINGS.read_text(encoding="utf-8")) if SETTINGS.exists() else {}
-    data = data or {}
-    return {"languages": list(data.get("languages") or ["sql"]), "queries": list(data.get("queries") or [])}
+    if data is None:
+        data = {}
+    if not isinstance(data, dict):
+        shape = f"the file holds a {type(data).__name__}, not a mapping"
+        return {"languages": [], "queries": [], "shape": shape}
+    langs = data.get("languages")
+    return {"languages": ["sql"] if langs is None else langs, "queries": data.get("queries") or []}
 
 
 def problems(cfg: dict) -> list[str]:
     """What is wrong with conf/queries.yaml itself, before any query runs."""
+    if cfg.get("shape"):
+        return [cfg["shape"]]
     out = []
-    bad = [lang for lang in cfg["languages"] if lang not in LANGUAGES]
+    langs, queries = cfg["languages"], cfg["queries"]
+    if not isinstance(langs, list) or not langs or not all(isinstance(lang, str) for lang in langs):
+        return [f"languages: {langs!r} is not a list of one or more of {list(LANGUAGES)}"]
+    if not isinstance(queries, list):
+        return [f"queries: a {type(queries).__name__}, not a list"]
+    bad = [lang for lang in langs if lang not in LANGUAGES]
     if bad:
         out.append(f"languages: unknown {bad}; choose from {list(LANGUAGES)}")
     seen = set()
-    for i, q in enumerate(cfg["queries"]):
+    for i, q in enumerate(queries):
         where = f"queries[{i}]"
         if not isinstance(q, dict):
             out.append(f"{where}: not a mapping")
             continue
         for key in ("id", "title", "language", "query"):
-            if not str(q.get(key) or "").strip():
+            if q.get(key) is not None and not isinstance(q[key], str):
+                out.append(f"{where}: {key} is a {type(q[key]).__name__}, not text")
+            elif not str(q.get(key) or "").strip():
                 out.append(f"{where}: no {key}")
         qid = q.get("id")
+        if not isinstance(qid, str):
+            continue
         if qid in seen:
             out.append(f"{where}: id {qid!r} is used twice")
         seen.add(qid)
