@@ -96,7 +96,9 @@ async function sqlEngine() {
     const table = await conn.query(text);
     const fields = table.schema.fields;
     const columns = fields.map(f => f.name);
-    const rows = table.toArray().map(row => fields.map(f => sqlValue(row[f.name], f.type)));
+    // By position, not name: a result may repeat a name (two tables' "id" in a join).
+    const vectors = fields.map((_, i) => table.getChildAt(i));
+    const rows = Array.from({length: table.numRows}, (_, r) => fields.map((f, i) => sqlValue(vectors[i].get(r), f.type)));
     return {columns, rows};
   };
 }
