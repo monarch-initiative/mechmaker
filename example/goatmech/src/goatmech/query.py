@@ -152,14 +152,31 @@ def quote(name: str) -> str:
     return '"' + name.replace('"', '""') + '"'
 
 
+def literal(text: str) -> str:
+    """A SQL string literal."""
+    return "'" + text.replace("'", "''") + "'"
+
+
 def write_parquet(con, table: str, columns: list[tuple[str, str]], rows: list, out_dir: Path) -> Path:
-    con.execute(f"CREATE TABLE {quote(table)} ({', '.join(f'{quote(c)} {t}' for c, t in columns)})")
-    if rows:
-        typed = [[None if v is None else str(v) if t == "VARCHAR" else bool(v) if t == "BOOLEAN" else v
-                  for v, (_, t) in zip(r, columns, strict=True)] for r in rows]
-        con.executemany(f"INSERT INTO {quote(table)} VALUES ({', '.join('?' * len(columns))})", typed)
+    """One table as Parquet. The rows go in at once, through a JSON lines file: row by row is slow."""
     out = out_dir / f"{table}.parquet"
-    con.execute(f"COPY {quote(table)} TO '{str(out).replace(chr(39), chr(39) * 2)}' (FORMAT parquet)")
+    if not rows:
+        con.execute(f"CREATE TABLE {quote(table)} ({', '.join(f'{quote(c)} {t}' for c, t in columns)})")
+    else:
+        with tempfile.TemporaryDirectory() as tmp:
+            lines = Path(tmp) / "rows.jsonl"
+            with lines.open("w", encoding="utf-8") as f:
+                for r in rows:
+                    typed = [None if v is None else str(v) if t == "VARCHAR" else bool(v) if t == "BOOLEAN"
+                             else v for v, (_, t) in zip(r, columns, strict=True)]
+                    # Keys by position (c0, c1, ...), so any column name is safe; renamed below.
+                    f.write(json.dumps({f"c{i}": v for i, v in enumerate(typed)}) + "\n")
+            types = ", ".join(f"{literal(f'c{i}')}: {literal(t)}" for i, (_, t) in enumerate(columns))
+            spec = "{" + types + "}"
+            picks = ", ".join(f"{quote(f'c{i}')} AS {quote(c)}" for i, (c, _) in enumerate(columns))
+            source = f"read_json({literal(str(lines))}, format = 'newline_delimited', columns = {spec})"
+            con.execute(f"CREATE TABLE {quote(table)} AS SELECT {picks} FROM {source}")
+    con.execute(f"COPY {quote(table)} TO {literal(str(out))} (FORMAT parquet)")
     return out
 
 
